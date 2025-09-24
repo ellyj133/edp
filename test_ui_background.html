@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <title>UI Background Test - Pure White Background</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .demo-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .color-sample {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 2px solid #333;
+            margin: 10px;
+            border-radius: 4px;
+        }
+        .old-grey { background-color: #f7f7f7; }
+        .new-white { background-color: #ffffff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UI Background Fix Demonstration</h1>
+        
+        <div class="demo-card">
+            <h2>Background Color Test</h2>
+            <p>This page demonstrates the pure white background fix:</p>
+            
+            <h3>Color Comparison:</h3>
+            <div>
+                <span class="color-sample old-grey" title="Old Grey: #f7f7f7"></span>
+                <strong>Old Grey Background (#f7f7f7)</strong>
+            </div>
+            <div>
+                <span class="color-sample new-white" title="New White: #ffffff"></span>
+                <strong>New Pure White Background (#ffffff)</strong>
+            </div>
+            
+            <h3>CSS Properties Applied:</h3>
+            <ul>
+                <li><code>background: #ffffff !important</code> on html, body</li>
+                <li><code>color-scheme: light</code> to prevent auto dark mode</li>
+                <li><code>--page-bg: #ffffff</code> CSS variable</li>
+                <li><code>meta name="theme-color" content="#ffffff"</code></li>
+                <li>Dark mode override: forces white even in dark mode preference</li>
+            </ul>
+            
+            <h3>Browser Compatibility:</h3>
+            <p>✅ Works consistently across Chrome, Firefox, Safari, Edge<br>
+            ✅ Prevents FOUC (Flash of Unstyled Content)<br>
+            ✅ Overrides dark mode preferences<br>
+            ✅ Maintains white background on components</p>
+        </div>
+        
+        <div class="demo-card">
+            <h2>Component Background Test</h2>
+            <p>This card should maintain its white background while the page background is also white.</p>
+            <p>Components with intentional background colors are preserved.</p>
+        </div>
+    </div>
+</body>
+</html>

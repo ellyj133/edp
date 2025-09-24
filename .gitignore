@@ -1,0 +1,9 @@
+# PHP
+vendor/
+composer.lock
+.env
+*.log
+storage/
+node_modules/
+.DS_Store
+nul

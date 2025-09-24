@@ -1,0 +1,510 @@
+<?php
+/**
+ * Visual Test for Enhanced Add Product Form
+ */
+
+// Mock session for testing
+session_start();
+$_SESSION['user_id'] = 1;
+$_SESSION['user_role'] = 'seller';
+
+// Load test database configuration  
+require_once 'test_db_config.php';
+
+// Mock categories for the form
+$categories = [
+    ['id' => 1, 'name' => 'Electronics'],
+    ['id' => 2, 'name' => 'Clothing'],
+    ['id' => 3, 'name' => 'Home & Garden'],
+    ['id' => 4, 'name' => 'Books'],
+    ['id' => 5, 'name' => 'Sports'],
+];
+
+// Mock form data
+$form = [
+    'name' => '',
+    'slug' => '',
+    'short_description' => '',
+    'description' => '',
+    'price' => '',
+    'compare_price' => '',
+    'cost_price' => '',
+    'category_id' => '',
+    'brand' => '',
+    'condition' => 'new',
+    'status' => 'draft',
+    'visibility' => 'public',
+    'track_inventory' => '1',
+    'allow_backorder' => '0',
+    'currency_code' => 'USD',
+    'stock_qty' => '',
+    'low_stock_threshold' => '5',
+    'tags' => '',
+    'weight_kg' => '',
+    'length_cm' => '',
+    'width_cm' => '',
+    'height_cm' => '',
+    'seo_title' => '',
+    'seo_description' => '',
+    'seo_keywords' => '',
+];
+
+$errors = [];
+$success = '';
+$csrf = bin2hex(random_bytes(16));
+
+if (!function_exists('h')) {
+    function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Enhanced Add Product Form - Visual Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+/* Enhanced Visual Test Styles */
+:root {
+  --accent:#1f2937;
+  --accent-alt:#111827;
+  --accent-bg:#f8fafc;
+  --primary:#111827;
+  --primary-hover:#0f172a;
+  --border:#e2e8f0;
+  --focus:#2563eb;
+  --danger:#dc2626;
+  --radius:12px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.02);
+  --shadow-md:0 2px 4px -2px rgba(0,0,0,.08),0 4px 6px -1px rgba(0,0,0,.06);
+  font-family: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+body {
+  background: linear-gradient(180deg,#f1f5f9 0,#f8fafc 160px);
+  color:#1e293b;
+  min-height: 100vh;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.page-header h1 {
+  color: var(--accent);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.page-header p {
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+/* Enhanced Form Styling */
+.form-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.form-section:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.form-section h3 {
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+/* Enhanced Form Controls */
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #d5dde5;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  transform: translateY(-1px);
+}
+
+/* Required Field Badge */
+.badge-required {
+  background: linear-gradient(45deg, #ef4444, #f97316);
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* Enhanced Button Styling */
+.btn {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-dark {
+  background: linear-gradient(45deg, var(--accent), var(--accent-alt));
+  border: none;
+}
+
+.btn-outline-dark:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Demo Section */
+.demo-section {
+  background: linear-gradient(45deg, #1e40af, #1d4ed8);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.demo-section h2 {
+  margin-bottom: 10px;
+}
+
+.demo-section p {
+  opacity: 0.9;
+  margin-bottom: 0;
+}
+
+/* Autosave Demo Indicator */
+.autosave-demo {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(40,167,69,0.95);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1050;
+  animation: slideInFromRight 0.5s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.sticky-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding: 15px 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  z-index: 60;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 20px 15px;
+  }
+  
+  .form-section {
+    padding: 20px;
+  }
+  
+  .sticky-actions {
+    padding: 12px 15px;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+    </style>
+</head>
+<body>
+    <div class="autosave-demo">
+        <i class="fas fa-check-circle"></i>
+        <span>Enhanced Autosave Active</span>
+    </div>
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1><i class="fas fa-plus-circle"></i> Enhanced Add Product</h1>
+            <p>Professional seller portal with autosave functionality</p>
+        </div>
+
+        <div class="demo-section">
+            <h2><i class="fas fa-sparkles"></i> UI/UX Enhancements Showcase</h2>
+            <p>Enhanced visual design, improved autosave with real-time feedback, modern animations, and professional styling</p>
+        </div>
+
+        <form method="POST" id="productForm" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
+
+            <!-- Basic Information Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                
+                <div class="mb-3">
+                    <label class="form-label">Product Name <span class="badge-required">Required</span></label>
+                    <input type="text" name="name" class="form-control" value="<?= h($form['name']) ?>" 
+                           placeholder="Enter your product name..." required>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Slug</label>
+                        <input type="text" name="slug" value="<?= h($form['slug']) ?>" class="form-control" 
+                               placeholder="auto-generated if blank">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Brand</label>
+                        <input type="text" name="brand" value="<?= h($form['brand']) ?>" class="form-control"
+                               placeholder="Brand name">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Condition</label>
+                        <select name="condition" class="form-select">
+                            <?php foreach(['new'=>'New','used'=>'Used','refurbished'=>'Refurbished'] as $k=>$v): ?>
+                                <option value="<?= h($k) ?>" <?= $form['condition']===$k?'selected':'' ?>><?= h($v) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Category</label>
+                        <select name="category_id" class="form-select">
+                            <option value="">— Select Category —</option>
+                            <?php foreach($categories as $c): ?>
+                                <option value="<?= (int)$c['id'] ?>" <?= ((string)$form['category_id']===(string)$c['id'])?'selected':'' ?>>
+                                    <?= h($c['name']) ?>
+                                </option>
+                            <?php endforeach;?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="draft" <?= $form['status']==='draft'?'selected':'' ?>>Draft</option>
+                            <option value="published" <?= $form['status']==='published'?'selected':'' ?>>Published</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Visibility</label>
+                        <select name="visibility" class="form-select">
+                            <option value="public"  <?= $form['visibility']==='public'?'selected':'' ?>>Public</option>
+                            <option value="private" <?= $form['visibility']==='private'?'selected':'' ?>>Private</option>
+                            <option value="hidden"  <?= $form['visibility']==='hidden'?'selected':'' ?>>Hidden</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Short Description</label>
+                    <textarea name="short_description" rows="2" class="form-control" maxlength="240"
+                              placeholder="Brief description for listings and previews..."><?= h($form['short_description']) ?></textarea>
+                    <div class="form-text">Shows in product listings and previews (max 240 chars).</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Full Description</label>
+                    <textarea name="description" rows="6" class="form-control"
+                              placeholder="Detailed product description..."><?= h($form['description']) ?></textarea>
+                </div>
+            </div>
+
+            <!-- Pricing Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-dollar-sign"></i> Pricing & Inventory</h3>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Price <span class="badge-required">Required</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="price" class="form-control" value="<?= h($form['price']) ?>" 
+                                   step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Compare at Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="compare_price" class="form-control" value="<?= h($form['compare_price']) ?>" 
+                                   step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cost Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="cost_price" class="form-control" value="<?= h($form['cost_price']) ?>" 
+                                   step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Stock Quantity</label>
+                        <input type="number" name="stock_qty" class="form-control" value="<?= h($form['stock_qty']) ?>" 
+                               min="0" placeholder="Enter stock quantity">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Low Stock Threshold</label>
+                        <input type="number" name="low_stock_threshold" class="form-control" value="<?= h($form['low_stock_threshold']) ?>" 
+                               min="0" placeholder="5">
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" name="track_inventory" class="form-check-input" value="1" 
+                                   <?= $form['track_inventory']?'checked':'' ?>>
+                            <label class="form-check-label">Track inventory</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" name="allow_backorder" class="form-check-input" value="1" 
+                                   <?= $form['allow_backorder']?'checked':'' ?>>
+                            <label class="form-check-label">Allow backorders</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo autosave functionality -->
+            <div class="form-section">
+                <h3><i class="fas fa-magic"></i> Autosave Demo</h3>
+                <p class="text-muted mb-3">Start typing in any field above to see the enhanced autosave functionality in action!</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Features:</strong> Real-time visual feedback, error handling, automatic draft saving, and professional animations.
+                </div>
+            </div>
+        </form>
+
+        <!-- Sticky Actions -->
+        <div class="sticky-actions">
+            <a href="#" class="btn btn-outline-secondary"><i class="fas fa-times"></i> Cancel</a>
+            <button type="button" class="btn btn-outline-dark"><i class="fas fa-save"></i> Save Draft</button>
+            <button type="submit" form="productForm" class="btn btn-dark"><i class="fas fa-check"></i> Save & Continue</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Demo autosave functionality
+        const form = document.getElementById('productForm');
+        let autosaveTimer = null;
+        let isAutosaving = false;
+
+        // Create demo autosave indicator
+        function showAutosaveDemo(status, message, duration = 3000) {
+            let indicator = document.querySelector('.autosave-demo');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'autosave-demo';
+                document.body.appendChild(indicator);
+            }
+
+            const icons = {
+                saving: 'fas fa-spinner fa-spin',
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-triangle'
+            };
+
+            const colors = {
+                saving: 'rgba(0,123,255,0.95)',
+                success: 'rgba(40,167,69,0.95)',
+                error: 'rgba(220,53,69,0.95)'
+            };
+
+            indicator.innerHTML = `<i class="${icons[status]}"></i> <span>${message}</span>`;
+            indicator.style.backgroundColor = colors[status];
+
+            if (status !== 'saving') {
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, duration);
+            }
+        }
+
+        // Demo autosave function
+        async function demoAutosave() {
+            const nameField = form.querySelector('[name="name"]');
+            if (!nameField.value.trim() || isAutosaving) return;
+
+            isAutosaving = true;
+            showAutosaveDemo('saving', 'Saving draft...');
+
+            // Simulate API call
+            setTimeout(() => {
+                const time = new Date().toLocaleTimeString();
+                showAutosaveDemo('success', `Draft saved at ${time}`);
+                isAutosaving = false;
+            }, 1500);
+        }
+
+        // Add event listeners for demo
+        form.addEventListener('input', (e) => {
+            clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(demoAutosave, 2000);
+        });
+
+        // Slug auto-generation
+        const nameField = form.querySelector('[name="name"]');
+        const slugField = form.querySelector('[name="slug"]');
+        
+        nameField.addEventListener('input', () => {
+            if (!slugField.value) {
+                slugField.value = nameField.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+            }
+        });
+    </script>
+</body>
+</html>
