@@ -77,11 +77,8 @@ img {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding: 6px 20px;
+    width: 100%;
 }
 
 .top-nav-left, .top-nav-right {
@@ -179,8 +176,7 @@ img {
     display: flex;
     align-items: center;
     gap: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -354,12 +350,11 @@ img {
 .category-nav-content {
     display: flex;
     gap: 0;
-    padding: 0;
+    padding: 0 20px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .category-nav-content::-webkit-scrollbar {
@@ -412,8 +407,7 @@ img {
     align-items: center;
     justify-content: space-between;
     gap: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -481,8 +475,7 @@ img {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 32px;
     padding: 40px 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .footer-section h3 {
@@ -659,8 +652,8 @@ img {
     justify-content: space-between;
     align-items: center;
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    padding: 0 20px;
 }
 
 .footer-bottom-left {
@@ -2016,9 +2009,7 @@ footer {
     overflow: hidden;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     margin: 24px 20px;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    width: calc(100% - 40px);
 }
 
 .hero-image {
@@ -2134,9 +2125,7 @@ footer {
 .section-header {
     text-align: center;
     margin-bottom: 40px;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -2156,8 +2145,7 @@ footer {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -2298,8 +2286,7 @@ footer {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
     gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -2402,10 +2389,8 @@ footer {
     display: flex;
     align-items: center;
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-    margin-left: 20px;
-    margin-right: 20px;
+    width: calc(100% - 40px);
+    margin: 0 20px;
 }
 
 .cta-icon i {
@@ -2742,8 +2727,8 @@ footer {
     grid-template-columns: 1fr 1fr;
     gap: 40px;
     align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: calc(100% - 40px);
+    margin: 0 20px;
 }
 
 .spotlight-label {
@@ -2896,8 +2881,7 @@ footer {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -3016,8 +3000,7 @@ footer {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -3089,8 +3072,7 @@ footer {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 

@@ -24,8 +24,7 @@
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
             padding: 0 20px;
         }
 
@@ -49,7 +48,7 @@
 
         /* ========== eBay-Style Homepage Layout ========== */
         .homepage-container {
-            max-width: 100%;
+            width: 100%;
             margin: 0 auto;
             background: #ffffff;
         }
@@ -61,9 +60,7 @@
         .section-header {
             text-align: center;
             margin-bottom: 32px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 100%;
             padding: 0 20px;
         }
 
@@ -96,9 +93,7 @@
             overflow: hidden;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 24px 20px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
+            width: calc(100% - 40px);
         }
 
         .hero-content {
@@ -182,8 +177,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
             padding: 0 20px;
         }
 
@@ -235,8 +229,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 24px;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
             padding: 0 20px;
         }
 
@@ -318,9 +311,7 @@
             align-items: flex-end;
             gap: 1rem;
             margin-bottom: 18px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 100%;
             padding: 0 20px;
         }
 
@@ -396,8 +387,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 24px;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
             padding: 0 20px;
         }
 
@@ -447,8 +437,8 @@
             background: white;
             border-radius: 16px;
             padding: 40px;
-            max-width: 800px;
-            margin: 0 auto;
+            width: calc(100% - 40px);
+            margin: 0 20px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
 
