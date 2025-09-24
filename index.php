@@ -105,12 +105,14 @@ if (empty($layoutSections)) {
 // Fetch banners from database for CMS management
 $banners = [];
 try {
-    $stmt = $db->query("
-        SELECT * FROM homepage_banners 
-        WHERE status = 'active' 
-        ORDER BY position, sort_order
-    ");
-    $banners = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (isset($db)) {
+        $stmt = $db->query("
+            SELECT * FROM homepage_banners 
+            WHERE status = 'active' 
+            ORDER BY position, sort_order
+        ");
+        $banners = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (Throwable $e) {
     error_log('Failed to fetch banners: ' . $e->getMessage());
     // Fallback to empty array

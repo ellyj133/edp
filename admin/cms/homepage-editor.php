@@ -14,6 +14,11 @@ $pdo = db();
 requireAdminAuth();
 checkPermission('cms.manage');
 
+// Set reasonable limits for file uploads
+ini_set('upload_max_filesize', '5M');
+ini_set('post_max_size', '6M');
+ini_set('max_execution_time', '30');
+
 $message = '';
 $error = '';
 
@@ -32,14 +37,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $sections = json_decode($_POST['sections'] ?? '[]', true);
                 if (!is_array($sections)) {
-                    throw new Exception('Invalid sections data');
+                    throw new Exception('Invalid sections data - must be an array');
                 }
                 
-                // Save layout configuration
+                // Validate section structure
+                $validSectionTypes = ['hero', 'categories', 'deals', 'products', 'brands'];
+                foreach ($sections as $section) {
+                    if (!is_array($section) || !isset($section['id']) || !isset($section['type'])) {
+                        throw new Exception('Invalid section structure - missing required fields');
+                    }
+                    if (!in_array($section['type'], $validSectionTypes)) {
+                        throw new Exception('Invalid section type: ' . htmlspecialchars($section['type']));
+                    }
+                    if (strlen($section['id']) > 50) {
+                        throw new Exception('Section ID too long');
+                    }
+                }
+                
+                // Save layout configuration - use INSERT ... ON DUPLICATE KEY UPDATE
                 $stmt = $pdo->prepare("
-                    UPDATE homepage_sections 
-                    SET section_data = ?, updated_at = NOW() 
-                    WHERE section_key = 'layout_config'
+                    INSERT INTO homepage_sections (section_key, section_data, created_at, updated_at) 
+                    VALUES ('layout_config', ?, NOW(), NOW()) 
+                    ON DUPLICATE KEY UPDATE section_data = VALUES(section_data), updated_at = NOW()
                 ");
                 $stmt->execute([json_encode($sections)]);
                 
@@ -51,8 +70,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('Invalid CSRF token');
                 }
                 
+                // Validate input parameters
                 $position = $_POST['position'] ?? 'hero';
-                $title = $_POST['title'] ?? '';
+                $title = trim($_POST['title'] ?? '');
+                
+                $validPositions = ['hero', 'top', 'middle', 'bottom', 'sidebar'];
+                if (!in_array($position, $validPositions)) {
+                    throw new Exception('Invalid banner position');
+                }
+                
+                if (strlen($title) > 255) {
+                    throw new Exception('Title too long (max 255 characters)');
+                }
                 
                 // Handle file upload
                 if (!isset($_FILES['banner_image']) || $_FILES['banner_image']['error'] !== UPLOAD_ERR_OK) {
@@ -62,6 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $file = $_FILES['banner_image'];
                 $uploadDir = __DIR__ . '/../../uploads/banners/';
                 
+                // Additional security checks
+                $maxFileSize = 5 * 1024 * 1024; // 5MB
+                if ($file['size'] > $maxFileSize) {
+                    throw new Exception('File too large. Maximum size is 5MB.');
+                }
+                
+                // Validate MIME type
+                $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                $fileMimeType = mime_content_type($file['tmp_name']);
+                if (!in_array($fileMimeType, $allowedMimeTypes)) {
+                    throw new Exception('Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.');
+                }
+                
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0755, true);
                 }
@@ -70,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
                 
                 if (!in_array($fileExtension, $allowedExtensions)) {
-                    throw new Exception('Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.');
+                    throw new Exception('Invalid file extension. Only JPG, PNG, GIF, and WebP are allowed.');
                 }
                 
                 $fileName = uniqid() . '.' . $fileExtension;
@@ -87,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     INSERT INTO homepage_banners (title, image_url, position, status, created_by) 
                     VALUES (?, ?, ?, 'active', ?)
                 ");
-                $stmt->execute([$title, $imageUrl, $position, $_SESSION['user_id']]);
+                $stmt->execute([$title, $imageUrl, $position, getCurrentUserId()]);
                 
                 echo json_encode([
                     'success' => true, 
