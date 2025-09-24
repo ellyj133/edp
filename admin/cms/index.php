@@ -318,6 +318,9 @@ function generateSlug($text) {
                         <button type="button" class="btn btn-primary" onclick="createPage()">
                             <i class="fas fa-plus"></i> New Page
                         </button>
+                        <a href="homepage-editor.php" class="btn btn-success">
+                            <i class="fas fa-home"></i> Homepage Editor
+                        </a>
                         <?php endif; ?>
                         <?php if (hasPermission('banners.manage')): ?>
                         <button type="button" class="btn btn-success" onclick="createBanner()">
