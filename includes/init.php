@@ -288,6 +288,18 @@ if (Session::isLoggedIn()) {
     try {
         $user = new User();
         $current_user = $user->find(Session::getUserId());
+        
+        // If database query failed, use session data as fallback
+        if (!$current_user) {
+            $current_user = [
+                'id' => Session::getUserId(),
+                'email' => Session::get('user_email', 'user@example.com'),
+                'username' => Session::get('username', 'User'),
+                'first_name' => Session::get('first_name', 'User'),
+                'last_name' => Session::get('last_name', ''),
+                'role' => Session::get('user_role', 'customer')
+            ];
+        }
 
         $cart = new Cart();
         $cart_count = $cart->getCartCount(Session::getUserId());
@@ -295,9 +307,11 @@ if (Session::isLoggedIn()) {
         // Database not available, use fallback
         $current_user = [
             'id' => Session::getUserId(),
-            'email' => Session::get('user_email', 'admin@example.com'),
-            'username' => Session::get('username', 'Administrator'),
-            'role' => Session::get('user_role', 'admin')
+            'email' => Session::get('user_email', 'user@example.com'),
+            'username' => Session::get('username', 'User'),
+            'first_name' => Session::get('first_name', 'User'),
+            'last_name' => Session::get('last_name', ''),
+            'role' => Session::get('user_role', 'customer')
         ];
         $cart_count = 0;
     }

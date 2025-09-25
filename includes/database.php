@@ -23,8 +23,12 @@ if (!class_exists('Database')) {
             return self::$instance;
         }
 
-        public function getConnection(): PDO {
-            return db();
+        public function getConnection(): ?PDO {
+            try {
+                return db();
+            } catch (Exception $e) {
+                return null;
+            }
         }
 
         public static function query(string $sql, array $params = []): PDOStatement {
@@ -67,7 +71,13 @@ if (!class_exists('BaseModel')) {
         private array $columnCache = [];
 
         public function __construct() {
-            $this->db = db();
+            try {
+                $this->db = db();
+            } catch (Exception $e) {
+                // Database connection failed - set to null and handle gracefully
+                $this->db = null;
+                error_log("Database connection failed in BaseModel: " . $e->getMessage());
+            }
         }
 
         protected function getTableColumns(): array {
@@ -85,12 +95,18 @@ if (!class_exists('BaseModel')) {
         }
 
         public function find($id) {
+            if (!$this->db) {
+                return false; // Return false if no database connection
+            }
             $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = ?");
             $stmt->execute([$id]);
             return $stmt->fetch();
         }
 
         public function findAll($limit = null, $offset = 0) {
+            if (!$this->db) {
+                return []; // Return empty array if no database connection
+            }
             $sql = "SELECT * FROM {$this->table}";
             if ($limit) {
                 $sql .= " LIMIT {$limit} OFFSET {$offset}";

@@ -9,6 +9,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../includes/init.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/security.php';
+require_once __DIR__ . '/../auth.php'; // Seller authentication guard
 if (file_exists(__DIR__ . '/../../includes/image_upload_handler.php')) {
     require_once __DIR__ . '/../../includes/image_upload_handler.php';
 }
@@ -40,9 +41,17 @@ if ($id<=0){ header('Location:/seller/products/'); exit; }
 if (!Session::get('csrf_token')) { Session::set('csrf_token', bin2hex(random_bytes(18))); }
 $csrf = csrfToken();
 
-// Load product
+// Load product - check by vendor_id instead of seller_id
 try{
-  $product = Database::query("SELECT * FROM products WHERE id=? AND seller_id=? LIMIT 1", [$id, Session::getUserId()])->fetch(PDO::FETCH_ASSOC);
+  // First get the vendor info for the current user
+  $vendor = new Vendor();
+  $vendorInfo = $vendor->findByUserId(Session::getUserId());
+  if (!$vendorInfo) {
+    header('Location:/seller/products/');
+    exit;
+  }
+  
+  $product = Database::query("SELECT * FROM products WHERE id=? AND vendor_id=? LIMIT 1", [$id, $vendorInfo['id']])->fetch(PDO::FETCH_ASSOC);
   if(!$product){ header('Location:/seller/products/'); exit; }
 }catch(Throwable $e){ error_log('load product: '.$e->getMessage()); header('Location:/seller/products/'); exit; }
 
@@ -270,6 +279,23 @@ $breadcrumb_items = [
 includeHeader($page_title);
 ?>
 <div class="container my-4">
+  <?php 
+  // Show success message if product was just created
+  if (Session::hasFlash('success')): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <strong>Success!</strong> <?php echo Session::getFlash('success'); ?>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <?php endif;
+  
+  // Check for created parameter
+  if (isset($_GET['created']) && $_GET['created'] == '1'): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <strong>Product Created Successfully!</strong> Your product "<?php echo h($product['name']); ?>" has been created and saved. You can now continue editing or add images.
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <?php endif; ?>
+  
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Edit Product</h1>
     <div>

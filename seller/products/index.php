@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../includes/init.php';
+require_once __DIR__ . '/../auth.php'; // Seller authentication guard
 // functions.php may already be auto-loaded in init.php; h()/csrf not required here.
 if (!function_exists('h')) {
     function h($v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -45,8 +46,17 @@ $sortBy      = in_array($_GET['sort'] ?? 'created_at', $allowedSort, true) ? ($_
 $sortDir     = (($_GET['dir'] ?? 'desc') === 'asc') ? 'asc' : 'desc';
 
 /* ---------------------------- Filters SQL -------------------------------- */
-$where = ["p.seller_id = ?"];
-$params = [Session::getUserId()];
+// Get vendor ID for the current user
+$vendor = new Vendor();
+$vendorInfo = $vendor->findByUserId(Session::getUserId());
+if (!$vendorInfo) {
+    // If no vendor account, show empty results
+    $where = ["p.vendor_id = ?"];
+    $params = [-1]; // Non-existent vendor ID
+} else {
+    $where = ["p.vendor_id = ?"];
+    $params = [$vendorInfo['id']];
+}
 
 if ($search !== '') {
     $where[] = "(p.name LIKE ? OR p.sku LIKE ? OR p.slug LIKE ?)";
@@ -185,7 +195,23 @@ includeHeader($page_title);
         </thead>
         <tbody>
           <?php if (!$products): ?>
-            <tr><td colspan="10" class="text-center text-muted py-4">No products found.</td></tr>
+            <tr>
+              <td colspan="10" class="text-center py-5">
+                <div class="text-muted">
+                  <h5>No products found</h5>
+                  <?php if (!$vendorInfo): ?>
+                    <p>You need to complete your vendor registration before you can add products.</p>
+                    <a href="/seller-register.php" class="btn btn-primary">Complete Vendor Registration</a>
+                  <?php elseif ($search || $category || $brand || $status): ?>
+                    <p>Try adjusting your search filters to find more products.</p>
+                    <a href="/seller/products/" class="btn btn-outline-primary">Clear Filters</a>
+                  <?php else: ?>
+                    <p>Get started by adding your first product to start selling!</p>
+                    <a href="/seller/products/add.php" class="btn btn-primary">Add Your First Product</a>
+                  <?php endif; ?>
+                </div>
+              </td>
+            </tr>
           <?php else: foreach ($products as $p): ?>
             <tr>
               <td><?= (int)$p['id'] ?></td>

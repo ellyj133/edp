@@ -40,7 +40,7 @@ includeHeader($page_title);
                 <div class="sitemap-section">
                     <h3>Selling</h3>
                     <ul>
-                        <li><a href="/sell.php">Start Selling</a></li>
+                        <li><a href="<?php echo getSellingUrl(); ?>">Start Selling</a></li>
                         <li><a href="/seller-center.php">Seller Center</a></li>
                     </ul>
                 </div>

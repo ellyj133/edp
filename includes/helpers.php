@@ -23,6 +23,39 @@ if (!function_exists('sellerUrl')) {
 }
 
 /**
+ * Get the appropriate selling URL based on user status
+ * This function handles the selling link redirect logic:
+ * - If user is a registered vendor: redirect to seller-center.php
+ * - If user is logged in but not a vendor: redirect to seller-register.php
+ * - If user is not logged in: redirect to register.php with seller parameter
+ */
+if (!function_exists('getSellingUrl')) {
+    function getSellingUrl() {
+        if (!Session::isLoggedIn()) {
+            // Not logged in - redirect to registration with seller flag
+            return '/register.php?seller=1';
+        }
+        
+        // User is logged in - check if they're a vendor
+        try {
+            $vendor = new Vendor();
+            $existingVendor = $vendor->findByUserId(Session::getUserId());
+            
+            if ($existingVendor) {
+                // User is already a vendor - go to seller center
+                return '/seller-center.php';
+            } else {
+                // User is logged in but not a vendor - go to seller registration
+                return '/seller-register.php';
+            }
+        } catch (Exception $e) {
+            // If there's an error checking vendor status, default to seller registration
+            return '/seller-register.php';
+        }
+    }
+}
+
+/**
  * Generate URL for account routes
  */
 if (!function_exists('accountUrl')) {
