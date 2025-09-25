@@ -102,7 +102,7 @@
             <!-- Copyright and Legal Links -->
             <div class="footer-bottom">
                 <div class="copyright-text">
-                    Copyright © 1995-<?php echo date('Y'); ?> FezaMarket Inc. All Rights Reserved.
+                    Copyright ï¿½ 1995-<?php echo date('Y'); ?> FezaMarket Inc. All Rights Reserved.
                 </div>
                 <div class="legal-links">
                     <a href="/accessibility.php">Accessibility</a>,
@@ -263,8 +263,8 @@
     </style>
 
     <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery-shim.js"></script>
+    <script src="/js/fezamarket.js"></script>
     
     <script>
         $(document).ready(function() {

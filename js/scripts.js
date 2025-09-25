@@ -1,10 +1,11 @@
 /**
  * FezaMarket E-Commerce Platform JavaScript
- * Frontend functionality and interactions
+ * Frontend functionality and interactions - Extension of main FezaMarket object
  */
 
-// Application object
-const FezaMarket = {
+// Extend the existing FezaMarket object if it exists
+if (typeof FezaMarket !== 'undefined') {
+    // Add additional functionality to existing FezaMarket object
     config: {
         apiUrl: '/api',
         cartUpdateDelay: 500
