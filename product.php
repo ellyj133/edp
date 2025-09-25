@@ -9,8 +9,32 @@
 
 require_once __DIR__ . '/includes/init.php';
 
-$productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($productId <= 0) {
+// Handle both ID and slug parameters from router
+$productId = null;
+$productSlug = null;
+
+// Check for route parameters first (from router)
+if (isset($_GET['route_params']) && !empty($_GET['route_params'][0])) {
+    $param = $_GET['route_params'][0];
+    // If parameter is numeric, treat as ID; otherwise as slug
+    if (is_numeric($param)) {
+        $productId = (int)$param;
+    } else {
+        $productSlug = $param;
+    }
+}
+
+// Fallback to direct GET parameters for backwards compatibility
+if (!$productId && !$productSlug) {
+    if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+        $productId = (int)$_GET['id'];
+    } elseif (isset($_GET['slug'])) {
+        $productSlug = $_GET['slug'];
+    }
+}
+
+// If no valid parameter, redirect
+if (!$productId && !$productSlug) {
     header('Location: /products.php');
     exit;
 }
@@ -18,8 +42,17 @@ if ($productId <= 0) {
 $productModel        = new Product();
 $recommendationModel = new Recommendation();
 
-// Core product
-$productData = $productModel->findWithVendor($productId);
+// Find product by ID or slug
+$productData = null;
+if ($productId) {
+    $productData = $productModel->findWithVendor($productId);
+} elseif ($productSlug) {
+    $productData = $productModel->findBySlug($productSlug);
+    if ($productData) {
+        $productId = $productData['id']; // Set productId for subsequent calls
+    }
+}
+
 if (!$productData) {
     header('Location: /products.php');
     exit;
@@ -38,7 +71,7 @@ if (!$primaryImage && !empty($images[0]['image_url'])) {
     $primaryImage = $images[0]['image_url'];
 }
 $primaryImage = $primaryImage
-    ?? ($productData['image_url'] ?? ($productData['thumbnail_path'] ?? '/assets/images/placeholder-product.png'));
+    ?? ($productData['image_url'] ?? ($productData['thumbnail_path'] ?? '/images/placeholder-product.png'));
 
 // Reviews & rating
 $reviews = $productModel->getReviews($productId, 8);
@@ -94,7 +127,7 @@ if ($rawSpecs) {
                 [$l, $val] = explode(':', $line, 2);
                 $specItems[] = ['label' => trim($l), 'value' => trim($val)];
             } else {
-                $specItems[] = ['label' => $line, 'value' => '—'];
+                $specItems[] = ['label' => $line, 'value' => 'ï¿½'];
             }
         }
     }
@@ -211,7 +244,7 @@ if (function_exists('includeHeader')) {
 
 .about-bullets { list-style:none; padding:0; margin:0 0 8px; }
 .about-bullets li { position:relative; padding-left:20px; margin:8px 0; font-size:14px; line-height:1.5; }
-.about-bullets li:before { content:'•'; position:absolute; left:0; color:var(--c-primary); font-weight:700; }
+.about-bullets li:before { content:'ï¿½'; position:absolute; left:0; color:var(--c-primary); font-weight:700; }
 .show-more { background:none; border:none; color:var(--c-primary); font-size:13px; cursor:pointer; padding:0; }
 
 .spec-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
@@ -422,7 +455,7 @@ if (function_exists('includeHeader')) {
 
                 <div class="stock-msg">
                     <?php if (!empty($productData['stock_quantity'])): ?>
-                        In stock • Ships soon
+                        In stock ï¿½ Ships soon
                     <?php else: ?>
                         <span class="oos">Currently unavailable</span>
                     <?php endif; ?>
@@ -430,6 +463,7 @@ if (function_exists('includeHeader')) {
 
                 <form class="add-cart" action="/cart/add.php" method="post">
                     <input type="hidden" name="product_id" value="<?= (int)$productId; ?>">
+                    <?= csrfTokenInput(); ?>
                     <div class="qty-row">
                         <label class="sr-only" for="qtySelect">Quantity</label>
                         <select id="qtySelect" name="quantity" aria-label="Quantity">

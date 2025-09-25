@@ -434,8 +434,281 @@ $breadcrumb_items = [
 ];
 includeHeader($page_title);
 ?>
-<div class="container my-4">
-    <h1 class="h3 mb-3">Add New Product</h1>
+
+<!-- Enhanced Styling for Professional UX -->
+<style>
+:root {
+    --seller-primary: #2563eb;
+    --seller-success: #059669;
+    --seller-warning: #d97706;
+    --seller-danger: #dc2626;
+    --seller-gray-50: #f9fafb;
+    --seller-gray-100: #f3f4f6;
+    --seller-gray-200: #e5e7eb;
+    --seller-gray-300: #d1d5db;
+    --seller-gray-600: #4b5563;
+    --seller-gray-900: #111827;
+}
+
+.seller-form-container {
+    background: var(--seller-gray-50);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.seller-form-card {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.seller-form-card .card-header {
+    background: linear-gradient(135deg, var(--seller-primary), #3b82f6);
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: none;
+    position: relative;
+}
+
+.seller-form-card .card-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+}
+
+.seller-form-card .card-body {
+    padding: 2rem 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--seller-gray-900);
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.form-control, .form-select {
+    border: 2px solid var(--seller-gray-200);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--seller-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    outline: none;
+}
+
+.form-control:hover, .form-select:hover {
+    border-color: var(--seller-gray-300);
+}
+
+.form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--seller-gray-300);
+    border-radius: 4px;
+}
+
+.form-check-input:checked {
+    background-color: var(--seller-primary);
+    border-color: var(--seller-primary);
+}
+
+.form-check-label {
+    font-weight: 500;
+    color: var(--seller-gray-600);
+    margin-left: 0.5rem;
+}
+
+/* Enhanced shipping section styling */
+.shipping-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.shipping-grid .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.shipping-dimensions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.shipping-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+/* Image upload styling */
+.image-upload-area {
+    border: 2px dashed var(--seller-gray-300);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: var(--seller-gray-50);
+}
+
+.image-upload-area:hover {
+    border-color: var(--seller-primary);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.image-upload-area .upload-icon {
+    font-size: 2.5rem;
+    color: var(--seller-gray-400);
+    margin-bottom: 1rem;
+}
+
+.image-preview {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin: 0.5rem;
+    transition: transform 0.2s ease;
+}
+
+.image-preview:hover {
+    transform: scale(1.05);
+}
+
+/* Button styling */
+.btn-primary {
+    background: linear-gradient(135deg, var(--seller-primary), #3b82f6);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8, var(--seller-primary));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-outline-secondary {
+    border: 2px solid var(--seller-gray-300);
+    color: var(--seller-gray-600);
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    background: var(--seller-gray-100);
+    border-color: var(--seller-gray-400);
+    transform: translateY(-1px);
+}
+
+/* Form sections with better spacing */
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.form-row {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.form-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.form-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 768px) {
+    .form-row.cols-2,
+    .form-row.cols-3,
+    .form-row.cols-4 {
+        grid-template-columns: 1fr;
+    }
+    
+    .shipping-dimensions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Progress indicator */
+.form-progress {
+    background: var(--seller-gray-200);
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.form-progress-bar {
+    background: linear-gradient(90deg, var(--seller-primary), var(--seller-success));
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Success messages */
+.alert {
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.alert-success {
+    background: rgba(5, 150, 105, 0.1);
+    color: #059669;
+    border-left: 4px solid var(--seller-success);
+}
+
+.alert-danger {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+    border-left: 4px solid var(--seller-danger);
+}
+</style>
+
+<div class="seller-form-container">
+<div class="container">
+    <!-- Progress Indicator -->
+    <div class="form-progress">
+        <div class="form-progress-bar" id="formProgress"></div>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1" style="color: var(--seller-gray-900); font-weight: 700;">Add New Product</h1>
+            <p class="text-muted">Create a professional product listing with all the details</p>
+        </div>
+        <div>
+            <a href="/seller/products/" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Products
+            </a>
+        </div>
+    </div>
 
     <?php if (!empty($errors['general'])): ?>
         <div class="alert alert-danger"><?= h($errors['general']) ?></div>
@@ -445,39 +718,45 @@ includeHeader($page_title);
         <?= csrfTokenInput(); ?>
 
         <!-- Basics -->
-        <div class="card mb-3">
-            <div class="card-header">Basic Info</div>
-            <div class="card-body row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Name</label>
-                    <input type="text" name="name" class="form-control <?= isset($errors['name'])?'is-invalid':''; ?>" value="<?= h($form['name']) ?>" required>
-                    <?php if (isset($errors['name'])): ?><div class="invalid-feedback"><?= h($errors['name']) ?></div><?php endif; ?>
+        <div class="seller-form-card">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2"></i>Basic Information
+            </div>
+            <div class="card-body">
+                <div class="form-row cols-2">
+                    <div>
+                        <label class="form-label">Product Name</label>
+                        <input type="text" name="name" class="form-control <?= isset($errors['name'])?'is-invalid':''; ?>" value="<?= h($form['name']) ?>" required placeholder="Enter product name">
+                        <?php if (isset($errors['name'])): ?><div class="invalid-feedback"><?= h($errors['name']) ?></div><?php endif; ?>
+                    </div>
+                    <div>
+                        <label class="form-label">URL Slug</label>
+                        <input type="text" name="slug" class="form-control" value="<?= h($form['slug']) ?>" placeholder="Auto-generated from name">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Slug</label>
-                    <input type="text" name="slug" class="form-control" value="<?= h($form['slug']) ?>" placeholder="auto from name">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">SKU</label>
-                    <input type="text" name="sku" class="form-control" value="<?= h($form['sku']) ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Category</label>
-                    <select name="category_id" class="form-select <?= isset($errors['category_id'])?'is-invalid':''; ?>">
-                        <option value="">-- Select --</option>
-                        <?php foreach ($allCategories as $c): ?>
-                            <option value="<?= (int)$c['id'] ?>" <?= ($form['category_id']==$c['id']?'selected':'') ?>><?= h($c['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if (isset($errors['category_id'])): ?><div class="invalid-feedback"><?= h($errors['category_id']) ?></div><?php endif; ?>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Brand</label>
-                    <select name="brand_id" class="form-select <?= isset($errors['brand_id'])?'is-invalid':''; ?>">
-                        <option value="">-- Select --</option>
-                        <?php foreach ($allBrands as $b): ?>
-                            <option value="<?= (int)$b['id'] ?>" <?= ($form['brand_id']==$b['id']?'selected':'') ?>><?= h($b['name']) ?></option>
-                        <?php endforeach; ?>
+                
+                <div class="form-row cols-3">
+                    <div>
+                        <label class="form-label">SKU</label>
+                        <input type="text" name="sku" class="form-control" value="<?= h($form['sku']) ?>" placeholder="Product SKU">
+                    </div>
+                    <div>
+                        <label class="form-label">Category</label>
+                        <select name="category_id" class="form-select <?= isset($errors['category_id'])?'is-invalid':''; ?>">
+                            <option value="">-- Select Category --</option>
+                            <?php foreach ($allCategories as $c): ?>
+                                <option value="<?= (int)$c['id'] ?>" <?= ($form['category_id']==$c['id']?'selected':'') ?>><?= h($c['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (isset($errors['category_id'])): ?><div class="invalid-feedback"><?= h($errors['category_id']) ?></div><?php endif; ?>
+                    </div>
+                    <div>
+                        <label class="form-label">Brand</label>
+                        <select name="brand_id" class="form-select <?= isset($errors['brand_id'])?'is-invalid':''; ?>">
+                            <option value="">-- Select Brand --</option>
+                            <?php foreach ($allBrands as $b): ?>
+                                <option value="<?= (int)$b['id'] ?>" <?= ($form['brand_id']==$b['id']?'selected':'') ?>><?= h($b['name']) ?></option>
+                            <?php endforeach; ?>
                     </select>
                     <?php if (isset($errors['brand_id'])): ?><div class="invalid-feedback"><?= h($errors['brand_id']) ?></div><?php endif; ?>
                 </div>
@@ -556,44 +835,86 @@ includeHeader($page_title);
         </div>
 
         <!-- Shipping -->
-        <div class="card mb-3">
-            <div class="card-header">Shipping</div>
-            <div class="card-body row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">Weight</label>
-                    <input type="number" step="0.001" name="weight" class="form-control" value="<?= h($form['weight']) ?>">
+        <div class="seller-form-card">
+            <div class="card-header">
+                <i class="fas fa-shipping-fast me-2"></i>Shipping & Dimensions
+            </div>
+            <div class="card-body">
+                <!-- Weight and Dimensions -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">Physical Properties</h6>
+                    <div class="shipping-dimensions">
+                        <div>
+                            <label class="form-label">Weight (kg)</label>
+                            <input type="number" step="0.001" name="weight" class="form-control" value="<?= h($form['weight']) ?>" placeholder="0.000">
+                        </div>
+                        <div>
+                            <label class="form-label">Length (cm)</label>
+                            <input type="number" step="0.01" name="length" class="form-control" value="<?= h($form['length']) ?>" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="form-label">Width (cm)</label>
+                            <input type="number" step="0.01" name="width" class="form-control" value="<?= h($form['width']) ?>" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="form-label">Height (cm)</label>
+                            <input type="number" step="0.01" name="height" class="form-control" value="<?= h($form['height']) ?>" placeholder="0.00">
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Length</label>
-                    <input type="number" step="0.01" name="length" class="form-control" value="<?= h($form['length']) ?>">
+                
+                <!-- Shipping Configuration -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">Shipping Configuration</h6>
+                    <div class="shipping-info">
+                        <div>
+                            <label class="form-label">Shipping Class</label>
+                            <select name="shipping_class" class="form-select">
+                                <option value="standard" <?= $form['shipping_class']==='standard'?'selected':''; ?>>Standard</option>
+                                <option value="express" <?= $form['shipping_class']==='express'?'selected':''; ?>>Express</option>
+                                <option value="overnight" <?= $form['shipping_class']==='overnight'?'selected':''; ?>>Overnight</option>
+                                <option value="freight" <?= $form['shipping_class']==='freight'?'selected':''; ?>>Freight</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Handling Time (days)</label>
+                            <select name="handling_time" class="form-select">
+                                <option value="1" <?= $form['handling_time']=='1'?'selected':''; ?>>1 day</option>
+                                <option value="2" <?= $form['handling_time']=='2'?'selected':''; ?>>2 days</option>
+                                <option value="3" <?= $form['handling_time']=='3'?'selected':''; ?>>3 days</option>
+                                <option value="5" <?= $form['handling_time']=='5'?'selected':''; ?>>5 days</option>
+                                <option value="7" <?= $form['handling_time']=='7'?'selected':''; ?>>1 week</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Width</label>
-                    <input type="number" step="0.01" name="width" class="form-control" value="<?= h($form['width']) ?>">
+                
+                <!-- International Shipping -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">International Shipping</h6>
+                    <div class="form-row cols-2">
+                        <div>
+                            <label class="form-label">HS Code</label>
+                            <input type="text" name="hs_code" class="form-control" value="<?= h($form['hs_code']) ?>" placeholder="Harmonized System Code">
+                            <small class="form-text text-muted">Required for international shipping</small>
+                        </div>
+                        <div>
+                            <label class="form-label">Country of Origin</label>
+                            <input type="text" name="country_of_origin" class="form-control" value="<?= h($form['country_of_origin']) ?>" placeholder="e.g., United States">
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Height</label>
-                    <input type="number" step="0.01" name="height" class="form-control" value="<?= h($form['height']) ?>">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Shipping Class</label>
-                    <input type="text" name="shipping_class" class="form-control" value="<?= h($form['shipping_class']) ?>">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Handling Time (days)</label>
-                    <input type="number" name="handling_time" class="form-control" value="<?= h($form['handling_time']) ?>">
-                </div>
-                <div class="col-md-3 form-check mt-4">
-                    <input class="form-check-input" type="checkbox" name="free_shipping" value="1" <?= ($form['free_shipping']? 'checked':'') ?> id="freeShip">
-                    <label class="form-check-label" for="freeShip">Free shipping</label>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">HS Code</label>
-                    <input type="text" name="hs_code" class="form-control" value="<?= h($form['hs_code']) ?>">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Country of Origin</label>
-                    <input type="text" name="country_of_origin" class="form-control" value="<?= h($form['country_of_origin']) ?>">
+                
+                <!-- Shipping Options -->
+                <div>
+                    <h6 class="text-muted mb-3">Shipping Options</h6>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="free_shipping" value="1" <?= ($form['free_shipping']? 'checked':'') ?> id="freeShip">
+                        <label class="form-check-label" for="freeShip">
+                            <strong>Free Shipping</strong>
+                            <small class="d-block text-muted">Offer free shipping for this product</small>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -707,12 +1028,111 @@ includeHeader($page_title);
             </div>
         </div>
 
-        <div class="mb-5">
-            <button type="submit" class="btn btn-primary">Create Product</button>
-            <a href="/seller/products/" class="btn btn-outline-secondary">Cancel</a>
+        <div class="text-center py-4">
+            <button type="submit" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-plus-circle me-2"></i>Create Product
+            </button>
+            <a href="/seller/products/" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-times me-2"></i>Cancel
+            </a>
         </div>
     </form>
 </div>
+</div>
+
+<!-- Enhanced JavaScript for better UX -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form progress tracking
+    const form = document.querySelector('form');
+    const progressBar = document.getElementById('formProgress');
+    
+    function updateProgress() {
+        const inputs = form.querySelectorAll('input[required], select[required]');
+        const filled = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+        const progress = (filled / inputs.length) * 100;
+        progressBar.style.width = progress + '%';
+    }
+    
+    // Update progress on input change
+    form.addEventListener('input', updateProgress);
+    form.addEventListener('change', updateProgress);
+    updateProgress(); // Initial update
+    
+    // Auto-generate slug from name
+    const nameInput = document.querySelector('input[name="name"]');
+    const slugInput = document.querySelector('input[name="slug"]');
+    
+    if (nameInput && slugInput) {
+        nameInput.addEventListener('input', function() {
+            if (!slugInput.value || slugInput.dataset.auto !== 'false') {
+                const slug = this.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                    .trim('-');
+                slugInput.value = slug;
+            }
+        });
+        
+        slugInput.addEventListener('input', function() {
+            this.dataset.auto = 'false'; // User is manually editing
+        });
+    }
+    
+    // Enhanced form validation
+    form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('input[required], select[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            const wrapper = field.closest('.form-group') || field.parentElement;
+            const feedback = wrapper.querySelector('.invalid-feedback') || 
+                           wrapper.querySelector('.error-message');
+            
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+                
+                if (!feedback) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback';
+                    errorDiv.textContent = 'This field is required';
+                    field.parentElement.appendChild(errorDiv);
+                }
+            } else {
+                field.classList.remove('is-invalid');
+                if (feedback && feedback.classList.contains('error-message')) {
+                    feedback.remove();
+                }
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            // Scroll to first error
+            const firstError = form.querySelector('.is-invalid');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstError.focus();
+            }
+        } else {
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Product...';
+            submitBtn.disabled = true;
+            
+            // Re-enable after 10 seconds as fallback
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 10000);
+        }
+    });
+});
+</script>
 
 <!-- Live image previews -->
 <script>

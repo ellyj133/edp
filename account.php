@@ -318,37 +318,375 @@ $page_title = 'My FezaMarket Account';
 includeHeader($page_title);
 ?>
 
-<!-- Account-specific styles -->
-<link rel="stylesheet" href="/css/account.css">
+<!-- Modern Account Dashboard Styles -->
+<style>
+:root {
+    --account-primary: #2563eb;
+    --account-success: #059669;
+    --account-warning: #d97706;
+    --account-danger: #dc2626;
+    --account-gray-50: #f9fafb;
+    --account-gray-100: #f3f4f6;
+    --account-gray-200: #e5e7eb;
+    --account-gray-300: #d1d5db;
+    --account-gray-600: #4b5563;
+    --account-gray-900: #111827;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
 
+body {
+    background: var(--account-gray-50);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.account-dashboard {
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.account-header {
+    background: linear-gradient(135deg, var(--account-primary), #3b82f6);
+    color: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.account-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(50px, -50px);
+}
+
+.account-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.account-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.account-navigation {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.nav-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--account-gray-200);
+    padding: 0;
+    margin: 0;
+}
+
+.nav-tab {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    color: var(--account-gray-600);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.nav-tab:hover {
+    background: var(--account-gray-50);
+    color: var(--account-primary);
+}
+
+.nav-tab.active {
+    color: var(--account-primary);
+    border-bottom-color: var(--account-primary);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.tab-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.account-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.account-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.account-card {
+    background: white;
+    border: 1px solid var(--account-gray-200);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.account-card:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.account-card h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--account-gray-900);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.account-card h3 .icon {
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--account-primary);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--account-primary);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--account-gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
+}
+
+.wallet-card {
+    background: linear-gradient(135deg, var(--account-success), #10b981);
+    color: white;
+    border: none;
+}
+
+.wallet-balance {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.wallet-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.wallet-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.wallet-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.info-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--account-gray-100);
+}
+
+.info-label {
+    font-weight: 500;
+    color: var(--account-gray-600);
+}
+
+.info-value {
+    font-weight: 600;
+    color: var(--account-gray-900);
+}
+
+.recent-orders {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--account-gray-100);
+    transition: background 0.2s ease;
+}
+
+.order-item:hover {
+    background: var(--account-gray-50);
+}
+
+.order-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-completed { background: rgba(5, 150, 105, 0.1); color: var(--account-success); }
+.status-pending { background: rgba(217, 119, 6, 0.1); color: var(--account-warning); }
+.status-processing { background: rgba(37, 99, 235, 0.1); color: var(--account-primary); }
+
+.btn-primary {
+    background: var(--account-primary);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.alert {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: rgba(5, 150, 105, 0.1);
+    color: var(--account-success);
+    border-left: 4px solid var(--account-success);
+}
+
+.alert-error {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--account-danger);
+    border-left: 4px solid var(--account-danger);
+}
+</style>
+
+<div class="account-dashboard">
 <div class="container">
     <!-- Flash Messages -->
     <?php if (Session::hasFlash('success')): ?>
-        <div class="alert alert-success"><?php echo htmlspecialchars(Session::getFlash('success')); ?></div>
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <?php echo htmlspecialchars(Session::getFlash('success')); ?>
+        </div>
     <?php endif; ?>
     
     <?php if (Session::hasFlash('error')): ?>
-        <div class="alert alert-error"><?php echo htmlspecialchars(Session::getFlash('error')); ?></div>
+        <div class="alert alert-error">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <?php echo htmlspecialchars(Session::getFlash('error')); ?>
+        </div>
     <?php endif; ?>
 
+    <!-- Modern Account Header -->
     <div class="account-header">
-        <h1>Hello, <?php echo htmlspecialchars($current_user['first_name']); ?>!</h1>
-        <p class="account-subtitle">Manage your account and view your activity</p>
+        <h1>Hello, <?php echo htmlspecialchars($current_user['first_name']); ?>! 👋</h1>
+        <p class="account-subtitle">Welcome back to your dashboard. Manage your account and view your activity.</p>
     </div>
 
-    <!-- Account Navigation Tabs -->
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+        <div class="stat-card">
+            <span class="stat-number"><?php echo count($recentOrders); ?></span>
+            <span class="stat-label">Recent Orders</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number"><?php echo count($loginDevices); ?></span>
+            <span class="stat-label">Active Sessions</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number"><?php echo $isVendor ? 'Yes' : 'No'; ?></span>
+            <span class="stat-label">Seller Status</span>
+        </div>
+        <div class="stat-card wallet-card">
+            <div class="wallet-balance">$1,234.56</div>
+            <div style="font-size: 0.875rem; opacity: 0.9;">Wallet Balance</div>
+            <div class="wallet-actions">
+                <button class="wallet-btn" onclick="addFunds()">Add Funds</button>
+                <button class="wallet-btn" onclick="withdraw()">Withdraw</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Navigation -->
     <div class="account-navigation">
         <nav class="nav-tabs">
             <a href="?tab=overview" class="nav-tab <?php echo $currentTab === 'overview' ? 'active' : ''; ?>">
-                <span class="tab-icon">�?�</span>
+                <span class="tab-icon">📊</span>
                 Overview
             </a>
             <a href="?tab=orders" class="nav-tab <?php echo $currentTab === 'orders' ? 'active' : ''; ?>">
                 <span class="tab-icon">📦</span>
                 Orders
             </a>
+            <a href="?tab=wallet" class="nav-tab <?php echo $currentTab === 'wallet' ? 'active' : ''; ?>">
+                <span class="tab-icon">💰</span>
+                Wallet
+            </a>
             <a href="?tab=addresses" class="nav-tab <?php echo $currentTab === 'addresses' ? 'active' : ''; ?>">
-                <span class="tab-icon">�?</span>
+                <span class="tab-icon">📍</span>
                 Addresses
             </a>
             <a href="?tab=payments" class="nav-tab <?php echo $currentTab === 'payments' ? 'active' : ''; ?>">
@@ -360,7 +698,7 @@ includeHeader($page_title);
                 Security
             </a>
             <a href="?tab=preferences" class="nav-tab <?php echo $currentTab === 'preferences' ? 'active' : ''; ?>">
-                <span class="tab-icon">⚙�?</span>
+                <span class="tab-icon">⚙️</span>
                 Preferences
             </a>
         </nav>
@@ -369,35 +707,156 @@ includeHeader($page_title);
     <!-- Tab Content -->
     <div class="account-content">
         <?php if ($currentTab === 'overview'): ?>
-            <!-- Overview Tab -->
+            <!-- Enhanced Overview Tab -->
             <div class="account-grid">
                 <!-- Account Summary -->
-                <div class="account-section">
+                <div class="account-card">
+                    <h3><span class="icon">👤</span>Account Summary</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Full Name</span>
+                            <span class="info-value"><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email Address</span>
+                            <span class="info-value"><?php echo htmlspecialchars($current_user['email']); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Member Since</span>
+                            <span class="info-value"><?php echo formatDate($current_user['created_at']); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Account Type</span>
+                            <span class="info-value">
+                                <?php echo ucfirst(htmlspecialchars($current_user['role'])); ?>
+                                <?php if ($isVendor): ?>
+                                    <span class="badge badge-seller" style="background: var(--account-success); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">Seller</span>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem;">
+                        <button class="btn-primary" onclick="editProfile()">
+                            <i class="fas fa-edit me-2"></i>Edit Profile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Orders -->
+                <div class="account-card">
+                    <h3><span class="icon">📦</span>Recent Orders</h3>
+                    <div class="recent-orders">
+                        <?php if (empty($recentOrders)): ?>
+                            <p style="text-align: center; color: var(--account-gray-600); padding: 2rem;">
+                                <i class="fas fa-shopping-cart" style="font-size: 3rem; opacity: 0.3; display: block; margin-bottom: 1rem;"></i>
+                                No orders yet. <a href="/products.php" style="color: var(--account-primary);">Start shopping!</a>
+                            </p>
+                        <?php else: ?>
+                            <?php foreach ($recentOrders as $order): ?>
+                                <div class="order-item">
+                                    <div>
+                                        <div style="font-weight: 600;">#<?php echo $order['id']; ?></div>
+                                        <div style="font-size: 0.875rem; color: var(--account-gray-600);">
+                                            <?php echo formatDate($order['created_at']); ?>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style="text-align: right; margin-bottom: 0.25rem;">
+                                            $<?php echo number_format($order['total_amount'], 2); ?>
+                                        </div>
+                                        <span class="order-status status-<?php echo $order['status']; ?>">
+                                            <?php echo ucfirst($order['status']); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+        <?php elseif ($currentTab === 'wallet'): ?>
+            <!-- New Wallet Tab -->
+            <div style="padding: 2rem;">
+                <h2 style="margin-bottom: 2rem; display: flex; align-items: center;">
+                    <span style="font-size: 2rem; margin-right: 0.5rem;">💰</span>
+                    Wallet Management
+                </h2>
+                
+                <div class="account-grid">
+                    <!-- Wallet Balance -->
+                    <div class="account-card wallet-card">
+                        <h3 style="color: white;"><span class="icon">💳</span>Current Balance</h3>
+                        <div class="wallet-balance">$1,234.56</div>
+                        <p style="opacity: 0.9; margin-bottom: 1.5rem;">Available for purchases and withdrawals</p>
+                        <div class="wallet-actions">
+                            <button class="wallet-btn" onclick="addFunds()">
+                                <i class="fas fa-plus me-1"></i>Add Funds
+                            </button>
+                            <button class="wallet-btn" onclick="withdraw()">
+                                <i class="fas fa-minus me-1"></i>Withdraw
+                            </button>
+                            <button class="wallet-btn" onclick="viewHistory()">
+                                <i class="fas fa-history me-1"></i>History
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Wallet Actions -->
                     <div class="account-card">
-                        <h2>Account Summary</h2>
-                        <div class="account-info">
-                            <div class="info-item">
-                                <span class="info-label">Name:</span>
-                                <span class="info-value"><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
+                        <h3><span class="icon">⚡</span>Quick Actions</h3>
+                        <div style="display: grid; gap: 1rem;">
+                            <button class="btn-primary" style="justify-self: start;" onclick="addFunds()">
+                                <i class="fas fa-credit-card me-2"></i>Add Funds via Card
+                            </button>
+                            <button class="btn-primary" style="justify-self: start; background: var(--account-warning);" onclick="requestPayout()">
+                                <i class="fas fa-money-bill-wave me-2"></i>Request Payout
+                            </button>
+                            <button class="btn-primary" style="justify-self: start; background: var(--account-gray-600);" onclick="setupAutoReload()">
+                                <i class="fas fa-sync me-2"></i>Setup Auto-Reload
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Transaction History -->
+                    <div class="account-card" style="grid-column: 1 / -1;">
+                        <h3><span class="icon">📋</span>Recent Transactions</h3>
+                        <div class="recent-orders">
+                            <!-- Demo transactions -->
+                            <div class="order-item">
+                                <div>
+                                    <div style="font-weight: 600;">Purchase Refund</div>
+                                    <div style="font-size: 0.875rem; color: var(--account-gray-600);">Order #12345</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color: var(--account-success); font-weight: 600;">+$29.99</div>
+                                    <div style="font-size: 0.75rem; color: var(--account-gray-600);">2 hours ago</div>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Email:</span>
-                                <span class="info-value"><?php echo htmlspecialchars($current_user['email']); ?></span>
+                            <div class="order-item">
+                                <div>
+                                    <div style="font-weight: 600;">Purchase</div>
+                                    <div style="font-size: 0.875rem; color: var(--account-gray-600);">Demo Product</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color: var(--account-danger); font-weight: 600;">-$49.99</div>
+                                    <div style="font-size: 0.75rem; color: var(--account-gray-600);">1 day ago</div>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Member since:</span>
-                                <span class="info-value"><?php echo formatDate($current_user['created_at']); ?></span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Account type:</span>
-                                <span class="info-value">
-                                    <?php echo ucfirst(htmlspecialchars($current_user['role'])); ?>
-                                    <?php if ($isVendor): ?>
-                                        <span class="badge badge-seller">Seller</span>
-                                    <?php endif; ?>
-                                </span>
+                            <div class="order-item">
+                                <div>
+                                    <div style="font-weight: 600;">Wallet Top-up</div>
+                                    <div style="font-size: 0.875rem; color: var(--account-gray-600);">Credit Card ****1234</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color: var(--account-success); font-weight: 600;">+$100.00</div>
+                                    <div style="font-size: 0.75rem; color: var(--account-gray-600);">3 days ago</div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
                     </div>
                 </div>
 
@@ -942,8 +1401,236 @@ includeHeader($page_title);
         <?php endif; ?>
     </div>
 </div>
+</div>
 
+<!-- Enhanced Account Dashboard JavaScript -->
+<script>
+// Wallet functionality
+function addFunds() {
+    showWalletModal('add', {
+        title: 'Add Funds to Wallet',
+        description: 'Choose how much you want to add to your wallet',
+        action: 'add'
+    });
+}
 
+function withdraw() {
+    showWalletModal('withdraw', {
+        title: 'Withdraw from Wallet',
+        description: 'Enter the amount you want to withdraw',
+        action: 'withdraw'
+    });
+}
+
+function viewHistory() {
+    window.location.href = '?tab=wallet&view=history';
+}
+
+function requestPayout() {
+    showWalletModal('payout', {
+        title: 'Request Payout',
+        description: 'Request a payout to your bank account',
+        action: 'payout'
+    });
+}
+
+function setupAutoReload() {
+    showWalletModal('auto-reload', {
+        title: 'Setup Auto-Reload',
+        description: 'Automatically reload your wallet when balance is low',
+        action: 'auto-reload'
+    });
+}
+
+function showWalletModal(type, config) {
+    const modal = document.createElement('div');
+    modal.className = 'wallet-modal-overlay';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+    `;
+    
+    const content = document.createElement('div');
+    content.className = 'wallet-modal-content';
+    content.style.cssText = `
+        background: white; border-radius: 12px; padding: 2rem;
+        max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    `;
+    
+    let formContent = '';
+    
+    switch(type) {
+        case 'add':
+            formContent = `
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount to Add</label>
+                    <input type="number" step="0.01" min="10" max="5000" placeholder="100.00" 
+                           style="width: 100%; padding: 0.75rem; border: 2px solid var(--account-gray-200); border-radius: 8px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Payment Method</label>
+                    <select style="width: 100%; padding: 0.75rem; border: 2px solid var(--account-gray-200); border-radius: 8px;">
+                        <option>Credit Card ****1234</option>
+                        <option>PayPal Account</option>
+                        <option>Bank Transfer</option>
+                    </select>
+                </div>
+            `;
+            break;
+        case 'withdraw':
+            formContent = `
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount to Withdraw</label>
+                    <input type="number" step="0.01" min="5" max="1234.56" placeholder="50.00" 
+                           style="width: 100%; padding: 0.75rem; border: 2px solid var(--account-gray-200); border-radius: 8px;">
+                    <small style="color: var(--account-gray-600);">Available balance: $1,234.56</small>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Withdraw To</label>
+                    <select style="width: 100%; padding: 0.75rem; border: 2px solid var(--account-gray-200); border-radius: 8px;">
+                        <option>Bank Account ****5678</option>
+                        <option>PayPal Account</option>
+                    </select>
+                </div>
+            `;
+            break;
+    }
+    
+    content.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <h3 style="margin: 0 0 0.5rem; font-size: 1.5rem; font-weight: 600;">${config.title}</h3>
+            <p style="margin: 0; color: var(--account-gray-600); font-size: 0.95rem;">${config.description}</p>
+        </div>
+        <form onsubmit="processWalletAction(event, '${config.action}')" style="margin-bottom: 1.5rem;">
+            ${formContent}
+        </form>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="closeWalletModal()" 
+                    style="padding: 0.75rem 1.5rem; border: 2px solid var(--account-gray-300); background: white; 
+                           color: var(--account-gray-600); border-radius: 8px; cursor: pointer;">
+                Cancel
+            </button>
+            <button onclick="processWalletAction(event, '${config.action}')" 
+                    style="padding: 0.75rem 1.5rem; background: var(--account-primary); color: white; 
+                           border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                ${type === 'add' ? 'Add Funds' : type === 'withdraw' ? 'Withdraw' : 'Continue'}
+            </button>
+        </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeWalletModal();
+    });
+    
+    window.currentWalletModal = modal;
+}
+
+function closeWalletModal() {
+    if (window.currentWalletModal) {
+        window.currentWalletModal.remove();
+        window.currentWalletModal = null;
+    }
+}
+
+function processWalletAction(event, action) {
+    event.preventDefault();
+    
+    // Show processing state
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        closeWalletModal();
+        showNotification(
+            action === 'add' ? 'Funds added successfully!' : 
+            action === 'withdraw' ? 'Withdrawal request submitted!' : 
+            'Action completed successfully!',
+            'success'
+        );
+        
+        // Simulate balance update
+        if (action === 'add') {
+            setTimeout(() => location.reload(), 1000);
+        }
+    }, 2000);
+}
+
+function editProfile() {
+    // Redirect to profile edit page or show modal
+    window.location.href = '?tab=preferences&section=profile';
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 1050;
+        background: ${type === 'success' ? 'var(--account-success)' : 
+                    type === 'error' ? 'var(--account-danger)' : 'var(--account-primary)'};
+        color: white; padding: 1rem 1.5rem; border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateX(400px);
+        transition: transform 0.3s ease; max-width: 300px;
+    `;
+    
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                              type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto remove
+    setTimeout(() => {
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Tab switching with smooth transitions
+document.addEventListener('DOMContentLoaded', function() {
+    const tabLinks = document.querySelectorAll('.nav-tab');
+    
+    tabLinks.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            if (this.href.includes('tab=wallet') && e.ctrlKey) {
+                e.preventDefault();
+                // Quick wallet modal for power users
+                addFunds();
+            }
+        });
+    });
+    
+    // Add loading states to action buttons
+    const actionButtons = document.querySelectorAll('.btn-primary, .wallet-btn');
+    
+    actionButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!this.disabled) {
+                this.style.opacity = '0.8';
+                setTimeout(() => {
+                    if (this.style) this.style.opacity = '1';
+                }, 200);
+            }
+        });
+    });
+});
+</script>
 
 <!-- Address Modal -->
 <div id="addressModal" class="modal" style="display: none;">

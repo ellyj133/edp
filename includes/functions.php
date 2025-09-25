@@ -389,7 +389,7 @@ function formatTimeAgo($datetime) {
 }
 function getProductImageUrl($imagePath, $size = 'medium') {
     if (empty($imagePath)) {
-        return '/assets/images/placeholder-product.jpg';
+        return '/images/placeholder-product.png';
     }
     
     // If it's already a full URL, return as-is
