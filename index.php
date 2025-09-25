@@ -70,15 +70,17 @@ $layoutSections = [];
 $homepageSectionsEnabled = [];
 try {
     $db = db();
-    $stmt = $db->prepare("SELECT section_data FROM homepage_sections WHERE section_key = 'layout_config'");
-    $stmt->execute();
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($result && $result['section_data']) {
-        $layoutSections = json_decode($result['section_data'], true) ?: [];
-        // Create enabled sections lookup
-        foreach ($layoutSections as $section) {
-            $homepageSectionsEnabled[$section['id']] = $section['enabled'] ?? true;
+    if ($db) {
+        $stmt = $db->prepare("SELECT section_data FROM homepage_sections WHERE section_key = 'layout_config'");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result && $result['section_data']) {
+            $layoutSections = json_decode($result['section_data'], true) ?: [];
+            // Create enabled sections lookup
+            foreach ($layoutSections as $section) {
+                $homepageSectionsEnabled[$section['id']] = $section['enabled'] ?? true;
+            }
         }
     }
 } catch (Throwable $e) {
@@ -105,7 +107,8 @@ if (empty($layoutSections)) {
 // Fetch banners from database for CMS management
 $banners = [];
 try {
-    if (isset($db)) {
+    $db = db();
+    if ($db) {
         $stmt = $db->query("
             SELECT * FROM homepage_banners 
             WHERE status = 'active' 
