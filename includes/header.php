@@ -477,11 +477,7 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             </div>
             <div class="top-right-links">
                 <a href="/shipping.php">Ship to</a>
-                <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                    <a href="/seller/">Sell</a>
-                <?php else: ?>
-                    <a href="/sell.php">Sell</a>
-                <?php endif; ?>
+                <a href="<?php echo getSellingUrl(); ?>">Sell</a>
                 
                 <?php if ($isLoggedIn): ?>
                     <div class="dropdown">
@@ -503,7 +499,7 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                             <a href="/account.php?section=purchase-history">Purchase History</a>
                             <a href="/account.php?section=buy-again">Buy Again</a>
                             <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                                <a href="/seller/">Selling</a>
+                                <a href="<?php echo getSellingUrl(); ?>">Selling</a>
                             <?php endif; ?>
                             <a href="/saved.php?tab=saved-searches">Saved Searches</a>
                             <a href="/saved.php?tab=saved-sellers">Saved Sellers</a>
@@ -613,7 +609,7 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                 <li><a href="/category.php?cat=home">Home & Garden</a></li>
                 <li><a href="/deals.php">Deals</a></li>
                 <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                    <li><a href="/seller/">Sell</a></li>
+                    <li><a href="<?php echo getSellingUrl(); ?>">Sell</a></li>
                 <?php endif; ?>
             </ul>
         </div>

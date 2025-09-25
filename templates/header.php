@@ -527,11 +527,7 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             </div>
             <div class="top-right-links">
                 <a href="/shipping.php">Ship to</a>
-                <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                    <a href="/seller/">Sell</a>
-                <?php else: ?>
-                    <a href="/sell.php">Sell</a>
-                <?php endif; ?>
+                <a href="<?php echo getSellingUrl(); ?>">Sell</a>
                 
                 <?php if ($isLoggedIn): ?>
                     <div class="dropdown">
@@ -551,7 +547,7 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                             <a href="/saved.php">Watchlist</a>
                             <a href="/account.php?section=purchase-history">Purchase History</a>
                             <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                                <a href="/seller/">Selling</a>
+                                <a href="<?php echo getSellingUrl(); ?>">Selling</a>
                             <?php endif; ?>
                             <?php if ($userRole === 'admin'): ?>
                                 <a href="/admin/">Admin Panel</a>
@@ -651,7 +647,7 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                 <li><a href="/category.php?cat=home">Home & Garden</a></li>
                 <li><a href="/deals.php">Deals</a></li>
                 <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                    <li><a href="/seller/">Sell</a></li>
+                    <li><a href="<?php echo getSellingUrl(); ?>">Sell</a></li>
                 <?php endif; ?>
             </ul>
         </div>
@@ -685,9 +681,9 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                     <a href="/register.php" class="mobile-nav-link">Register</a>
                 <?php endif; ?>
                 <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
-                    <a href="/seller/" class="mobile-nav-link">Seller Center</a>
+                    <a href="<?php echo getSellingUrl(); ?>" class="mobile-nav-link">Seller Center</a>
                 <?php else: ?>
-                    <a href="/sell.php" class="mobile-nav-link">Start Selling</a>
+                    <a href="<?php echo getSellingUrl(); ?>" class="mobile-nav-link">Start Selling</a>
                 <?php endif; ?>
                 <?php if ($userRole === 'admin'): ?>
                     <a href="/admin/" class="mobile-nav-link">Admin Panel</a>

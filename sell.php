@@ -2,10 +2,22 @@
 /**
  * Start Selling - Seller Onboarding
  * E-Commerce Platform
+ * This page now redirects to the appropriate URL based on user status
  */
 
 require_once __DIR__ . '/includes/init.php';
 
+// Redirect to the appropriate selling URL based on user status
+$redirectUrl = getSellingUrl();
+
+// If the redirect URL is not this page, redirect
+if ($redirectUrl !== '/sell.php') {
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+// If we reach here, it means there was an issue with the redirect logic
+// or the user should see the sell.php page (fallback)
 $vendor = new Vendor();
 $isVendor = false;
 
@@ -13,7 +25,8 @@ $isVendor = false;
 if (Session::isLoggedIn()) {
     $existingVendor = $vendor->findByUserId(Session::getUserId());
     if ($existingVendor) {
-        $isVendor = true;
+        // User is a vendor but somehow didn't get redirected - redirect now
+        redirect('/seller-center.php');
     }
 }
 
@@ -22,52 +35,37 @@ includeHeader($page_title);
 ?>
 
 <div class="container">
-    <?php if ($isVendor): ?>
-        <!-- Existing Seller Dashboard Preview -->
-        <div class="seller-dashboard-preview">
-            <h1>Welcome Back, Seller!</h1>
-            <p>You're already set up to sell on FezaMarket. Manage your store and products.</p>
-            <div class="dashboard-actions">
-                <a href="/seller-center.php" class="btn btn-large">Go to Seller Center</a>
-                <a href="/seller/products.php" class="btn btn-outline">Manage Products</a>
-            </div>
-        </div>
-    <?php else: ?>
-        <!-- Seller Onboarding -->
-        <div class="selling-hero">
-            <div class="hero-content">
-                <h1>Start selling on FezaMarket today</h1>
-                <p class="hero-subtitle">Join millions of sellers reaching customers worldwide</p>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <span class="stat-number">190+</span>
-                        <span class="stat-label">Markets worldwide</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">1.3B+</span>
-                        <span class="stat-label">Active buyers</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">$87B+</span>
-                        <span class="stat-label">Sold in 2023</span>
-                    </div>
+    <!-- Selling Page Content for Non-Registered Users -->
+    <div class="selling-hero">
+        <div class="hero-content">
+            <h1>Start selling on FezaMarket today</h1>
+            <p class="hero-subtitle">Join millions of sellers reaching customers worldwide</p>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">190+</span>
+                    <span class="stat-label">Markets worldwide</span>
                 </div>
-                
-                <?php if (Session::isLoggedIn()): ?>
-                    <a href="<?php echo sellerUrl('register'); ?>" class="btn btn-large cta-button">Start Selling Now</a>
-                <?php else: ?>
-                    <a href="/register.php?seller=1" class="btn btn-large cta-button">Create Seller Account</a>
-                <?php endif; ?>
-            </div>
-            <div class="hero-image">
-                <div class="selling-graphic">
-                    <div class="graphic-element">📦</div>
-                    <div class="graphic-element">🛒</div>
-                    <div class="graphic-element">💰</div>
-                    <div class="graphic-element">🌍</div>
+                <div class="stat">
+                    <span class="stat-number">1.3B+</span>
+                    <span class="stat-label">Active buyers</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">$87B+</span>
+                    <span class="stat-label">Sold in 2023</span>
                 </div>
             </div>
+            
+            <a href="<?php echo getSellingUrl(); ?>" class="btn btn-large cta-button">Get Started Now</a>
         </div>
+        <div class="hero-image">
+            <div class="selling-graphic">
+                <div class="graphic-element">📦</div>
+                <div class="graphic-element">🛒</div>
+                <div class="graphic-element">💰</div>
+                <div class="graphic-element">🌍</div>
+            </div>
+        </div>
+    </div>
 
         <!-- Selling Benefits -->
         <section class="selling-benefits">
@@ -159,11 +157,7 @@ includeHeader($page_title);
                             <li>✓ Payment processing</li>
                         </ul>
                         <p class="seller-fee">3.5% selling fee per transaction</p>
-                        <?php if (Session::isLoggedIn()): ?>
-                            <a href="<?php echo sellerUrl('register?business_type=individual'); ?>" class="btn btn-outline">Start as Individual</a>
-                        <?php else: ?>
-                            <a href="<?php echo sellerUrl('register?business_type=individual'); ?>" class="btn btn-outline">Start as Individual</a>
-                        <?php endif; ?>
+                        <a href="<?php echo getSellingUrl(); ?>" class="btn btn-outline">Start as Individual</a>
                     </div>
                 </div>
                 
@@ -184,11 +178,7 @@ includeHeader($page_title);
                             <li>✓ Multi-channel selling</li>
                         </ul>
                         <p class="seller-fee">2.5% selling fee per transaction</p>
-                        <?php if (Session::isLoggedIn()): ?>
-                            <a href="<?php echo sellerUrl('register?business_type=business'); ?>" class="btn">Start as Business</a>
-                        <?php else: ?>
-                            <a href="<?php echo sellerUrl('register?business_type=business'); ?>" class="btn">Start as Business</a>
-                        <?php endif; ?>
+                        <a href="<?php echo getSellingUrl(); ?>" class="btn">Start as Business</a>
                     </div>
                 </div>
             </div>
@@ -268,17 +258,12 @@ includeHeader($page_title);
                 <h2>Ready to start your selling journey?</h2>
                 <p>Join thousands of successful sellers on FezaMarket</p>
                 <div class="cta-buttons">
-                    <?php if (Session::isLoggedIn()): ?>
-                        <a href="<?php echo sellerUrl('register'); ?>" class="btn btn-large">Start Selling Today</a>
-                    <?php else: ?>
-                        <a href="<?php echo sellerUrl('register'); ?>" class="btn btn-large">Create Seller Account</a>
-                        <a href="/login.php?redirect=<?php echo urlencode(sellerUrl('register')); ?>" class="btn btn-outline">Already have an account?</a>
-                    <?php endif; ?>
+                    <a href="<?php echo getSellingUrl(); ?>" class="btn btn-large">Start Selling Today</a>
+                    <a href="/login.php?redirect=<?php echo urlencode(getSellingUrl()); ?>" class="btn btn-outline">Already have an account?</a>
                 </div>
             </div>
         </section>
-    <?php endif; ?>
-</div>
+    </div>
 
 <style>
 .seller-dashboard-preview {
