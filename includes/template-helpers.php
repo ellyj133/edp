@@ -1,78 +1,49 @@
 <?php
 /**
- * Template Helper Functions
- * Functions to include headers and footers consistently
+ * E-commerce Template Helper Functions
+ *
+ * This file centralizes all content-fetching logic for the home page. Currently, it
+ * returns placeholder data. To make the site dynamic, you will replace the
+ * hardcoded arrays in these functions with your database/CMS queries.
  */
 
-/**
- * Include the main site header
- */
-function includeHeader($pageTitle = 'FezaMarket', $metaDescription = null) {
-    global $page_title, $meta_description;
-    $page_title = $pageTitle;
-    $meta_description = $metaDescription;
-    
-    include __DIR__ . '/../templates/header.php';
-}
-
-/**
- * Include the main site footer
- */
-function includeFooter() {
-    include __DIR__ . '/../templates/footer.php';
-}
-
-/**
- * Get current user role safely
- */
-function getCurrentUserRole() {
-    if (!Session::isLoggedIn()) {
-        return 'guest';
+function get_content_for_section($key, $count) {
+    $items = [];
+    for ($i = 1; $i <= $count; $i++) {
+        $items[] = [
+            'img_src' => "https://picsum.photos/seed/{$key}{$i}/400/400",
+            'title'   => ucfirst($key) . ' ' . $i,
+            'price'   => '$' . number_format(rand(10, 100), 2),
+            'url'     => '#'
+        ];
     }
-    
-    return $_SESSION['user_role'] ?? 'user';
+    return $items;
 }
 
-/**
- * Check if user has specific role
- */
-function hasRole($role) {
-    $currentRole = getCurrentUserRole();
-    
-    switch ($role) {
-        case 'admin':
-            return $currentRole === 'admin';
-        case 'seller':
-        case 'vendor':
-            return in_array($currentRole, ['admin', 'seller', 'vendor']);
-        case 'user':
-            return in_array($currentRole, ['admin', 'seller', 'vendor', 'user']);
-        default:
-            return false;
-    }
+function get_mosaic_section_content() {
+    return [
+        ['type' => 'big', 'img_src' => 'https://picsum.photos/seed/mosaic1/600/400', 'alt' => 'Big promotion'],
+        ['type' => 'wide', 'img_src' => 'https://picsum.photos/seed/mosaic2/600/200', 'alt' => 'Wide promotion'],
+        ['type' => 'card', 'img_src' => 'https://picsum.photos/seed/mosaic3/300/200', 'alt' => 'Card promotion'],
+        ['type' => 'tall', 'img_src' => 'https://picsum.photos/seed/mosaic4/300/400', 'alt' => 'Tall promotion'],
+        ['type' => 'wide', 'img_src' => 'https://picsum.photos/seed/mosaic5/600/200', 'alt' => 'Wide promotion 2'],
+        ['type' => 'card', 'img_src' => 'https://picsum.photos/seed/mosaic6/300/200', 'alt' => 'Card promotion 2'],
+        ['type' => 'card', 'img_src' => 'https://picsum.photos/seed/mosaic7/300/200', 'alt' => 'Card promotion 3'],
+    ];
 }
 
-/**
- * Generate CSRF token
- */
-function csrfToken() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+function get_furniture_section_content() {
+    $items = [];
+    $titles = ['Sleeper Chair', 'Kitchen Cart', 'TV Stand', 'Platform Bed', 'Mattress', 'Folding Chairs'];
+    for ($i = 0; $i < count($titles); $i++) {
+        $items[] = [
+            'img_src'      => "https://picsum.photos/seed/furn{$i}/220/200",
+            'title'        => $titles[$i],
+            'price'        => 'Now $' . number_format(rand(40, 200), 2),
+            'strike_price' => '$' . number_format(rand(201, 400), 2),
+            'url'          => '#'
+        ];
     }
-    return $_SESSION['csrf_token'];
-}
-
-/**
- * Get user avatar URL
- */
-function getUserAvatar($user, $size = 32) {
-    if (isset($user['avatar']) && !empty($user['avatar'])) {
-        return $user['avatar'];
-    }
-    
-    // Default avatar using Gravatar or placeholder
-    $email = $user['email'] ?? 'user@example.com';
-    $hash = md5(strtolower(trim($email)));
-    return "https://www.gravatar.com/avatar/{$hash}?s={$size}&d=identicon";
+    return $items;
 }
 ?>
