@@ -7,7 +7,11 @@
 session_start();
 require_once __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/rbac.php';
+
+// Load RBAC if it exists
+if (file_exists(__DIR__ . '/../includes/rbac.php')) {
+    require_once __DIR__ . '/../includes/rbac.php';
+}
 
 // Initialize admin authentication
 if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {

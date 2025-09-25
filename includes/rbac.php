@@ -4,8 +4,10 @@
  * Role-Based Access Control utilities and permission checks
  */
 
-// Load the RoleMiddleware
-require_once __DIR__ . '/../middleware/RoleMiddleware.php';
+// Load the RoleMiddleware if it exists
+if (file_exists(__DIR__ . '/../middleware/RoleMiddleware.php')) {
+    require_once __DIR__ . '/../middleware/RoleMiddleware.php';
+}
 
 /**
  * Define granular permissions for admin modules
