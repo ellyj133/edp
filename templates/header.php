@@ -477,6 +477,17 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             }
         }
         
+        /* Mobile menu toggle button */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #333;
+            cursor: pointer;
+            padding: 8px;
+        }
+        
         @media (max-width: 768px) {
             .top-header {
                 font-size: 12px;
@@ -489,6 +500,14 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             
             .logo {
                 font-size: 28px;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .nav-bar {
+                display: none;
             }
         }
     </style>
@@ -611,6 +630,9 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                         <span class="notification-badge"><?php echo min($cart_count, 99); ?></span>
                     <?php endif; ?>
                 </a>
+                <button class="mobile-menu-toggle header-icon hamburger-line" title="Menu" aria-label="Mobile Menu">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -640,3 +662,50 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
     <!-- Main Content Container Start -->
     <div id="main-content">
         <!-- Page content will be inserted here by individual pages -->
+    
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" style="display: none;">
+        <div class="mobile-nav">
+            <div class="mobile-nav-header">
+                <h3>Menu</h3>
+                <button class="mobile-nav-close">&times;</button>
+            </div>
+            <div class="mobile-nav-content">
+                <a href="/" class="mobile-nav-link">Home</a>
+                <a href="/live.php" class="mobile-nav-link">FezaMarket Live</a>  
+                <a href="/saved.php" class="mobile-nav-link">Saved</a>
+                <a href="/category.php?cat=electronics" class="mobile-nav-link">Electronics</a>
+                <a href="/category.php?cat=motors" class="mobile-nav-link">Motors</a>
+                <a href="/category.php?cat=fashion" class="mobile-nav-link">Fashion</a>
+                <a href="/deals.php" class="mobile-nav-link">Deals</a>
+                <a href="/help.php" class="mobile-nav-link">Help</a>
+                <?php if ($isLoggedIn): ?>
+                    <a href="/account.php" class="mobile-nav-link">My Account</a>
+                    <a href="/logout.php" class="mobile-nav-link">Sign Out</a>
+                <?php else: ?>
+                    <a href="/login.php" class="mobile-nav-link">Sign In</a>
+                    <a href="/register.php" class="mobile-nav-link">Register</a>
+                <?php endif; ?>
+                <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
+                    <a href="/seller/" class="mobile-nav-link">Seller Center</a>
+                <?php else: ?>
+                    <a href="/sell.php" class="mobile-nav-link">Start Selling</a>
+                <?php endif; ?>
+                <?php if ($userRole === 'admin'): ?>
+                    <a href="/admin/" class="mobile-nav-link">Admin Panel</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript Files -->
+    <script src="/js/fezamarket.js"></script>
+    <script src="/js/scripts.js"></script>
+    <script>
+        // Initialize FezaMarket JavaScript when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof FezaMarket !== 'undefined') {
+                FezaMarket.init();
+            }
+        });
+    </script>
