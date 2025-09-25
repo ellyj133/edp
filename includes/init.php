@@ -24,6 +24,11 @@ require_once __DIR__ . '/../config/config.php';
 // Load core functions first (defines Session, Logger, CSRF helpers, sanitizers, etc.)
 require_once __DIR__ . '/functions.php';
 
+// Load CSRF protection
+if (file_exists(__DIR__ . '/csrf.php')) {
+    require_once __DIR__ . '/csrf.php';
+}
+
 // Load authentication functions (defines getCurrentUserId, etc.)
 require_once __DIR__ . '/auth.php';
 
