@@ -27,6 +27,8 @@ try {
     if ($db) {
         $users = Database::query("SELECT * FROM users ORDER BY created_at DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
         $total_users = count($users);
+    } else {
+        throw new Exception("Database connection failed");
     }
 } catch (Exception $e) {
     $error_message = "Database connection error. Using demo data.";

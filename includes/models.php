@@ -535,6 +535,9 @@ class Cart extends BaseModel {
     }
     
     public function getCartCount($userId) {
+        if (!$this->db) {
+            return 0; // Return 0 if no database connection
+        }
         $stmt = $this->db->prepare("SELECT SUM(quantity) FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         return $stmt->fetchColumn() ?: 0;
