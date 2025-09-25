@@ -45,7 +45,7 @@ includeHeader($page_title);
                     <a href="/deals.php">Daily Deals</a>
                     <a href="/live.php">FezaMarket Live</a>
                     <a href="/brands.php">Brand Outlet</a>
-                    <a href="/sell.php">Start Selling</a>
+                    <a href="<?php echo getSellingUrl(); ?>">Start Selling</a>
                     <a href="/help.php">Help & Contact</a>
                     <a href="/account.php">My Account</a>
                 </div>

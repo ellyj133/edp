@@ -8,7 +8,7 @@ includeHeader($page_title);
         <div class="card-body">
             <h1>Start Selling on FezaMarket</h1>
             <p>Begin your selling journey on FezaMarket and reach millions of buyers worldwide.</p>
-            <p><a href="/sell.php" class="btn btn-primary">Get Started</a></p>
+            <p><a href="<?php echo getSellingUrl(); ?>" class="btn btn-primary">Get Started</a></p>
         </div>
     </div>
 </div>

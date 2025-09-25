@@ -24,7 +24,7 @@
                 <div class="footer-column">
                     <h3>Sell</h3>
                     <ul>
-                        <li><a href="/sell.php">Start selling</a></li>
+                        <li><a href="<?php echo getSellingUrl(); ?>">Start selling</a></li>
                         <li><a href="/help/selling.php">How to sell</a></li>
                         <li><a href="/business-sellers.php">Business sellers</a></li>
                         <li><a href="/affiliates.php">Affiliates</a></li>
@@ -74,7 +74,7 @@
                 <div class="footer-column">
                     <h3>Help & Contact</h3>
                     <ul>
-                        <li><a href="/seller-center.php">Seller Center</a></li>
+                        <li><a href="<?php echo getSellingUrl(); ?>">Seller Center</a></li>
                         <li><a href="/contact.php">Contact Us</a></li>
                         <li><a href="/returns.php">FezaMarket Returns</a></li>
                         <li><a href="/money-back.php">FezaMarket Money Back Guarantee</a></li>

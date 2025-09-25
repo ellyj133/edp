@@ -171,7 +171,7 @@ includeHeader($page_title);
                     </div>
                     <div class="quick-faq">
                         <strong>How do I become a seller?</strong>
-                        <p><a href="/sell.php">Start selling</a> - it's free to get started!</p>
+                        <p><a href="<?php echo getSellingUrl(); ?>">Start selling</a> - it's free to get started!</p>
                     </div>
                 </div>
                 <a href="/help.php" class="help-center-link">Visit Help Center →</a>
