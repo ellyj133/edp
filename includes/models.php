@@ -417,6 +417,18 @@ class Product extends BaseModel {
         $stmt->execute($params);
         return $stmt->fetchColumn();
     }
+    
+    public function findBySlug($slug) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name, c.name as category_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            WHERE p.slug = ? AND p.status = 'active'
+        ");
+        $stmt->execute([$slug]);
+        return $stmt->fetch();
+    }
 }
 
 /**

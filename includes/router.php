@@ -40,6 +40,7 @@ class Router {
         
         // Product routes
         $this->get('/product/{id}', 'product.php');
+        $this->get('/product/{slug}', 'product.php');
         $this->get('/products', 'products.php');
         $this->get('/category/{slug}', 'category.php');
         
