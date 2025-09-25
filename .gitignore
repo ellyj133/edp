@@ -7,3 +7,8 @@ storage/
 node_modules/
 .DS_Store
 nul
+
+# Uploaded files (keep directory structure but not the files)  
+uploads/*
+!uploads/.gitkeep
+!uploads/*/.htaccess

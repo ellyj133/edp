@@ -65,16 +65,54 @@ $newArrivals       = [];
 $bannerProductsRaw = [];
 $bannerProducts    = [];
 
+// Fetch homepage sections configuration from CMS
+$layoutSections = [];
+$homepageSectionsEnabled = [];
+try {
+    $db = db();
+    $stmt = $db->prepare("SELECT section_data FROM homepage_sections WHERE section_key = 'layout_config'");
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($result && $result['section_data']) {
+        $layoutSections = json_decode($result['section_data'], true) ?: [];
+        // Create enabled sections lookup
+        foreach ($layoutSections as $section) {
+            $homepageSectionsEnabled[$section['id']] = $section['enabled'] ?? true;
+        }
+    }
+} catch (Throwable $e) {
+    error_log('Failed to fetch homepage sections: ' . $e->getMessage());
+}
+
+// Default sections if none exist in CMS
+if (empty($layoutSections)) {
+    $layoutSections = [
+        ['id' => 'hero', 'type' => 'hero', 'title' => 'Hero Banner', 'enabled' => true],
+        ['id' => 'categories', 'type' => 'categories', 'title' => 'Featured Categories', 'enabled' => true],
+        ['id' => 'deals', 'type' => 'deals', 'title' => 'Daily Deals', 'enabled' => true],
+        ['id' => 'trending', 'type' => 'products', 'title' => 'Trending Products', 'enabled' => true],
+        ['id' => 'brands', 'type' => 'brands', 'title' => 'Top Brands', 'enabled' => true],
+        ['id' => 'featured', 'type' => 'products', 'title' => 'Featured Products', 'enabled' => true],
+        ['id' => 'new-arrivals', 'type' => 'products', 'title' => 'New Arrivals', 'enabled' => true],
+        ['id' => 'recommendations', 'type' => 'products', 'title' => 'Recommended for You', 'enabled' => true]
+    ];
+    foreach ($layoutSections as $section) {
+        $homepageSectionsEnabled[$section['id']] = true;
+    }
+}
+
 // Fetch banners from database for CMS management
 $banners = [];
 try {
-    $db = db();
-    $stmt = $db->query("
-        SELECT * FROM banners 
-        WHERE status = 'active' 
-        ORDER BY position, sort_order
-    ");
-    $banners = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (isset($db)) {
+        $stmt = $db->query("
+            SELECT * FROM homepage_banners 
+            WHERE status = 'active' 
+            ORDER BY position, sort_order
+        ");
+        $banners = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (Throwable $e) {
     error_log('Failed to fetch banners: ' . $e->getMessage());
     // Fallback to empty array
@@ -84,7 +122,7 @@ try {
 // Organize banners by position for easy access
 $bannersByPosition = [];
 foreach ($banners as $banner) {
-    $position = $banner['position'] ?? 'header';
+    $position = $banner['position'] ?? 'hero';
     if (!isset($bannersByPosition[$position])) {
         $bannersByPosition[$position] = [];
     }
@@ -256,24 +294,64 @@ if (function_exists('includeHeader')) {
 </style>
 
 <div class="homepage-container">
+    <?php
+    // Render sections based on CMS configuration
+    foreach ($layoutSections as $section) {
+        if (!($homepageSectionsEnabled[$section['id']] ?? true)) {
+            continue; // Skip disabled sections
+        }
+        
+        switch ($section['id']) {
+            case 'hero':
+                renderHeroSection($bannersByPosition);
+                break;
+            case 'categories':
+                renderCategoriesSection($bannersByPosition);
+                break;
+            case 'deals':
+                renderDealsSection($bannersByPosition);
+                break;
+            case 'trending':
+                renderTrendingSection($trendingProducts);
+                break;
+            case 'brands':
+                renderBrandsSection($bannersByPosition);
+                break;
+            case 'featured':
+                renderFeaturedSection($featuredProducts);
+                break;
+            case 'new-arrivals':
+                renderNewArrivalsSection($newArrivals);
+                break;
+            case 'recommendations':
+                renderRecommendationsSection($bannersByPosition);
+                break;
+        }
+    }
+    ?>
+</div>
 
-    <!-- Enhanced Hero Banner Section -->
+<?php
+/* ========== SECTION RENDERING FUNCTIONS ========== */
+
+function renderHeroSection($bannersByPosition) {
+    $heroBanner = $bannersByPosition['hero'][0] ?? null;
+    $heroImage = $heroBanner ? $heroBanner['image_url'] : '/images/banners/trending-banner.jpg';
+    $heroLink = $heroBanner ? $heroBanner['link_url'] : '/deals.php';
+    $heroTitle = $heroBanner ? $heroBanner['title'] : 'New & trending editors\' picks';
+    $heroSubtitle = $heroBanner ? $heroBanner['subtitle'] : 'Discover the latest curated collections from our fashion experts';
+    ?>
+    <!-- Section 1: Hero Banner -->
     <section class="hero-section">
         <div class="hero-main-banner">
             <div class="hero-image">
-                <?php 
-                $heroBanner = $bannersByPosition['hero'][0] ?? null;
-                $heroImage = $heroBanner ? $heroBanner['image_url'] : '/images/banners/trending-banner.jpg';
-                $heroLink = $heroBanner ? $heroBanner['link_url'] : '/deals.php';
-                $heroTitle = $heroBanner ? $heroBanner['title'] : 'New & trending editors\' picks';
-                ?>
                 <img src="<?= h($heroImage) ?>" alt="<?= h($heroTitle) ?>" loading="lazy">
                 <div class="hero-overlay"></div>
             </div>
             <div class="hero-content">
                 <div class="hero-text">
-                    <h1 class="hero-title">New & trending<br><span class="highlight">editors' picks</span></h1>
-                    <p class="hero-subtitle">Discover the latest curated collections from our fashion experts</p>
+                    <h1 class="hero-title"><?= h($heroTitle) ?></h1>
+                    <p class="hero-subtitle"><?= h($heroSubtitle) ?></p>
                     <div class="hero-actions">
                         <a href="<?= h($heroLink) ?>" class="btn-hero primary">
                             <i class="fas fa-star"></i>
@@ -294,8 +372,12 @@ if (function_exists('includeHeader')) {
             </div>
         </div>
     </section>
+    <?php
+}
 
-    <!-- Featured Categories Grid -->
+function renderCategoriesSection($bannersByPosition) {
+    ?>
+    <!-- Section 2: Featured Categories Grid -->
     <section class="featured-categories">
         <div class="container">
             <div class="section-header">
@@ -308,7 +390,8 @@ if (function_exists('includeHeader')) {
                 $categoryData = [
                     ['name' => 'electronics', 'title' => 'Electronics', 'subtitle' => 'Latest gadgets & tech', 'badge' => 'Hot'],
                     ['name' => 'fashion', 'title' => 'Fashion', 'subtitle' => 'Trending styles', 'badge' => ''],
-                    ['name' => 'home-garden', 'title' => 'Home & Garden', 'subtitle' => 'Decor & essentials', 'badge' => '']
+                    ['name' => 'home-garden', 'title' => 'Home & Garden', 'subtitle' => 'Decor & essentials', 'badge' => ''],
+                    ['name' => 'sports', 'title' => 'Sports', 'subtitle' => 'Fitness & outdoor', 'badge' => 'New']
                 ];
                 
                 foreach ($categoryData as $index => $categoryInfo):
@@ -334,103 +417,187 @@ if (function_exists('includeHeader')) {
                     </div>
                 </div>
                 <?php endforeach; ?>
-                
-                <div class="category-card" onclick="window.location.href='/deals.php'">
-                    <div class="category-image special-offer">
-                        <div class="offer-content">
-                            <i class="fas fa-bolt"></i>
-                            <span class="offer-text">Flash Deals</span>
-                        </div>
-                        <div class="category-overlay"></div>
+            </div>
+        </div>
+    </section>
+    <?php
+}
+
+function renderDealsSection($bannersByPosition) {
+    ?>
+    <!-- Section 3: Daily Deals -->
+    <section class="deals-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-bolt"></i>
+                    Daily Deals
+                </h2>
+                <p class="section-subtitle">Limited time offers - grab them while they last!</p>
+            </div>
+            <div class="deals-grid">
+                <div class="deal-card featured">
+                    <div class="deal-timer">
+                        <i class="fas fa-clock"></i>
+                        <span>12h 34m left</span>
                     </div>
-                    <div class="category-content">
-                        <h3 class="category-title">Special Offers</h3>
-                        <p class="category-subtitle">Up to 55% off</p>
-                        <div class="category-badge sale">Sale</div>
-                        <a href="/deals.php" class="category-btn">
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
+                    <div class="deal-image">
+                        <img src="/images/products/deal-1.jpg" alt="Flash Deal" loading="lazy">
+                        <div class="deal-badge">-55%</div>
+                    </div>
+                    <div class="deal-content">
+                        <h3>Flash Sale Electronics</h3>
+                        <div class="deal-price">
+                            <span class="current">$89.99</span>
+                            <span class="original">$199.99</span>
+                        </div>
+                        <a href="/deals.php?category=electronics" class="deal-btn">Shop Now</a>
+                    </div>
+                </div>
+                
+                <div class="deal-card">
+                    <div class="deal-timer">
+                        <i class="fas fa-clock"></i>
+                        <span>6h 15m left</span>
+                    </div>
+                    <div class="deal-image">
+                        <img src="/images/products/deal-2.jpg" alt="Fashion Deal" loading="lazy">
+                        <div class="deal-badge">-40%</div>
+                    </div>
+                    <div class="deal-content">
+                        <h3>Fashion Clearance</h3>
+                        <div class="deal-price">
+                            <span class="current">$59.99</span>
+                            <span class="original">$99.99</span>
+                        </div>
+                        <a href="/deals.php?category=fashion" class="deal-btn">Shop Now</a>
+                    </div>
+                </div>
+                
+                <div class="deal-card">
+                    <div class="deal-timer">
+                        <i class="fas fa-clock"></i>
+                        <span>24h 00m left</span>
+                    </div>
+                    <div class="deal-image">
+                        <img src="/images/products/deal-3.jpg" alt="Home Deal" loading="lazy">
+                        <div class="deal-badge">-30%</div>
+                    </div>
+                    <div class="deal-content">
+                        <h3>Home Essentials</h3>
+                        <div class="deal-price">
+                            <span class="current">$39.99</span>
+                            <span class="original">$59.99</span>
+                        </div>
+                        <a href="/deals.php?category=home" class="deal-btn">Shop Now</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    <?php
+}
 
-    <!-- Promotional Banner Section -->
-    <section class="promotional-banners">
+function renderTrendingSection($trendingProducts) {
+    ?>
+    <!-- Section 4: Trending Products -->
+    <section class="product-shelf-section" aria-label="Trending Products">
         <div class="container">
-            <div class="promo-grid">
-                <div class="promo-card primary" onclick="window.location.href='/category.php?name=electronics'">
-                    <div class="promo-content">
-                        <div class="promo-icon">
-                            <i class="fas fa-bolt"></i>
-                        </div>
-                        <h3 class="promo-title">Get top tech in as fast as an hour*</h3>
-                        <p class="promo-subtitle">Latest gadgets delivered quickly</p>
-                        <a href="/category.php?name=electronics" class="promo-btn">
-                            <span>Shop Electronics</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                    <div class="promo-graphic">
-                        <i class="fas fa-laptop"></i>
-                    </div>
-                </div>
-                
-                <div class="promo-card membership" onclick="window.location.href='/membership.php'">
-                    <div class="promo-content">
-                        <div class="promo-icon">
-                            <i class="fas fa-crown"></i>
-                        </div>
-                        <h3 class="promo-title">Members enjoy free delivery</h3>
-                        <p class="promo-subtitle">Join our premium membership program</p>
-                        <a href="/membership.php" class="promo-btn">
-                            <span>Start Free Trial</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                        <div class="promo-note">$35 min. T&C apply. One free trial per member.</div>
-                    </div>
-                    <div class="promo-graphic">
-                        <i class="fas fa-shipping-fast"></i>
-                    </div>
-                </div>
+            <div class="product-shelf-header">
+                <h2>Trending Products</h2>
+                <a href="/products.php?filter=trending">View all</a>
             </div>
-        </div>
-    </section>
-
-    <!-- Personalized CTA Section -->
-    <section class="personalized-cta">
-        <div class="container">
-            <div class="cta-content">
-                <div class="cta-icon">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <div class="cta-text">
-                    <h3 class="cta-title">Get personalized recommendations</h3>
-                    <p class="cta-subtitle">Sign in to discover products tailored just for you</p>
-                </div>
-                <div class="cta-actions">
-                    <?php if (!class_exists('Session') || !Session::isLoggedIn()): ?>
-                        <a href="/login.php" class="btn-cta primary">
-                            <i class="fas fa-sign-in-alt"></i>
-                            Sign In
-                        </a>
-                        <a href="/register.php" class="btn-cta secondary">
-                            <i class="fas fa-user-plus"></i>
-                            Create Account
-                        </a>
+            <div class="product-shelf-container">
+                <div class="product-shelf-scroll" data-shelf="trending">
+                    <?php if (empty($trendingProducts)): ?>
+                        <!-- Mock trending products -->
+                        <?php for ($i = 1; $i <= 6; $i++): ?>
+                        <article class="product-card-shelf">
+                            <div class="media-wrapper">
+                                <img src="/images/products/trending-<?= $i ?>.jpg" alt="Trending Product <?= $i ?>">
+                                <button type="button" class="wishlist-btn" aria-label="Add to wishlist">♡</button>
+                                <div class="trending-badge">🔥</div>
+                            </div>
+                            <div class="price-row">
+                                <span class="main-price">$<?= 19.99 + ($i * 10) ?></span>
+                            </div>
+                            <h3 class="product-title-shelf">Trending Item <?= $i ?></h3>
+                            <div class="pill-btn-row">
+                                <button class="pill-btn" type="button"><span class="add-icon">＋</span>Add</button>
+                                <button class="pill-btn secondary" type="button">Options</button>
+                            </div>
+                        </article>
+                        <?php endfor; ?>
                     <?php else: ?>
-                        <div class="welcome-message">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Welcome back, <?= h($current_user['first_name'] ?? 'User'); ?>!</span>
-                        </div>
+                        <?php foreach ($trendingProducts as $prod): ?>
+                        <article class="product-card-shelf">
+                            <div class="media-wrapper">
+                                <img src="<?= h(safeProductImg($prod)) ?>" alt="<?= h($prod['name']) ?>">
+                                <button type="button" class="wishlist-btn" aria-label="Add to wishlist" data-id="<?= h($prod['id']) ?>">♡</button>
+                            </div>
+                            <div class="price-row">
+                                <span class="main-price"><?= h(hp($prod['price'], $prod['currency'])) ?></span>
+                            </div>
+                            <h3 class="product-title-shelf">
+                                <a href="/product.php?id=<?= h($prod['id']) ?>" style="text-decoration:none;color:#111;">
+                                    <?= h($prod['name']) ?>
+                                </a>
+                            </h3>
+                            <div class="pill-btn-row">
+                                <button class="pill-btn secondary" type="button">Options</button>
+                            </div>
+                        </article>
+                        <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
+                <button class="shelf-nav-btn" data-shelf-arrow="trending" aria-label="Next products">›</button>
             </div>
         </div>
     </section>
+    <?php
+}
 
-    <!-- Featured Products Section -->
+function renderBrandsSection($bannersByPosition) {
+    ?>
+    <!-- Section 5: Top Brands -->
+    <section class="brands-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-crown"></i>
+                    Top Brands
+                </h2>
+                <p class="section-subtitle">Shop from your favorite brands</p>
+            </div>
+            <div class="brands-grid">
+                <?php
+                $brandData = [
+                    ['name' => 'Apple', 'logo' => '/images/brands/apple.png', 'link' => '/brands/apple.php'],
+                    ['name' => 'Samsung', 'logo' => '/images/brands/samsung.png', 'link' => '/brands/samsung.php'],
+                    ['name' => 'Nike', 'logo' => '/images/brands/nike.png', 'link' => '/brands/nike.php'],
+                    ['name' => 'Adidas', 'logo' => '/images/brands/adidas.png', 'link' => '/brands/adidas.php'],
+                    ['name' => 'Sony', 'logo' => '/images/brands/sony.png', 'link' => '/brands/sony.php'],
+                    ['name' => 'Microsoft', 'logo' => '/images/brands/microsoft.png', 'link' => '/brands/microsoft.php']
+                ];
+                
+                foreach ($brandData as $brand):
+                ?>
+                <div class="brand-card" onclick="window.location.href='<?= h($brand['link']) ?>'">
+                    <div class="brand-logo">
+                        <img src="<?= h($brand['logo']) ?>" alt="<?= h($brand['name']) ?>" loading="lazy">
+                    </div>
+                    <h3 class="brand-name"><?= h($brand['name']) ?></h3>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php
+}
+
+function renderFeaturedSection($featuredProducts) {
+    ?>
+    <!-- Section 6: Featured Products -->
     <section class="products-section featured">
         <div class="container">
             <div class="section-header">
@@ -449,11 +616,12 @@ if (function_exists('includeHeader')) {
             <div class="products-carousel">
                 <div class="products-grid" id="featured-products">
                     <!-- Mock featured products since we have empty data -->
+                    <?php for ($i = 1; $i <= 4; $i++): ?>
                     <div class="product-card modern">
                         <div class="product-image">
-                            <img src="/images/products/sample-1.jpg" alt="Premium Headphones" loading="lazy">
+                            <img src="/images/products/featured-<?= $i ?>.jpg" alt="Featured Product <?= $i ?>" loading="lazy">
                             <div class="product-badges">
-                                <span class="badge trending">Trending</span>
+                                <span class="badge <?= $i % 2 ? 'trending' : 'new' ?>"><?= $i % 2 ? 'Trending' : 'New' ?></span>
                             </div>
                             <div class="product-actions">
                                 <button class="action-btn wishlist" aria-label="Add to wishlist">
@@ -465,21 +633,21 @@ if (function_exists('includeHeader')) {
                             </div>
                         </div>
                         <div class="product-info">
-                            <h3 class="product-title">Premium Wireless Headphones</h3>
+                            <h3 class="product-title">Featured Product <?= $i ?></h3>
                             <div class="product-rating">
                                 <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star-half-alt"></i>
+                                    <?php for ($j = 0; $j < 5; $j++): ?>
+                                    <i class="fas fa-star<?= $j >= 4 ? '-half-alt' : '' ?>"></i>
+                                    <?php endfor; ?>
                                 </div>
-                                <span class="rating-count">(247)</span>
+                                <span class="rating-count">(<?= rand(50, 500) ?>)</span>
                             </div>
                             <div class="product-price">
-                                <span class="current-price">$89.99</span>
-                                <span class="original-price">$129.99</span>
-                                <span class="discount">-31%</span>
+                                <span class="current-price">$<?= number_format(rand(20, 200), 2) ?></span>
+                                <?php if ($i % 2): ?>
+                                <span class="original-price">$<?= number_format(rand(250, 300), 2) ?></span>
+                                <span class="discount">-<?= rand(20, 40) ?>%</span>
+                                <?php endif; ?>
                             </div>
                             <button class="add-to-cart-btn">
                                 <i class="fas fa-shopping-cart"></i>
@@ -487,202 +655,51 @@ if (function_exists('includeHeader')) {
                             </button>
                         </div>
                     </div>
-                    
-                    <div class="product-card modern">
-                        <div class="product-image">
-                            <img src="/images/products/sample-2.jpg" alt="Smart Watch" loading="lazy">
-                            <div class="product-badges">
-                                <span class="badge new">New</span>
-                            </div>
-                            <div class="product-actions">
-                                <button class="action-btn wishlist" aria-label="Add to wishlist">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                                <button class="action-btn quick-view" aria-label="Quick view">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-title">Smart Fitness Watch</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                </div>
-                                <span class="rating-count">(1.2k)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$199.99</span>
-                            </div>
-                            <button class="add-to-cart-btn">
-                                <i class="fas fa-shopping-cart"></i>
-                                Add to Cart
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card modern">
-                        <div class="product-image">
-                            <img src="/images/products/sample-3.jpg" alt="Designer Backpack" loading="lazy">
-                            <div class="product-badges">
-                                <span class="badge sale">Sale</span>
-                            </div>
-                            <div class="product-actions">
-                                <button class="action-btn wishlist" aria-label="Add to wishlist">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                                <button class="action-btn quick-view" aria-label="Quick view">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-title">Designer Travel Backpack</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="far fa-star"></i>
-                                </div>
-                                <span class="rating-count">(89)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$59.99</span>
-                                <span class="original-price">$89.99</span>
-                                <span class="discount">-33%</span>
-                            </div>
-                            <button class="add-to-cart-btn">
-                                <i class="fas fa-shopping-cart"></i>
-                                Add to Cart
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card modern">
-                        <div class="product-image">
-                            <img src="/images/products/sample-4.jpg" alt="Wireless Speaker" loading="lazy">
-                            <div class="product-actions">
-                                <button class="action-btn wishlist" aria-label="Add to wishlist">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                                <button class="action-btn quick-view" aria-label="Quick view">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-title">Portable Bluetooth Speaker</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star-half-alt"></i>
-                                </div>
-                                <span class="rating-count">(156)</span>
-                            </div>
-                            <div class="product-price">
-                                <span class="current-price">$39.99</span>
-                            </div>
-                            <button class="add-to-cart-btn">
-                                <i class="fas fa-shopping-cart"></i>
-                                Add to Cart
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="carousel-controls">
-                    <button class="carousel-btn prev" aria-label="Previous products">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="carousel-btn next" aria-label="Next products">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+                    <?php endfor; ?>
                 </div>
             </div>
         </div>
     </section>
+    <?php
+}
 
-    
-    <!-- Brand Spotlight Section -->
-            </div>
-            <button class="shelf-nav-btn" data-shelf-arrow="featured" aria-label="Next products">›</button>
-        </div>
-    </section>
-
-    <!-- ========== TRENDING / STYLES SHELF ========== -->
-    <section class="product-shelf-section" aria-label="Styles for all your plans">
-        <div class="product-shelf-header">
-            <h2>Styles for all your plans</h2>
-            <a href="/category.php?name=fashion">View all</a>
-        </div>
-        <div class="product-shelf-container">
-            <div class="product-shelf-scroll" data-shelf="styles">
-                <?php foreach ($trendingProducts as $prod): ?>
-                    <article class="product-card-shelf">
-                        <div class="media-wrapper">
-                            <img src="<?= h(safeProductImg($prod)) ?>" alt="<?= h($prod['name']) ?>">
-                            <button type="button" class="wishlist-btn" aria-label="Add to wishlist" data-id="<?= h($prod['id']) ?>">♡</button>
-                        </div>
-                        <div class="price-row">
-                            <span class="main-price"><?= h(hp($prod['price'], $prod['currency'])) ?></span>
-                        </div>
-                        <h3 class="product-title-shelf">
-                            <a href="/product.php?id=<?= h($prod['id']) ?>" style="text-decoration:none;color:#111;">
-                                <?= h($prod['name']) ?>
-                            </a>
-                        </h3>
-                        <div class="pill-btn-row">
-                            <button class="pill-btn secondary" type="button">Options</button>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-            <button class="shelf-nav-btn" data-shelf-arrow="styles" aria-label="Next products">›</button>
-        </div>
-    </section>
-
-    <!-- Pretty Garden Banner -->
-    <?php $b3 = $bannerProducts[3] ?? []; ?>
-    <section class="garden-banner"
-             style="background:linear-gradient(135deg,#fef3c7,#fcd34d);border-radius:12px;padding:30px;margin:30px 0;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;">
-        <div>
-            <p style="color:#0654ba;font-size:14px;margin-bottom:5px;">Dresses to sweaters</p>
-            <h2 style="color:#1f2937;font-size:32px;font-weight:700;margin-bottom:15px;">Just in from<br>PrettyGarden</h2>
-            <a href="/brands/prettygarden.php"
-               style="background:#fff;color:#1f2937;padding:12px 24px;border-radius:6px;font-weight:700;text-decoration:none;display:inline-block;">Shop now</a>
-        </div>
-        <div style="text-align:center;">
-            <?php if (!empty($b3['image_url'])): ?>
-                <img src="<?= h(safeProductImg($b3,'/images/banners/fashion-banner.jpg')) ?>"
-                     alt="PrettyGarden Fashion" style="max-width:200px;border-radius:8px;">
-            <?php endif; ?>
-        </div>
-    </section>
-
-    <!-- ========== NEW ARRIVALS SHELF ========== -->
-    <?php if (!empty($newArrivals)): ?>
-        <section class="product-shelf-section" aria-label="New Arrivals">
+function renderNewArrivalsSection($newArrivals) {
+    ?>
+    <!-- Section 7: New Arrivals -->
+    <section class="product-shelf-section" aria-label="New Arrivals">
+        <div class="container">
             <div class="product-shelf-header">
                 <h2>New Arrivals</h2>
                 <a href="/products.php?filter=new">View all</a>
             </div>
             <div class="product-shelf-container">
                 <div class="product-shelf-scroll" data-shelf="arrivals">
-                    <?php foreach ($newArrivals as $prod): ?>
+                    <?php if (empty($newArrivals)): ?>
+                        <!-- Mock new arrivals -->
+                        <?php for ($i = 1; $i <= 6; $i++): ?>
+                        <article class="product-card-shelf">
+                            <div class="media-wrapper">
+                                <img src="/images/products/new-<?= $i ?>.jpg" alt="New Arrival <?= $i ?>">
+                                <button type="button" class="wishlist-btn" aria-label="Add to wishlist">♡</button>
+                                <div class="new-badge">New</div>
+                            </div>
+                            <div class="price-row">
+                                <span class="main-price">$<?= number_format(rand(15, 150), 2) ?></span>
+                            </div>
+                            <h3 class="product-title-shelf">New Arrival <?= $i ?></h3>
+                            <div class="pill-btn-row">
+                                <button class="pill-btn" type="button"><span class="add-icon">＋</span>Add</button>
+                                <button class="pill-btn secondary" type="button">Options</button>
+                            </div>
+                        </article>
+                        <?php endfor; ?>
+                    <?php else: ?>
+                        <?php foreach ($newArrivals as $prod): ?>
                         <article class="product-card-shelf">
                             <div class="media-wrapper">
                                 <img src="<?= h(safeProductImg($prod)) ?>" alt="<?= h($prod['name']) ?>">
                                 <button type="button" class="wishlist-btn" aria-label="Add to wishlist" data-id="<?= h($prod['id']) ?>">♡</button>
-                                <div style="position:absolute;top:10px;left:10px;background:#16a34a;color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:600;">New</div>
+                                <div class="new-badge">New</div>
                             </div>
                             <div class="price-row">
                                 <span class="main-price"><?= h(hp($prod['price'], $prod['currency'])) ?></span>
@@ -697,14 +714,76 @@ if (function_exists('includeHeader')) {
                                 <button class="pill-btn secondary" type="button">Options</button>
                             </div>
                         </article>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
                 <button class="shelf-nav-btn" data-shelf-arrow="arrivals" aria-label="Next products">›</button>
             </div>
-        </section>
-    <?php endif; ?>
+        </div>
+    </section>
+    <?php
+}
 
-</div>
+function renderRecommendationsSection($bannersByPosition) {
+    ?>
+    <!-- Section 8: Personalized Recommendations -->
+    <section class="recommendations-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-magic"></i>
+                    Recommended for You
+                </h2>
+                <p class="section-subtitle">Based on your browsing history and preferences</p>
+            </div>
+            
+            <!-- Personalized CTA or Product Grid -->
+            <?php if (!class_exists('Session') || !Session::isLoggedIn()): ?>
+            <div class="personalized-cta">
+                <div class="cta-content">
+                    <div class="cta-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="cta-text">
+                        <h3 class="cta-title">Get personalized recommendations</h3>
+                        <p class="cta-subtitle">Sign in to discover products tailored just for you</p>
+                    </div>
+                    <div class="cta-actions">
+                        <a href="/login.php" class="btn-cta primary">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Sign In
+                        </a>
+                        <a href="/register.php" class="btn-cta secondary">
+                            <i class="fas fa-user-plus"></i>
+                            Create Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="recommendations-grid">
+                <!-- Mock personalized recommendations for logged-in users -->
+                <?php for ($i = 1; $i <= 4; $i++): ?>
+                <div class="recommendation-card">
+                    <div class="rec-image">
+                        <img src="/images/products/rec-<?= $i ?>.jpg" alt="Recommended Product <?= $i ?>" loading="lazy">
+                        <div class="rec-badge">For You</div>
+                    </div>
+                    <div class="rec-content">
+                        <h3>Recommended Item <?= $i ?></h3>
+                        <p class="rec-reason">Based on your recent purchases</p>
+                        <div class="rec-price">$<?= number_format(rand(25, 125), 2) ?></div>
+                        <button class="rec-btn">Add to Cart</button>
+                    </div>
+                </div>
+                <?php endfor; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
+    <?php
+}
+?>
 
 <script>
 /* Horizontal shelf nav */

@@ -1883,6 +1883,20 @@ CREATE TABLE `homepage_banners` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `homepage_sections`
+--
+
+CREATE TABLE `homepage_sections` (
+  `id` int(11) NOT NULL,
+  `section_key` varchar(100) NOT NULL,
+  `section_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`section_data`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `inventory_alerts`
 --
 
@@ -5985,6 +5999,13 @@ ALTER TABLE `homepage_banners`
   ADD KEY `idx_status_start_end` (`status`,`start_date`,`end_date`);
 
 --
+-- Indexes for table `homepage_sections`
+--
+ALTER TABLE `homepage_sections`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_section_key` (`section_key`);
+
+--
 -- Indexes for table `inventory_alerts`
 --
 ALTER TABLE `inventory_alerts`
@@ -7893,6 +7914,12 @@ ALTER TABLE `file_uploads`
 -- AUTO_INCREMENT for table `homepage_banners`
 --
 ALTER TABLE `homepage_banners`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `homepage_sections`
+--
+ALTER TABLE `homepage_sections`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

@@ -77,11 +77,8 @@ img {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding: 6px 20px;
+    width: 100%;
 }
 
 .top-nav-left, .top-nav-right {
@@ -179,8 +176,7 @@ img {
     display: flex;
     align-items: center;
     gap: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -354,12 +350,11 @@ img {
 .category-nav-content {
     display: flex;
     gap: 0;
-    padding: 0;
+    padding: 0 20px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .category-nav-content::-webkit-scrollbar {
@@ -412,8 +407,7 @@ img {
     align-items: center;
     justify-content: space-between;
     gap: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -481,8 +475,7 @@ img {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 32px;
     padding: 40px 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .footer-section h3 {
@@ -659,8 +652,8 @@ img {
     justify-content: space-between;
     align-items: center;
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    padding: 0 20px;
 }
 
 .footer-bottom-left {
@@ -2016,9 +2009,7 @@ footer {
     overflow: hidden;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     margin: 24px 20px;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    width: calc(100% - 40px);
 }
 
 .hero-image {
@@ -2134,9 +2125,7 @@ footer {
 .section-header {
     text-align: center;
     margin-bottom: 40px;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -2156,8 +2145,7 @@ footer {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -2298,8 +2286,7 @@ footer {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
     gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 20px;
 }
 
@@ -2402,10 +2389,8 @@ footer {
     display: flex;
     align-items: center;
     gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-    margin-left: 20px;
-    margin-right: 20px;
+    width: calc(100% - 40px);
+    margin: 0 20px;
 }
 
 .cta-icon i {
@@ -2742,8 +2727,8 @@ footer {
     grid-template-columns: 1fr 1fr;
     gap: 40px;
     align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: calc(100% - 40px);
+    margin: 0 20px;
 }
 
 .spotlight-label {
@@ -2881,5 +2866,330 @@ footer {
     .category-nav-item:last-child {
         margin-right: 0;
     }
+}
+
+/* ========== Enhanced eBay-Style Homepage Sections ========== */
+
+/* Section 3: Daily Deals */
+.deals-section {
+    background: #f8fafc;
+    padding: 48px 0;
+    margin: 0 -20px 48px -20px;
+}
+
+.deals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    width: 100%;
+    padding: 0 20px;
+}
+
+.deal-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.deal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.deal-card.featured {
+    grid-column: span 2;
+}
+
+.deal-timer {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #dc2626;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+}
+
+.deal-image {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.deal-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.deal-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #16a34a;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.deal-content {
+    padding: 20px;
+}
+
+.deal-content h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+}
+
+.deal-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.deal-price .current {
+    font-size: 20px;
+    font-weight: 700;
+    color: #dc2626;
+}
+
+.deal-price .original {
+    font-size: 16px;
+    color: #6b7280;
+    text-decoration: line-through;
+}
+
+.deal-btn {
+    background: #0654ba;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.deal-btn:hover {
+    background: #0540a1;
+    color: white;
+}
+
+/* Section 5: Top Brands */
+.brands-section {
+    background: #f8fafc;
+    padding: 48px 0;
+    margin: 0 -20px 48px -20px;
+}
+
+.brands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 24px;
+    width: 100%;
+    padding: 0 20px;
+}
+
+.brand-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.brand-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.brand-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.brand-logo img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.brand-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* Enhanced Product Shelf Styles */
+.trending-badge, .new-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #dc2626;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.new-badge {
+    background: #16a34a;
+}
+
+/* Section 8: Personalized Recommendations */
+.recommendations-section {
+    background: #f8fafc;
+    padding: 48px 0;
+    margin: 0 -20px 48px -20px;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    width: 100%;
+    padding: 0 20px;
+}
+
+.recommendation-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.rec-image {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.rec-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rec-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #8b5cf6;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.rec-content {
+    padding: 20px;
+}
+
+.rec-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.rec-reason {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 12px;
+}
+
+.rec-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 16px;
+}
+
+.rec-btn {
+    width: 100%;
+    background: #8b5cf6;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.rec-btn:hover {
+    background: #7c3aed;
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 768px) {
+    .deals-grid {
+        grid-template-columns: 1fr;
+        padding: 0 10px;
+    }
+    
+    .deal-card.featured {
+        grid-column: span 1;
+    }
+    
+    .brands-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        padding: 0 10px;
+    }
+    
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+        padding: 0 10px;
+    }
+    
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Focus states for accessibility */
+.deal-btn:focus,
+.rec-btn:focus {
+    outline: 2px solid #0654ba;
+    outline-offset: 2px;
+}
+
+.deal-card:focus,
+.brand-card:focus,
+.recommendation-card:focus {
+    outline: 2px solid #0654ba;
+    outline-offset: 2px;
 }
 
