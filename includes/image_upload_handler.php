@@ -98,3 +98,70 @@ if (!function_exists('handleProductImageUploads')) {
         ];
     }
 }
+
+if (!function_exists('handle_image_uploads')) {
+    /**
+     * Simple wrapper function for handling multiple image uploads
+     * Expected by seller product add/edit pages
+     * Also known as handleProductImageUploads for compatibility
+     * 
+     * @param array $files The $_FILES array for multiple files
+     * @return array Array of uploaded file information
+     */
+    function handle_image_uploads(array $files): array {
+        $uploads = [];
+        $errors = [];
+        
+        if (empty($files) || !isset($files['name'])) {
+            return $uploads;
+        }
+        
+        $baseUploadDir = __DIR__ . '/../uploads/products/' . date('Y/m');
+        
+        if (!is_dir($baseUploadDir) && !mkdir($baseUploadDir, 0775, true)) {
+            error_log("Failed to create upload directory: " . $baseUploadDir);
+            return $uploads;
+        }
+        
+        // Handle single file or array of files
+        $fileCount = is_array($files['name']) ? count($files['name']) : 1;
+        
+        for ($i = 0; $i < $fileCount; $i++) {
+            $file = [];
+            if (is_array($files['name'])) {
+                $file = [
+                    'name' => $files['name'][$i] ?? '',
+                    'type' => $files['type'][$i] ?? '',
+                    'tmp_name' => $files['tmp_name'][$i] ?? '',
+                    'error' => $files['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+                    'size' => $files['size'][$i] ?? 0
+                ];
+            } else {
+                $file = $files;
+            }
+            
+            if ($file['error'] !== UPLOAD_ERR_OK || empty($file['tmp_name'])) {
+                continue;
+            }
+            
+            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                continue;
+            }
+            
+            $safeFilename = 'img_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+            $destinationPath = $baseUploadDir . '/' . $safeFilename;
+            $publicPath = '/uploads/products/' . date('Y/m') . '/' . $safeFilename;
+            
+            if (move_uploaded_file($file['tmp_name'], $destinationPath)) {
+                $uploads[] = [
+                    'path' => $publicPath,
+                    'original_name' => $file['name'],
+                    'is_primary' => count($uploads) === 0 ? 1 : 0
+                ];
+            }
+        }
+        
+        return $uploads;
+    }
+}

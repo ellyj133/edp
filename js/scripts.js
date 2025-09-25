@@ -16,6 +16,10 @@ const FezaMarket = {
         this.initTooltips();
         this.updateCartDisplay();
         this.initSearchSuggestions();
+        this.initQuantityControls();
+        this.initModalControls();
+        this.initProductGallery();
+        this.initMobileMenu();
     },
     
     bindEvents: function() {
@@ -202,14 +206,17 @@ const FezaMarket = {
             }
         }, 150);
     },
-        
+    
+    initQuantityControls: function() {
         // Quantity controls
         document.addEventListener('change', (e) => {
             if (e.target.matches('.quantity-input')) {
                 this.handleQuantityChange(e.target);
             }
         });
-        
+    },
+    
+    initModalControls: function() {
         // Modal controls
         document.addEventListener('click', (e) => {
             if (e.target.matches('.modal-trigger')) {
@@ -221,7 +228,9 @@ const FezaMarket = {
                 this.closeModal();
             }
         });
-        
+    },
+    
+    initProductGallery: function() {
         // Product image gallery
         document.addEventListener('click', (e) => {
             if (e.target.matches('.product-thumbnail')) {
@@ -694,6 +703,55 @@ function searchFunction() {
     }
 }
 
+// Mobile menu functionality
+FezaMarket.initMobileMenu = function() {
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    const mobileNavOverlay = document.querySelector('.mobile-nav-overlay');
+    const mobileNav = document.querySelector('.mobile-nav');
+    
+    if (!mobileMenuToggle) return;
+    
+    // Create mobile nav overlay if it doesn't exist
+    if (!mobileNavOverlay) {
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-nav-overlay';
+        overlay.innerHTML = `
+            <div class="mobile-nav">
+                <div class="mobile-nav-header">
+                    <h3>Menu</h3>
+                    <button class="mobile-nav-close">&times;</button>
+                </div>
+                <div class="mobile-nav-content">
+                    <a href="/" class="mobile-nav-link">Home</a>
+                    <a href="/categories.php" class="mobile-nav-link">Categories</a>
+                    <a href="/deals.php" class="mobile-nav-link">Deals</a>
+                    <a href="/sell.php" class="mobile-nav-link">Sell</a>
+                    <a href="/help.php" class="mobile-nav-link">Help</a>
+                    ${document.querySelector('.user-menu') ? 
+                        '<a href="/account.php" class="mobile-nav-link">My Account</a>' : 
+                        '<a href="/login.php" class="mobile-nav-link">Sign In</a>'
+                    }
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    // Toggle mobile menu
+    mobileMenuToggle.addEventListener('click', function() {
+        document.body.classList.add('mobile-nav-active');
+        document.querySelector('.mobile-nav-overlay').style.display = 'block';
+    });
+    
+    // Close mobile menu
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.mobile-nav-close') || e.target.matches('.mobile-nav-overlay')) {
+            document.body.classList.remove('mobile-nav-active');
+            document.querySelector('.mobile-nav-overlay').style.display = 'none';
+        }
+    });
+};
+
 // Additional CSS for notifications and tooltips
 const style = document.createElement('style');
 style.textContent = `
@@ -793,6 +851,82 @@ style.textContent = `
     
     .product-thumbnail.active {
         border: 2px solid #007bff;
+    }
+    
+    /* Mobile Navigation Styles */
+    .mobile-nav-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: none;
+    }
+    
+    .mobile-nav {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 280px;
+        height: 100%;
+        background: white;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .mobile-nav-active .mobile-nav {
+        transform: translateX(0);
+    }
+    
+    .mobile-nav-header {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .mobile-nav-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+    
+    .mobile-nav-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .mobile-nav-content {
+        padding: 1rem 0;
+    }
+    
+    .mobile-nav-link {
+        display: block;
+        padding: 0.75rem 1rem;
+        color: #333;
+        text-decoration: none;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+    }
+    
+    .mobile-nav-link:hover {
+        background-color: #f8f9fa;
+        color: #0654ba;
+    }
+    
+    .mobile-nav-link:last-child {
+        border-bottom: none;
     }
 `;
 document.head.appendChild(style);
