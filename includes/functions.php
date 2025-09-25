@@ -309,9 +309,10 @@ function createSecureSession($userId) {
     $sessionToken = generateSecureToken(); // 128 hex chars
     $csrfToken = generateToken();          // 64 hex chars
 
+    // FIX: Use MySQL/MariaDB datetime functions instead of SQLite
     $stmt = $db->prepare("
         INSERT INTO user_sessions (user_id, session_token, csrf_token, ip_address, user_agent, expires_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now', '+1 hour'), datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW(), NOW())
     ");
     $stmt->execute([
         $userId,

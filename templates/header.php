@@ -1,693 +1,642 @@
+<?php
+/**
+ * Main Site Header - eBay Style Layout
+ * Used across entire FezaMarket site for consistency
+ */
+
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', dirname(__DIR__));
+}
+
+require_once BASE_PATH . '/includes/init.php';
+
+$isLoggedIn = Session::isLoggedIn();
+$currentUser = null;
+if ($isLoggedIn) {
+    $user = new User();
+    $currentUser = $user->find(Session::getUserId());
+}
+
+$userName = $currentUser ? ($currentUser['first_name'] ?? $currentUser['username'] ?? $currentUser['email']) : null;
+$userRole = getCurrentUserRole();
+$cart_count = 0; // Implement your cart count logic here
+
+$page_title = $page_title ?? 'FezaMarket - Online Marketplace';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($page_title . ' - FezaMarket'); ?></title>
+    <title><?php echo htmlspecialchars($page_title); ?></title>
     
-    <!-- Modern CSS Framework -->
-    <link rel="stylesheet" href="/assets/css/base.css">
-    <link rel="stylesheet" href="/css/styles.css">
+    <!-- Meta Tags -->
+    <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'Buy and sell electronics, cars, fashion apparel, collectibles, sporting goods, digital cameras, baby items, coupons, and everything else on FezaMarket.'); ?>">
+    <meta name="keywords" content="buy, sell, auction, online marketplace, electronics, fashion, home, garden">
     
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Preload critical assets -->
-    <link rel="preload" href="/assets/js/ui.js" as="script">
-    
-    <!-- Favicon and meta -->
+    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'FezaMarket - Buy & Sell Everything Online'); ?>">
     
-    <!-- CSRF Meta Tag for AJAX -->
+    <!-- CSRF Token -->
     <meta name="csrf-token" content="<?php echo csrfToken(); ?>">
     
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for admin pages -->
+    <?php if (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false): ?>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <?php endif; ?>
+    
     <style>
-        /* Enhanced User dropdown styles */
-        .account-dropdown {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+            background-color: #ffffff;
+        }
+        
+        /* Top Header Bar */
+        .top-header {
+            background-color: #f7f7f7;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+        
+        .top-header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .top-left-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .top-right-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .top-header a {
+            color: #0654ba;
+            text-decoration: none;
+            font-weight: normal;
+        }
+        
+        .top-header a:hover {
+            text-decoration: underline;
+        }
+        
+        .greeting {
+            color: #333;
+        }
+        
+        /* Dropdown Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            top: 100%;
+            right: 0;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        .dropdown-content a {
+            color: #333;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* Main Header */
+        .main-header {
+            background-color: white;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        
+        .main-header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+        }
+        
+        /* Logo */
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            text-decoration: none;
+            letter-spacing: -1px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .logo .f { color: #e53238; }
+        .logo .e { color: #0064d2; }
+        .logo .z { color: #f5af02; }
+        .logo .a { color: #86b817; }
+        
+        /* Category Dropdown */
+        .category-dropdown {
+            position: relative;
+            background-color: white;
+            border: 2px solid #767676;
+            border-radius: 4px 0 0 4px;
+            padding: 11px 35px 11px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            white-space: nowrap;
+            min-width: 140px;
+        }
+        
+        .category-dropdown:after {
+            content: '▼';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #767676;
+        }
+        
+        /* Search Container */
+        .search-container {
+            flex: 1;
+            display: flex;
+            max-width: 800px;
             position: relative;
         }
         
-        .user-menu-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            padding: 6px 12px;
-            border-radius: 20px;
-            transition: all 0.2s ease;
-        }
-        
-        .user-menu-toggle:hover {
-            background-color: rgba(6, 84, 186, 0.1);
-        }
-        
-        .user-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .dropdown-arrow {
-            font-size: 12px;
-            color: #6c757d;
-            transition: transform 0.2s ease;
-        }
-        
-        .user-menu-toggle:hover .dropdown-arrow {
-            transform: rotate(180deg);
-        }
-        
-        .user-dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            min-width: 220px;
-            z-index: 1000;
-            margin-top: 0.5rem;
-            overflow: hidden;
-            animation: dropdownFadeIn 0.2s ease-out;
-        }
-        
-        @keyframes dropdownFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            color: #374151;
-            text-decoration: none;
-            border-bottom: 1px solid #f3f4f6;
-            transition: all 0.2s ease;
-            font-size: 14px;
-        }
-        
-        .dropdown-item:hover {
-            background-color: #f8f9fa;
-            color: #0654ba;
-        }
-        
-        .dropdown-item i {
-            width: 16px;
-            color: #6c757d;
-        }
-        
-        .dropdown-item:hover i {
-            color: #0654ba;
-        }
-        
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-        
-        .dropdown-divider {
-            height: 1px;
-            background-color: #e5e7eb;
-            margin: 4px 0;
-        }
-    </style>
-    
-    <!-- Modern JavaScript -->
-    <script src="/assets/js/ui.js" defer></script>
-    <script src="/js/fezamarket.js" defer></script>
-</head>
-<body>
-    <?php
-    // Defensive alias: ensure we always work with an array when reading user fields
-    $cu = is_array($current_user ?? null) ? $current_user : [];
-    ?>
-    <header class="fezamarket-header">
-        <!-- Top Navigation Bar -->
-        <div class="top-nav">
-            <div class="container">
-                <div class="top-nav-content">
-                    <div class="top-nav-left">
-                        <span class="greeting">
-                            <?php if (Session::isLoggedIn()): ?>
-                                Hi, <?php echo htmlspecialchars(($cu['first_name'] ?? 'User')); ?>!
-                            <?php else: ?>
-                                <a href="/login.php" class="auth-link">Sign in</a> or <a href="/register.php" class="auth-link">register</a>
-                            <?php endif; ?>
-                        </span>
-                        <a href="/deals.php" class="top-nav-link">Daily Deals</a>
-                        <a href="/help.php" class="top-nav-link">Help & Contact</a>
-                    </div>
-                    <div class="top-nav-right">
-                        <a href="/sell.php" class="top-nav-link sell-link">
-                            <i class="fas fa-store"></i> Sell
-                        </a>
-                        <?php if (Session::isLoggedIn()): ?>
-                            <div class="account-dropdown">
-                                <a href="#" class="top-nav-link user-menu-toggle">
-                                    <img src="<?php echo getUserAvatar($cu, 24); ?>" alt="Avatar" class="user-avatar">
-                                    <?php echo htmlspecialchars(($cu['first_name'] ?? 'User')); ?> <span class="dropdown-arrow">▾</span>
-                                </a>
-                                <div class="user-dropdown-menu" style="display: none;">
-                                    <a href="/account.php" class="dropdown-item">
-                                        <i class="fas fa-user"></i> My Account
-                                    </a>
-                                    <a href="/account.php?tab=orders" class="dropdown-item">
-                                        <i class="fas fa-box"></i> Orders
-                                    </a>
-                                    <a href="/wishlist.php" class="dropdown-item">
-                                        <i class="fas fa-heart"></i> Watchlist
-                                    </a>
-                                    <?php if (hasRole('vendor')): ?>
-                                        <a href="/seller-center.php" class="dropdown-item">
-                                            <i class="fas fa-store"></i> Seller Center
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if (hasRole('admin')): ?>
-                                        <a href="/admin/index.php" class="dropdown-item">
-                                            <i class="fas fa-cog"></i> Admin Panel
-                                        </a>
-                                    <?php endif; ?>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="/logout.php" class="dropdown-item">
-                                        <i class="fas fa-sign-out-alt"></i> Sign Out
-                                    </a>
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <a href="/wishlist.php" class="top-nav-link">
-                                <i class="fas fa-heart"></i> Watchlist
-                            </a>
-                        <?php endif; ?>
-                        <a href="/notifications.php" class="notification-icon">
-                            <i class="fas fa-bell"></i>
-                        </a>
-                        <a href="/cart.php" class="cart-icon-top">
-                            <i class="fas fa-shopping-cart"></i>
-                            <?php if (isset($cart_count) && $cart_count > 0): ?>
-                                <span class="cart-count"><?php echo $cart_count; ?></span>
-                            <?php endif; ?>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Header -->
-        <div class="main-header">
-            <div class="container">
-                <div class="main-header-content">
-                    <!-- Logo -->
-                    <div class="logo-section">
-                        <!-- Mobile menu toggle -->
-                        <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                            <span class="hamburger-line"></span>
-                            <span class="hamburger-line"></span>
-                            <span class="hamburger-line"></span>
-                        </button>
-                        
-                        <a href="/" class="fezamarket-logo">
-                            <div class="logo-container">
-                                <span class="logo-f">f</span><span class="logo-e">e</span><span class="logo-z">z</span><span class="logo-a">a</span><span class="logo-market">Market</span>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Search Section -->
-                    <div class="search-section">
-                        <div class="search-form-container">
-                            <form class="search-form" action="/search.php" method="GET">
-                                <div class="search-input-group">
-                                    <select class="category-select" name="category" id="category-select">
-                                        <option value="">All Categories</option>
-                                        <?php
-                                        $category = new Category();
-                                        $categories = $category->getParents();
-                                        foreach ($categories as $cat):
-                                        ?>
-                                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <input type="text" 
-                                           name="q" 
-                                           id="search-input" 
-                                           class="search-input" 
-                                           placeholder="Search for anything" 
-                                           value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>"
-                                           autocomplete="off">
-                                    <button type="submit" class="search-button">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                                <div class="search-suggestions" id="search-suggestions" style="display: none;"></div>
-                            </form>
-                            <a href="/search/advanced.php" class="advanced-search">Advanced</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Category Navigation -->
-        <div class="category-nav">
-            <div class="container">
-                <nav class="category-nav-content">
-                    <a href="/live.php" class="category-nav-item">FezaMarket Live</a>
-                    <a href="/saved.php" class="category-nav-item">Saved</a>
-                    <a href="/category.php?name=electronics" class="category-nav-item">Electronics</a>
-                    <a href="/category.php?name=motors" class="category-nav-item">Motors</a>
-                    <a href="/category.php?name=fashion" class="category-nav-item">Fashion</a>
-                    <a href="/category.php?name=collectibles" class="category-nav-item">Collectibles and Art</a>
-                    <a href="/category.php?name=sports" class="category-nav-item">Sports</a>
-                    <a href="/category.php?name=health-beauty" class="category-nav-item">Health & Beauty</a>
-                    <a href="/category.php?name=industrial" class="category-nav-item">Industrial equipment</a>
-                    <a href="/category.php?name=home-garden" class="category-nav-item">Home & Garden</a>
-                    <a href="/deals.php" class="category-nav-item">Deals</a>
-                    <a href="/sell.php" class="category-nav-item">Sell</a>
-                </nav>
-            </div>
-        </div>
-        
-        <!-- Mobile Navigation Overlay -->
-        <div class="mobile-nav-overlay" id="mobileNavOverlay">
-            <div class="mobile-nav-content">
-                <div class="mobile-nav-header">
-                    <div class="mobile-nav-title">Menu</div>
-                    <button class="mobile-nav-close" id="mobileNavClose">&times;</button>
-                </div>
-                
-                <div class="mobile-nav-search">
-                    <form action="/search.php" method="GET" class="mobile-search-form">
-                        <input type="text" name="q" placeholder="Search for anything" class="mobile-search-input">
-                        <button type="submit" class="mobile-search-btn">?</button>
-                    </form>
-                </div>
-                
-                <div class="mobile-nav-sections">
-                    <!-- Account Section -->
-                    <?php if (Session::isLoggedIn()): ?>
-                        <div class="mobile-nav-section">
-                            <div class="mobile-user-info">
-                                <img src="<?php echo getUserAvatar($cu, 40); ?>" alt="Avatar" class="mobile-user-avatar">
-                                <div class="mobile-user-details">
-                                    <?php
-                                        $fullName = trim(($cu['first_name'] ?? '') . ' ' . ($cu['last_name'] ?? ''));
-                                    ?>
-                                    <div class="mobile-user-name"><?php echo htmlspecialchars($fullName ?: 'User'); ?></div>
-                                    <div class="mobile-user-email"><?php echo htmlspecialchars($cu['email'] ?? ''); ?></div>
-                                </div>
-                            </div>
-                            <div class="mobile-nav-divider"></div>
-                            <a href="/account.php" class="mobile-nav-link">Dashboard</a>
-                            <a href="/account.php?tab=orders" class="mobile-nav-link">My Orders</a>
-                            <a href="/wishlist.php" class="mobile-nav-link">Watchlist</a>
-                            <a href="/cart.php" class="mobile-nav-link">
-                                Cart
-                                <?php if (isset($cart_count) && $cart_count > 0): ?>
-                                    <span class="mobile-cart-count"><?php echo $cart_count; ?></span>
-                                <?php endif; ?>
-                            </a>
-                            <?php if (hasRole('vendor')): ?>
-                                <a href="/seller-center.php" class="mobile-nav-link">Seller Center</a>
-                            <?php else: ?>
-                                <a href="<?php echo sellerUrl('register'); ?>" class="mobile-nav-link">Start Selling</a>
-                            <?php endif; ?>
-                            <?php if (hasRole('admin')): ?>
-                                <a href="/admin/index.php" class="mobile-nav-link">Admin Panel</a>
-                            <?php endif; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="mobile-nav-section">
-                            <a href="/login.php" class="mobile-nav-link primary">Sign In</a>
-                            <a href="/register.php" class="mobile-nav-link">Register</a>
-                            <div class="mobile-nav-divider"></div>
-                            <a href="/cart.php" class="mobile-nav-link">Cart</a>
-                            <a href="/wishlist.php" class="mobile-nav-link">Watchlist</a>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <!-- Categories Section -->
-                    <div class="mobile-nav-section">
-                        <div class="mobile-nav-section-title">Shop by Category</div>
-                        <a href="/category.php?name=electronics" class="mobile-nav-link">Electronics</a>
-                        <a href="/category.php?name=fashion" class="mobile-nav-link">Fashion</a>
-                        <a href="/category.php?name=home-garden" class="mobile-nav-link">Home & Garden</a>
-                        <a href="/category.php?name=sports" class="mobile-nav-link">Sports</a>
-                        <a href="/category.php?name=health-beauty" class="mobile-nav-link">Health & Beauty</a>
-                        <a href="/category.php?name=motors" class="mobile-nav-link">Motors</a>
-                    </div>
-                    
-                    <!-- Quick Links Section -->
-                    <div class="mobile-nav-section">
-                        <div class="mobile-nav-section-title">Quick Links</div>
-                        <a href="/deals.php" class="mobile-nav-link">Daily Deals</a>
-                        <a href="/live.php" class="mobile-nav-link">FezaMarket Live</a>
-                        <a href="/brands.php" class="mobile-nav-link">Brand Outlet</a>
-                        <a href="/gift-cards.php" class="mobile-nav-link">Gift Cards</a>
-                        <a href="/help.php" class="mobile-nav-link">Help & Contact</a>
-                    </div>
-                    
-                    <!-- Bottom Section -->
-                    <div class="mobile-nav-section">
-                        <?php if (Session::isLoggedIn()): ?>
-                            <div class="mobile-nav-divider"></div>
-                            <a href="/account.php?tab=security" class="mobile-nav-link">Account Settings</a>
-                            <a href="/logout.php" class="mobile-nav-link">Sign Out</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-    
-    <script>
-        // Mobile menu functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
-            const mobileNavClose = document.getElementById('mobileNavClose');
-            
-            // Open mobile menu
-            mobileMenuToggle.addEventListener('click', function() {
-                mobileNavOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            });
-            
-            // Close mobile menu
-            function closeMobileMenu() {
-                mobileNavOverlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-            
-            mobileNavClose.addEventListener('click', closeMobileMenu);
-            
-            // Close on overlay click
-            mobileNavOverlay.addEventListener('click', function(e) {
-                if (e.target === mobileNavOverlay) {
-                    closeMobileMenu();
-                }
-            });
-            
-            // Close on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && mobileNavOverlay.classList.contains('active')) {
-                    closeMobileMenu();
-                }
-            });
-            
-            // Existing user menu functionality
-            const userMenuToggle = document.querySelector('.user-menu-toggle');
-            const userDropdownMenu = document.querySelector('.user-dropdown-menu');
-            
-            if (userMenuToggle && userDropdownMenu) {
-                userMenuToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const isVisible = userDropdownMenu.style.display === 'block';
-                    userDropdownMenu.style.display = isVisible ? 'none' : 'block';
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(e) {
-                    if (!userMenuToggle.contains(e.target) && !userDropdownMenu.contains(e.target)) {
-                        userDropdownMenu.style.display = 'none';
-                    }
-                });
-            }
-        });
-    </script>
-    
-    <style>
-        /* Mobile Menu Styles */
-        .mobile-menu-toggle {
-            display: none;
-            flex-direction: column;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            margin-right: 12px;
-        }
-        
-        .hamburger-line {
-            width: 24px;
-            height: 3px;
-            background: #333;
-            margin: 2px 0;
-            transition: 0.3s;
-            border-radius: 2px;
-        }
-        
-        .mobile-nav-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .mobile-nav-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .mobile-nav-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 320px;
-            height: 100%;
-            background: white;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .mobile-nav-overlay.active .mobile-nav-content {
-            transform: translateX(0);
-        }
-        
-        .mobile-nav-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #e5e7eb;
-            background: #f9fafb;
-        }
-        
-        .mobile-nav-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        
-        .mobile-nav-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #6b7280;
-            padding: 4px;
-        }
-        
-        .mobile-nav-search {
-            padding: 16px 20px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .mobile-search-form {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .mobile-search-input {
+        .search-input {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
+            border: 2px solid #767676;
+            border-left: none;
+            border-right: none;
+            padding: 11px 12px;
             font-size: 16px;
+            outline: none;
         }
         
-        .mobile-search-btn {
-            padding: 12px 16px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
+        .search-input:focus {
+            border-color: #0064d2;
+        }
+        
+        .search-category-dropdown {
+            background-color: #f7f7f7;
+            border: 2px solid #767676;
+            border-left: none;
+            border-right: none;
+            padding: 11px 35px 11px 12px;
             cursor: pointer;
-        }
-        
-        .mobile-nav-sections {
-            flex: 1;
-            padding: 16px 0;
-        }
-        
-        .mobile-nav-section {
-            padding: 0 20px 20px;
-        }
-        
-        .mobile-user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px 0;
-        }
-        
-        .mobile-user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-        
-        .mobile-user-name {
-            font-weight: 600;
-            color: #1f2937;
-        }
-        
-        .mobile-user-email {
             font-size: 14px;
-            color: #6b7280;
+            color: #333;
+            position: relative;
+            white-space: nowrap;
+            min-width: 140px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
         }
         
-        .mobile-nav-section-title {
+        .search-btn {
+            background: linear-gradient(135deg, #4285f4, #1a73e8);
+            border: 2px solid #1a73e8;
+            border-radius: 0 4px 4px 0;
+            color: white;
+            padding: 11px 24px;
+            font-size: 16px;
             font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background 0.2s;
         }
         
-        .mobile-nav-link {
+        .search-btn:hover {
+            background: linear-gradient(135deg, #3367d6, #1557b0);
+        }
+        
+        .advanced-link {
+            color: #0654ba;
+            text-decoration: none;
+            font-size: 13px;
+            margin-left: 12px;
+        }
+        
+        .advanced-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Header Icons */
+        .header-icons {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 0;
-            color: #374151;
+            gap: 20px;
+        }
+        
+        .header-icon {
+            color: #333;
+            font-size: 20px;
             text-decoration: none;
-            border-bottom: 1px solid #f3f4f6;
-            transition: color 0.2s ease;
+            position: relative;
         }
         
-        .mobile-nav-link:hover {
-            color: #3b82f6;
+        .header-icon:hover {
+            color: #0654ba;
         }
         
-        .mobile-nav-link.primary {
-            color: #3b82f6;
-            font-weight: 600;
-        }
-        
-        .mobile-nav-divider {
-            height: 1px;
-            background: #e5e7eb;
-            margin: 12px 0;
-        }
-        
-        .mobile-cart-count {
-            background: #ef4444;
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #e53238;
             color: white;
             border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 12px;
-            font-weight: 600;
-            min-width: 18px;
+            width: 18px;
             height: 18px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: bold;
         }
         
-        /* Responsive Design */
+        /* Navigation Bar */
+        .nav-bar {
+            background-color: white;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 0;
+        }
+        
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 0;
+        }
+        
+        .nav-links li {
+            position: relative;
+        }
+        
+        .nav-links a {
+            display: block;
+            padding: 12px 16px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 400;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #0654ba;
+            border-bottom-color: #0654ba;
+        }
+        
+        /* Category dropdown content */
+        .category-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 220px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            top: 100%;
+            left: 0;
+        }
+        
+        .category-dropdown:hover .category-dropdown-content {
+            display: block;
+        }
+        
+        .category-dropdown-content a {
+            color: #333;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        
+        .category-dropdown-content a:hover {
+            background-color: #f0f0f0;
+            color: #0654ba;
+        }
+
+        /* Admin/Seller Specific Styles */
+        <?php if (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false): ?>
+        .admin-content-wrapper {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+        
+        .admin-sidebar {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0;
+            margin-bottom: 2rem;
+        }
+        
+        .admin-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .admin-nav-item {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .admin-nav-link {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .admin-nav-link:hover {
+            background-color: #f8f9fa;
+            border-left-color: #0654ba;
+            color: #0654ba;
+        }
+        
+        .admin-nav-link.active {
+            background-color: #0654ba;
+            color: white;
+            border-left-color: #0654ba;
+        }
+        
+        .admin-nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            border-left: 4px solid #0654ba;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stats-card.success { border-left-color: #28a745; }
+        .stats-card.warning { border-left-color: #ffc107; }
+        .stats-card.danger { border-left-color: #dc3545; }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        <?php endif; ?>
+        
+        /* Mobile Responsive */
         @media (max-width: 1024px) {
-            .top-nav {
-                display: none;
+            .main-header-content {
+                flex-wrap: wrap;
+                gap: 10px;
             }
             
-            .category-nav {
-                display: none;
-            }
-            
-            .mobile-menu-toggle {
-                display: flex;
-            }
-            
-            .search-section {
-                flex: 1;
-                margin: 0 16px;
-            }
-            
-            .search-form-container {
+            .search-container {
+                order: 3;
                 width: 100%;
+                max-width: none;
             }
             
-            .category-select {
-                display: none;
-            }
-            
-            .search-input-group {
-                display: flex;
-            }
-            
-            .search-input {
-                flex: 1;
-                border-radius: 8px 0 0 8px;
-            }
-            
-            .search-button {
-                border-radius: 0 8px 8px 0;
-                padding: 0 16px;
-            }
-            
-            .advanced-search {
+            .category-dropdown {
                 display: none;
             }
         }
         
         @media (max-width: 768px) {
-            .main-header-content {
-                padding: 12px 0;
+            .top-header {
+                font-size: 12px;
             }
             
-            .fezamarket-logo {
-                font-size: 20px;
+            .nav-links {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
             
-            .search-input {
-                font-size: 16px; /* Prevent zoom on iOS */
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .mobile-nav-content {
-                width: 280px;
-            }
-            
-            .mobile-nav-sections {
-                padding: 12px 0;
-            }
-            
-            .mobile-nav-section {
-                padding: 0 16px 16px;
+            .logo {
+                font-size: 28px;
             }
         }
     </style>
-    
-    <main class="main-content"><?php
+</head>
+<body>
+    <!-- Top Header Bar -->
+    <div class="top-header">
+        <div class="top-header-content">
+            <div class="top-left-links">
+                <?php if ($isLoggedIn): ?>
+                    <span class="greeting">Hi! <strong><?php echo htmlspecialchars($userName ?? 'User'); ?></strong></span>
+                <?php else: ?>
+                    <span class="greeting">Hi! <a href="/login.php">Sign in</a> or <a href="/register.php">register</a></span>
+                <?php endif; ?>
+                <a href="/deals.php">Daily Deals</a>
+                <a href="/brands.php">Brand Outlet</a>
+                <a href="/gift-cards.php">Gift Cards</a>
+                <a href="/help.php">Help & Contact</a>
+            </div>
+            <div class="top-right-links">
+                <a href="/shipping.php">Ship to</a>
+                <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
+                    <a href="/seller/">Sell</a>
+                <?php else: ?>
+                    <a href="/sell.php">Sell</a>
+                <?php endif; ?>
+                
+                <?php if ($isLoggedIn): ?>
+                    <div class="dropdown">
+                        <a href="/saved.php">Watchlist ▼</a>
+                        <div class="dropdown-content">
+                            <a href="/saved.php?tab=watching">Watch list</a>
+                            <a href="/saved.php?tab=recently-viewed">Recently viewed</a>
+                            <a href="/saved.php?tab=saved-searches">Saved searches</a>
+                            <a href="/saved.php?tab=saved-sellers">Saved sellers</a>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <a href="/account.php">My FezaMarket ▼</a>
+                        <div class="dropdown-content">
+                            <a href="/account.php">Summary</a>
+                            <a href="/account.php?section=recently-viewed">Recently Viewed</a>
+                            <a href="/saved.php">Watchlist</a>
+                            <a href="/account.php?section=purchase-history">Purchase History</a>
+                            <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
+                                <a href="/seller/">Selling</a>
+                            <?php endif; ?>
+                            <?php if ($userRole === 'admin'): ?>
+                                <a href="/admin/">Admin Panel</a>
+                            <?php endif; ?>
+                            <hr style="margin: 4px 0; border: none; border-top: 1px solid #e0e0e0;">
+                            <a href="/account.php?section=settings">Account settings</a>
+                            <a href="/logout.php">Sign out</a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <a href="/saved.php">Watchlist</a>
+                    <a href="/login.php">My FezaMarket</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <div class="main-header">
+        <div class="main-header-content">
+            <a href="/" class="logo">
+                <span class="f">f</span><span class="e">e</span><span class="z">z</span><span class="a">a</span>
+            </a>
+            
+            <div class="category-dropdown">
+                Shop by category
+                <div class="category-dropdown-content">
+                    <a href="/category.php?cat=electronics">Electronics</a>
+                    <a href="/category.php?cat=motors">Motors</a>
+                    <a href="/category.php?cat=fashion">Fashion</a>
+                    <a href="/category.php?cat=collectibles">Collectibles & Art</a>
+                    <a href="/category.php?cat=sports">Sports</a>
+                    <a href="/category.php?cat=health">Health & Beauty</a>
+                    <a href="/category.php?cat=industrial">Industrial equipment</a>
+                    <a href="/category.php?cat=home">Home & Garden</a>
+                    <a href="/deals.php">Deals & Savings</a>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <form action="/search.php" method="GET" id="searchForm" style="display: flex; width: 100%; position: relative;">
+                    <input 
+                        type="text" 
+                        name="q" 
+                        class="search-input" 
+                        placeholder="Search for anything" 
+                        value="<?php echo htmlspecialchars($_GET['q'] ?? ''); ?>"
+                        autocomplete="off"
+                        id="searchInput"
+                    >
+                    <select name="category" class="search-category-dropdown">
+                        <option value="">All Categories</option>
+                        <option value="electronics">Electronics</option>
+                        <option value="motors">Motors</option>
+                        <option value="fashion">Fashion</option>
+                        <option value="collectibles">Collectibles</option>
+                        <option value="sports">Sports</option>
+                        <option value="health">Health & Beauty</option>
+                        <option value="industrial">Industrial</option>
+                        <option value="home">Home & Garden</option>
+                    </select>
+                    <button type="submit" class="search-btn">Search</button>
+                </form>
+                <a href="/search.php?advanced=1" class="advanced-link">Advanced</a>
+            </div>
+            
+            <div class="header-icons">
+                <a href="/notifications.php" class="header-icon" title="Notifications">
+                    <i class="far fa-bell"></i>
+                </a>
+                <a href="/cart.php" class="header-icon" title="Shopping Cart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <?php if ($cart_count > 0): ?>
+                        <span class="notification-badge"><?php echo min($cart_count, 99); ?></span>
+                    <?php endif; ?>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <ul class="nav-links">
+                <li><a href="/live.php">FezaMarket Live</a></li>
+                <li><a href="/saved.php">Saved</a></li>
+                <li><a href="/category.php?cat=electronics">Electronics</a></li>
+                <li><a href="/category.php?cat=motors">Motors</a></li>
+                <li><a href="/category.php?cat=fashion">Fashion</a></li>
+                <li><a href="/category.php?cat=collectibles">Collectibles and Art</a></li>
+                <li><a href="/category.php?cat=sports">Sports</a></li>
+                <li><a href="/category.php?cat=health">Health & Beauty</a></li>
+                <li><a href="/category.php?cat=industrial">Industrial equipment</a></li>
+                <li><a href="/category.php?cat=home">Home & Garden</a></li>
+                <li><a href="/deals.php">Deals</a></li>
+                <?php if ($userRole === 'seller' || $userRole === 'admin'): ?>
+                    <li><a href="/seller/">Sell</a></li>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content Container Start -->
+    <div id="main-content">
+        <!-- Page content will be inserted here by individual pages -->
