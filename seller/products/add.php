@@ -85,9 +85,43 @@ $form = [
 $vendor = new Vendor();
 $vendorInfo = $vendor->findByUserId(Session::getUserId());
 
-if (!$vendorInfo || $vendorInfo['status'] !== 'approved') {
-    // Redirect to vendor registration if not approved
-    echo '<div class="alert alert-error">No approved vendor account is associated with your user. Please complete your vendor registration first. <a href="/seller-onboarding.php">Register as Vendor</a></div>';
+if (!$vendorInfo) {
+    // Show error and stop execution properly
+    $page_title = 'Vendor Account Required';
+    includeHeader($page_title);
+    ?>
+    <div class="container my-4">
+        <div class="alert alert-warning">
+            <h4>Vendor Account Required</h4>
+            <p>You need to complete your vendor registration before you can add products.</p>
+            <a href="/seller-register.php" class="btn btn-primary">Complete Vendor Registration</a>
+            <a href="/seller-center.php" class="btn btn-outline-secondary">Back to Seller Center</a>
+        </div>
+    </div>
+    <?php
+    includeFooter();
+    exit;
+}
+
+if ($vendorInfo['status'] !== 'approved') {
+    // Show status-specific message
+    $page_title = 'Vendor Approval Required';
+    includeHeader($page_title);
+    ?>
+    <div class="container my-4">
+        <div class="alert alert-info">
+            <h4>Vendor Account Status: <?php echo ucfirst($vendorInfo['status']); ?></h4>
+            <p>Your vendor account is currently <strong><?php echo $vendorInfo['status']; ?></strong>. You'll be able to add products once your account is approved.</p>
+            <?php if ($vendorInfo['status'] === 'pending'): ?>
+                <p>Please wait for admin approval. You will be notified via email once your account is approved.</p>
+            <?php elseif ($vendorInfo['status'] === 'rejected'): ?>
+                <p>Your vendor application was rejected. Please contact support for more information.</p>
+            <?php endif; ?>
+            <a href="/seller-center.php" class="btn btn-primary">Back to Seller Center</a>
+        </div>
+    </div>
+    <?php
+    includeFooter();
     exit;
 }
 
@@ -373,7 +407,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 Database::commit();
-                header('Location: /seller/products/edit.php?id='.(int)$productId);
+                
+                // Set success message
+                Session::setFlash('success', 'Product "' . htmlspecialchars($name) . '" has been successfully created! You can now view and edit your product.');
+                
+                // Log the success for debugging
+                error_log('Product created successfully - ID: ' . $productId . ', Name: ' . $name . ', User: ' . Session::getUserId());
+                
+                header('Location: /seller/products/edit.php?id='.(int)$productId.'&created=1');
                 exit;
 
             } catch (Throwable $e) {

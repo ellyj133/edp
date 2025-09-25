@@ -21,9 +21,21 @@ if (!Session::isLoggedIn()) {
     exit;
 }
 
-// Check if user has seller/vendor role
+// Check if user has seller/vendor role or is an admin
 $userRole = Session::getUserRole();
 if (!in_array($userRole, ['seller', 'vendor', 'admin'])) {
+    // Check if user has a vendor account (alternative check)
+    try {
+        $vendor = new Vendor();
+        $vendorInfo = $vendor->findByUserId(Session::getUserId());
+        if ($vendorInfo) {
+            // User has vendor account, allow access
+            return true;
+        }
+    } catch (Exception $e) {
+        error_log("Vendor check failed: " . $e->getMessage());
+    }
+    
     // Log unauthorized access attempt
     if (function_exists('logSecurityEvent')) {
         logSecurityEvent(Session::getUserId(), 'unauthorized_access', 'seller_area', null, [
@@ -32,7 +44,8 @@ if (!in_array($userRole, ['seller', 'vendor', 'admin'])) {
         ]);
     }
     
-    // Redirect to seller registration if not a seller
+    // Set intended URL and redirect to seller registration
+    Session::set('intended_url', $_SERVER['REQUEST_URI'] ?? '/seller-center.php');
     header('Location: /seller-register.php');
     exit;
 }
