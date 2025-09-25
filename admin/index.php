@@ -391,23 +391,23 @@ $admin_modules = [
                 <div class="quick-actions">
                     <h4 class="h5 mb-3">Quick Actions</h4>
                     
-                    <button class="btn btn-primary action-btn">
+                    <a href="/admin/products/create.php" class="btn btn-primary action-btn">
                         <i class="fas fa-plus me-2"></i>Add New Product
-                    </button>
+                    </a>
                     
-                    <button class="btn btn-success action-btn">
+                    <a href="/admin/users/create.php" class="btn btn-success action-btn">
                         <i class="fas fa-user-plus me-2"></i>Create User
-                    </button>
+                    </a>
                     
-                    <button class="btn btn-warning action-btn">
+                    <a href="/admin/coupons/create.php" class="btn btn-warning action-btn">
                         <i class="fas fa-tags me-2"></i>New Coupon
-                    </button>
+                    </a>
                     
-                    <button class="btn btn-info action-btn">
+                    <a href="/admin/campaigns/create.php" class="btn btn-info action-btn">
                         <i class="fas fa-bullhorn me-2"></i>Create Campaign
-                    </button>
+                    </a>
                     
-                    <button class="btn btn-secondary action-btn">
+                    <button class="btn btn-secondary action-btn" onclick="exportData()">
                         <i class="fas fa-download me-2"></i>Export Data
                     </button>
                     
@@ -447,7 +447,106 @@ $admin_modules = [
                     console.log(`Accessing feature: ${featureName}`);
                 });
             });
+            
+            // Add hover effects to quick action buttons
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                });
+                
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                });
+            });
         });
+        
+        // Export data functionality
+        function exportData() {
+            const exportMenu = document.createElement('div');
+            exportMenu.className = 'export-menu position-absolute bg-white border rounded shadow-lg p-3';
+            exportMenu.style.cssText = 'z-index: 1000; right: 10px; top: 100%; min-width: 200px;';
+            exportMenu.innerHTML = `
+                <h6 class="mb-3">Export Options</h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportUsers()">
+                        <i class="fas fa-users me-1"></i> Export Users
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="exportProducts()">
+                        <i class="fas fa-box me-1"></i> Export Products
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="exportOrders()">
+                        <i class="fas fa-shopping-cart me-1"></i> Export Orders
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="exportFinancials()">
+                        <i class="fas fa-chart-line me-1"></i> Export Financials
+                    </button>
+                </div>
+            `;
+            
+            // Remove existing menu if any
+            const existingMenu = document.querySelector('.export-menu');
+            if (existingMenu) existingMenu.remove();
+            
+            // Position relative to button
+            const button = event.target.closest('.action-btn');
+            button.style.position = 'relative';
+            button.appendChild(exportMenu);
+            
+            // Close menu when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!exportMenu.contains(e.target) && !button.contains(e.target)) {
+                        exportMenu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+        
+        // Export functions
+        function exportUsers() {
+            showExportProgress('Exporting users...', () => {
+                window.location.href = '/admin/export.php?type=users';
+            });
+        }
+        
+        function exportProducts() {
+            showExportProgress('Exporting products...', () => {
+                window.location.href = '/admin/export.php?type=products';
+            });
+        }
+        
+        function exportOrders() {
+            showExportProgress('Exporting orders...', () => {
+                window.location.href = '/admin/export.php?type=orders';
+            });
+        }
+        
+        function exportFinancials() {
+            showExportProgress('Exporting financial data...', () => {
+                window.location.href = '/admin/export.php?type=financials';
+            });
+        }
+        
+        function showExportProgress(message, callback) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification bg-info text-white p-3 rounded position-fixed';
+            toast.style.cssText = 'bottom: 20px; right: 20px; z-index: 1050;';
+            toast.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+                callback();
+            }, 1500);
+        }
     </script>
 </body>
 </html>
