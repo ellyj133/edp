@@ -4,7 +4,7 @@
  */
 
 // Application object
-const FezaMarket = {
+var FezaMarket = {
     config: {
         apiUrl: '/api',
         cartUpdateDelay: 500

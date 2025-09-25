@@ -38,12 +38,10 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
     
     <!-- CSS Files -->
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/icons.css">
     
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Local jQuery replacement -->
+    <script src="/js/jquery-shim.js"></script>
     
     <style>
         * {
