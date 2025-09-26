@@ -222,16 +222,17 @@ var FezaMarket = {
     // Cart functionality
     addToCart: function(button) {
         const productId = button.getAttribute('data-product-id');
-        const quantity = 1; // Default quantity
+        const quantity = parseInt(button.getAttribute('data-quantity') || '1'); // Support custom quantity
         
         if (!productId) return;
         
         button.disabled = true;
         button.textContent = 'Adding...';
         
-        this.fetchAPI('/api/cart/add.php', {
+        this.fetchAPI('/api/cart.php', {
             method: 'POST',
             body: JSON.stringify({
+                action: 'add',
                 product_id: parseInt(productId),
                 quantity: quantity
             })
@@ -264,9 +265,10 @@ var FezaMarket = {
         
         if (!productId || !confirm('Remove this item from cart?')) return;
         
-        this.fetchAPI('/api/cart/remove.php', {
+        this.fetchAPI('/api/cart.php', {
             method: 'POST',
             body: JSON.stringify({
+                action: 'remove',
                 product_id: parseInt(productId)
             })
         })
@@ -275,7 +277,7 @@ var FezaMarket = {
                 this.showNotification('Item removed from cart', 'success');
                 this.updateCartDisplay();
                 // Remove the row from cart page if exists
-                const row = button.closest('tr');
+                const row = button.closest('.cart-item');
                 if (row) row.remove();
             } else {
                 this.showNotification(data.message || 'Error removing item', 'error');
@@ -293,9 +295,10 @@ var FezaMarket = {
         
         if (!productId || quantity < 1) return;
         
-        this.fetchAPI('/api/cart/update.php', {
+        this.fetchAPI('/api/cart.php', {
             method: 'POST',
             body: JSON.stringify({
+                action: 'update',
                 product_id: parseInt(productId),
                 quantity: quantity
             })
@@ -305,13 +308,16 @@ var FezaMarket = {
                 this.updateCartDisplay();
                 // Update total if on cart page
                 const totalElement = document.querySelector('.cart-total');
-                if (totalElement && data.cart_total) {
-                    totalElement.textContent = '$' + data.cart_total;
+                if (totalElement && data.total) {
+                    totalElement.textContent = '$' + data.total.toFixed(2);
                 }
+            } else {
+                this.showNotification(data.message || 'Error updating cart', 'error');
             }
         })
         .catch(error => {
             console.error('Cart update error:', error);
+            this.showNotification('Error updating cart', 'error');
         });
     },
     
@@ -321,10 +327,13 @@ var FezaMarket = {
         if (!productId) return;
         
         button.disabled = true;
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '...';
         
-        this.fetchAPI('/api/wishlist/add.php', {
+        this.fetchAPI('/api/wishlist.php', {
             method: 'POST',
             body: JSON.stringify({
+                action: 'add',
                 product_id: parseInt(productId)
             })
         })
@@ -333,14 +342,17 @@ var FezaMarket = {
                 this.showNotification('Added to wishlist!', 'success');
                 button.innerHTML = '💗';
                 button.title = 'Added to wishlist';
+                button.classList.add('in-wishlist');
             } else {
                 this.showNotification(data.message || 'Error adding to wishlist', 'error');
+                button.innerHTML = originalIcon;
                 button.disabled = false;
             }
         })
         .catch(error => {
             console.error('Wishlist error:', error);
             this.showNotification('Error adding to wishlist', 'error');
+            button.innerHTML = originalIcon;
             button.disabled = false;
         });
     },

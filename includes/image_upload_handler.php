@@ -33,7 +33,43 @@ if (!function_exists('handleProductImageUploads')) {
                 return;
             }
 
+            // Validate file extension and MIME type
             $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heif', 'heic', 'svg'];
+            $allowedMimeTypes = [
+                'image/jpeg',
+                'image/jpg', 
+                'image/png',
+                'image/gif',
+                'image/bmp',
+                'image/webp',
+                'image/heif',
+                'image/heic',
+                'image/svg+xml'
+            ];
+
+            if (!in_array($extension, $allowedExtensions)) {
+                $errors[] = "Invalid file type for {$file['name']}. Only JPEG, PNG, GIF, BMP, WEBP, HEIF/HEIC, and SVG files are allowed.";
+                return;
+            }
+
+            // Verify MIME type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            if (!in_array($mimeType, $allowedMimeTypes)) {
+                $errors[] = "Invalid file format for {$file['name']}. File appears to be: {$mimeType}";
+                return;
+            }
+
+            // Check file size (max 10MB)
+            $maxFileSize = 10 * 1024 * 1024; // 10MB
+            if ($file['size'] > $maxFileSize) {
+                $errors[] = "File {$file['name']} is too large. Maximum size is 10MB.";
+                return;
+            }
+
             $safeFilename = 'prod_' . $productId . '_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
             $destinationPath = $baseUploadDir . '/' . $safeFilename;
             $publicPath = '/uploads/products/' . date('Y/m') . '/' . $safeFilename;
