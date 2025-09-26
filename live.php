@@ -81,7 +81,7 @@ includeHeader($page_title);
                             <h4>Featured in Stream</h4>
                             <?php foreach (array_slice($liveProducts, 0, 2) as $product): ?>
                                 <div class="stream-product">
-                                    <img src="<?php echo getProductImageUrl($product['image_url'] ?? ''); ?>" 
+                                    <img src="<?php echo getSafeProductImageUrl($product); ?>" 
                                          alt="<?php echo htmlspecialchars($product['name']); ?>">
                                     <div class="product-info">
                                         <h5><?php echo htmlspecialchars(substr($product['name'], 0, 30)); ?>...</h5>

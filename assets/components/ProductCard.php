@@ -23,7 +23,7 @@ class ProductCard {
         ], $options);
         
         $cardClass = self::getCardClasses($options['size']);
-        $imageUrl = $product['image_url'] ?? '/assets/images/placeholder-product.jpg';
+        $imageUrl = getSafeProductImageUrl($product, '/images/placeholder-product.png');
         $price = number_format($product['price'], 2);
         $comparePrice = isset($product['compare_price']) && $product['compare_price'] > $product['price'] 
             ? number_format($product['compare_price'], 2) : null;

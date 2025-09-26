@@ -132,7 +132,7 @@ includeHeader($page_title);
                         <div class="product-card">
                             <div class="product-image">
                                 <a href="/product.php?id=<?php echo $prod['id']; ?>">
-                                    <img src="<?php echo getProductImageUrl($prod['image_url'] ?? ''); ?>" 
+                                    <img src="<?php echo getSafeProductImageUrl($prod); ?>" 
                                          alt="<?php echo htmlspecialchars($prod['name']); ?>">
                                 </a>
                                 <?php if ($prod['featured']): ?>

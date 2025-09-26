@@ -10,7 +10,7 @@ header('Content-Type: application/json');
 
 $query = sanitizeInput($_GET['q'] ?? '');
 
-if (strlen($query) < 2) {
+if (strlen($query) < 3) {
     successResponse(['suggestions' => []]);
 }
 

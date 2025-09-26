@@ -388,22 +388,94 @@ function formatTimeAgo($datetime) {
     return formatDate($datetime);
 }
 function getProductImageUrl($imagePath, $size = 'medium') {
+    // Default placeholder image
+    $placeholder = '/images/placeholder-product.png';
+    
     if (empty($imagePath)) {
-        return '/images/placeholder-product.png';
+        return $placeholder;
     }
     
-    // If it's already a full URL, return as-is
+    // If it's already a full URL, validate and return as-is
     if (strpos($imagePath, 'http') === 0) {
         return $imagePath;
     }
     
-    // If it's a relative path, prepend the uploads URL
+    // If it's a relative path starting with /, return as-is but validate
     if (strpos($imagePath, '/') === 0) {
-        return $imagePath;
+        $fullPath = $_SERVER['DOCUMENT_ROOT'] . $imagePath;
+        if (file_exists($fullPath) && is_readable($fullPath)) {
+            return $imagePath;
+        }
+        // If file doesn't exist, return placeholder
+        return $placeholder;
     }
     
-    return '/uploads/products/' . $imagePath;
+    // For product images, prepend the uploads URL and validate
+    $productImagePath = '/uploads/products/' . $imagePath;
+    $fullPath = $_SERVER['DOCUMENT_ROOT'] . $productImagePath;
+    
+    if (file_exists($fullPath) && is_readable($fullPath)) {
+        return $productImagePath;
+    }
+    
+    // Try in images/products directory as fallback
+    $imagesProductPath = '/images/products/' . $imagePath;
+    $imagesFullPath = $_SERVER['DOCUMENT_ROOT'] . $imagesProductPath;
+    
+    if (file_exists($imagesFullPath) && is_readable($imagesFullPath)) {
+        return $imagesProductPath;
+    }
+    
+    // If nothing found, return placeholder
+    return $placeholder;
 }
+
+/**
+ * Validate if an image file exists and is readable
+ * 
+ * @param string $imagePath The image path to validate
+ * @return bool True if image exists and is readable
+ */
+function validateImageFile($imagePath) {
+    if (empty($imagePath)) {
+        return false;
+    }
+    
+    // Handle full URLs - we assume they're valid (could add HTTP check if needed)
+    if (strpos($imagePath, 'http') === 0) {
+        return true;
+    }
+    
+    // For local paths, check if file exists
+    $fullPath = $_SERVER['DOCUMENT_ROOT'] . $imagePath;
+    return file_exists($fullPath) && is_readable($fullPath);
+}
+
+/**
+ * Get safe product image URL with proper fallback handling
+ * This is an enhanced version that can be used as a drop-in replacement
+ * 
+ * @param array $product Product data array
+ * @param string $fallback Custom fallback image path
+ * @return string Safe image URL
+ */
+function getSafeProductImageUrl($product, $fallback = '/images/placeholder-product.png') {
+    $imageUrl = '';
+    
+    // Try different image field names that might exist in product data
+    $imageFields = ['image_url', 'thumbnail_path', 'product_image', 'main_image'];
+    
+    foreach ($imageFields as $field) {
+        if (!empty($product[$field])) {
+            $imageUrl = $product[$field];
+            break;
+        }
+    }
+    
+    // Use getProductImageUrl which now has validation built-in
+    return getProductImageUrl($imageUrl, 'medium');
+}
+
 function slugify($text) {
     $text = preg_replace('~[^\pL\d]+~u', '-', $text);
     $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);

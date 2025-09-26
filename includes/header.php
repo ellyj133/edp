@@ -199,7 +199,6 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
         .search-input {
             flex: 1;
             border: 2px solid #767676;
-            border-left: none;
             border-right: none;
             padding: 11px 12px;
             font-size: 16px;
@@ -443,6 +442,8 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             background: white;
             border: 1px solid #ccc;
             border-top: none;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             z-index: 1000;
             max-height: 300px;
             overflow-y: auto;
@@ -450,13 +451,32 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
         }
         
         .search-suggestion-item {
-            padding: 10px 12px;
+            padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
         }
         
         .search-suggestion-item:hover {
             background-color: #f7f7f7;
+        }
+        
+        .search-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-text {
+            font-weight: normal;
+            color: #333;
+        }
+        
+        .suggestion-type {
+            font-size: 12px;
+            color: #767676;
+            font-style: italic;
         }
     </style>
 </head>
@@ -629,26 +649,47 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                 
                 clearTimeout(timeout);
                 
-                if (query.length < 2) {
+                if (query.length < 3) {
                     searchSuggestions.style.display = 'none';
                     return;
                 }
                 
                 timeout = setTimeout(() => {
-                    // Simple suggestions - you can replace with actual API call
-                    const suggestions = [
-                        query + ' electronics',
-                        query + ' deals',
-                        query + ' new',
-                        query + ' used',
-                        query + ' accessories'
-                    ];
-                    
-                    searchSuggestions.innerHTML = suggestions.map(suggestion => 
-                        `<div class="search-suggestion-item" onclick="selectSuggestion('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</div>`
-                    ).join('');
-                    
-                    searchSuggestions.style.display = 'block';
+                    // Fetch suggestions from API
+                    fetch(`/api/search-suggestions.php?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.data.suggestions) {
+                                const suggestions = data.data.suggestions.slice(0, 8); // Limit to 8 suggestions
+                                
+                                searchSuggestions.innerHTML = suggestions.map(suggestion => 
+                                    `<div class="search-suggestion-item" onclick="selectSuggestion('${suggestion.name.replace(/'/g, "\\'")}')" data-type="${suggestion.type}">
+                                        <span class="suggestion-text">${suggestion.name}</span>
+                                        ${suggestion.type === 'category' ? '<span class="suggestion-type">in Category</span>' : ''}
+                                    </div>`
+                                ).join('');
+                                
+                                if (suggestions.length > 0) {
+                                    searchSuggestions.style.display = 'block';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.log('Search suggestions error:', error);
+                            // Fallback to simple suggestions
+                            const suggestions = [
+                                query + ' electronics',
+                                query + ' deals', 
+                                query + ' new',
+                                query + ' used'
+                            ];
+                            
+                            searchSuggestions.innerHTML = suggestions.map(suggestion => 
+                                `<div class="search-suggestion-item" onclick="selectSuggestion('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</div>`
+                            ).join('');
+                            
+                            searchSuggestions.style.display = 'block';
+                        });
                 }, 300);
             });
             

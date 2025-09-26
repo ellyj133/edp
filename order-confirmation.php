@@ -77,7 +77,7 @@ includeHeader($page_title);
                 <div class="card-body">
                     <?php foreach ($orderItems as $item): ?>
                         <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                            <img src="<?php echo getProductImageUrl($item['product_image'] ?? 'placeholder.jpg'); ?>" 
+                            <img src="<?php echo getSafeProductImageUrl($item, getProductImageUrl($item['product_image'] ?? 'placeholder.jpg')); ?>" 
                                  alt="<?php echo htmlspecialchars($item['product_name']); ?>"
                                  class="me-3" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
                             <div class="flex-grow-1">

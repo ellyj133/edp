@@ -208,7 +208,7 @@ includeHeader($page_title);
                         <?php foreach (array_slice($vendorProducts, 0, 4) as $product): ?>
                             <div class="product-card">
                                 <div class="product-image">
-                                    <img src="<?php echo getProductImageUrl($product['image_url'] ?? ''); ?>" 
+                                    <img src="<?php echo getSafeProductImageUrl($product); ?>" 
                                          alt="<?php echo htmlspecialchars($product['name']); ?>">
                                     <div class="product-status status-<?php echo strtolower($product['status']); ?>">
                                         <?php echo ucfirst($product['status']); ?>

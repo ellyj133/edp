@@ -332,7 +332,7 @@ includeHeader($page_title);
                 <div class="card-body">
                     <?php foreach ($cartItems as $item): ?>
                         <div class="d-flex mb-3">
-                            <img src="<?php echo getProductImageUrl($item['product_image']); ?>" 
+                            <img src="<?php echo getSafeProductImageUrl($item, getProductImageUrl($item['product_image'])); ?>" 
                                  alt="<?php echo htmlspecialchars($item['product_name']); ?>"
                                  class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                             <div class="flex-grow-1">
