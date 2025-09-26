@@ -127,7 +127,7 @@ if ($rawSpecs) {
                 [$l, $val] = explode(':', $line, 2);
                 $specItems[] = ['label' => trim($l), 'value' => trim($val)];
             } else {
-                $specItems[] = ['label' => $line, 'value' => '�'];
+                $specItems[] = ['label' => $line, 'value' => ''];
             }
         }
     }
@@ -166,6 +166,11 @@ if (function_exists('includeHeader')) {
 }
 
 ?>
+<style>
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lightgallery.min.css');
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lg-zoom.min.css');
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/css/lg-thumbnail.min.css');
+</style>
 <style>
 /* Page-scoped styles only (no global header/footer overrides) */
 :root {
@@ -209,6 +214,7 @@ if (function_exists('includeHeader')) {
 .main-media {
     background:#fff; border:1px solid var(--c-border); border-radius:16px;
     padding:24px; min-height:520px; display:flex; align-items:center; justify-content:center;
+    cursor: zoom-in;
 }
 .main-media img { max-width:100%; max-height:460px; object-fit:contain; }
 .media-tool-row { margin-top:14px; display:flex; gap:10px; }
@@ -244,7 +250,7 @@ if (function_exists('includeHeader')) {
 
 .about-bullets { list-style:none; padding:0; margin:0 0 8px; }
 .about-bullets li { position:relative; padding-left:20px; margin:8px 0; font-size:14px; line-height:1.5; }
-.about-bullets li:before { content:'�'; position:absolute; left:0; color:var(--c-primary); font-weight:700; }
+.about-bullets li:before { content:''; position:absolute; left:0; color:var(--c-primary); font-weight:700; }
 .show-more { background:none; border:none; color:var(--c-primary); font-size:13px; cursor:pointer; padding:0; }
 
 .spec-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
@@ -297,7 +303,7 @@ if (function_exists('includeHeader')) {
 .section-block { margin:60px 0 20px; }
 .section-block h2 { font-size:20px; margin:0 0 18px; font-weight:600; }
 .carousel-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:18px; }
-.card-mini { background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:14px; text-align:center; display:flex; flex-direction:column; gap:10px; cursor:pointer; transition:.2s; }
+.card-mini { background:#fff; border:1px solid var(--c-border); border-radius:12px; padding:14px; text-align:center; display:flex; flex-direction:column; gap:10px; cursor:pointer; transition:.2s;}
 .card-mini:hover { border-color:var(--c-border-strong); box-shadow:0 1px 4px rgba(0,0,0,.06); }
 .card-mini img { width:100%; height:140px; object-fit:cover; border-radius:8px; background:#f3f4f6; }
 .card-mini .name { font-size:13px; font-weight:500; line-height:1.3; height:34px; overflow:hidden; }
@@ -323,6 +329,9 @@ if (function_exists('includeHeader')) {
 .btn-primary:focus,
 .btn-secondary:focus,
 .mini-link:focus { box-shadow:var(--focus-ring); }
+
+/* Hide the main media container used by lightGallery */
+#lightGallery-container { display: none; }
 </style>
 
 <div class="product-container" id="productContent">
@@ -343,28 +352,40 @@ if (function_exists('includeHeader')) {
             <div class="thumb-rail" role="list">
                 <?php foreach ($images as $idx => $img):
                     $imgUrl  = getProductImageUrl($img['image_url'] ?? '');
-                    $isActive = ($img['image_url'] ?? '') === $primaryImage;
                 ?>
-                <button class="thumb<?= $isActive ? ' is-active' : ''; ?>"
+                <button class="thumb"
                         role="listitem"
                         aria-label="Thumbnail <?= $idx+1; ?>"
-                        onclick="swapMainImage('<?= h($imgUrl); ?>', this)">
+                        onclick="openGallery(<?= $idx; ?>)">
                     <img src="<?= $imgUrl; ?>" alt="<?= h($img['alt_text'] ?? $productData['name'] ?? ''); ?>">
                 </button>
                 <?php endforeach; ?>
+                 <?php if (empty($images)): ?>
+                    <div class="thumb is-active">
+                        <img src="<?= getProductImageUrl($primaryImage); ?>" alt="<?= h($productData['name']); ?>">
+                    </div>
+                <?php endif; ?>
             </div>
             <div>
-                <div class="main-media" id="mainMedia" aria-live="polite">
+                <div class="main-media" id="mainMedia" aria-live="polite" onclick="openGallery(0)">
                     <img id="mainProductImage"
                          src="<?= getProductImageUrl($primaryImage); ?>"
                          alt="<?= h($productData['name']); ?>">
                 </div>
                 <div class="media-tool-row">
-                    <button class="pill-btn" type="button">? View in 3D</button>
-                    <button class="pill-btn" type="button">? Expand</button>
+                    <button class="pill-btn" type="button" onclick="openGallery(0)">? Expand</button>
                 </div>
             </div>
         </aside>
+        
+        <div id="lightGallery-container">
+            <?php foreach ($images as $img): ?>
+                <a href="<?= getProductImageUrl($img['image_url'] ?? ''); ?>" data-sub-html="<?= h($img['alt_text'] ?? $productData['name']); ?>">
+                    <img src="<?= getProductImageUrl($img['image_url'] ?? ''); ?>" />
+                </a>
+            <?php endforeach; ?>
+        </div>
+
 
         <!-- Info -->
         <section class="info-column" aria-label="Product information">
@@ -379,7 +400,7 @@ if (function_exists('includeHeader')) {
             <div class="rating-row">
                 <div class="stars" aria-label="Average rating <?= $avgRating; ?> out of 5">
                     <?php $starInt = (int)round($avgRating);
-                    for ($i=1;$i<=5;$i++) echo $i <= $starInt ? '?':'?'; ?>
+                    for ($i=1;$i<=5;$i++) echo $i <= $starInt ? '&#9733;':'&#9734;'; ?>
                 </div>
                 <div><?= $avgRating; ?> (<?= $reviewCount; ?>)</div>
                 <?php if ($reviewCount > 0): ?>
@@ -455,15 +476,16 @@ if (function_exists('includeHeader')) {
 
                 <div class="stock-msg">
                     <?php if (!empty($productData['stock_quantity'])): ?>
-                        In stock � Ships soon
+                        In stock  Ships soon
                     <?php else: ?>
                         <span class="oos">Currently unavailable</span>
                     <?php endif; ?>
                 </div>
 
-                <form class="add-cart" action="/cart/add.php" method="post">
+                <form class="add-cart" action="/cart.php" method="post">
+                    <input type="hidden" name="action" value="add">
                     <input type="hidden" name="product_id" value="<?= (int)$productId; ?>">
-                    <?= csrfTokenInput(); ?>
+                    <?= function_exists('csrfTokenInput') ? csrfTokenInput() : ''; ?>
                     <div class="qty-row">
                         <label class="sr-only" for="qtySelect">Quantity</label>
                         <select id="qtySelect" name="quantity" aria-label="Quantity">
@@ -565,7 +587,7 @@ if (function_exists('includeHeader')) {
                 <div class="review-meta">
                     <strong><?= h($revName ?: 'User'); ?></strong>
                     <span class="review-stars" aria-label="Rating <?= $revStars; ?> out of 5">
-                        <?php for ($i=1;$i<=5;$i++) echo $i <= $revStars ? '?':'?'; ?>
+                        <?php for ($i=1;$i<=5;$i++) echo $i <= $revStars ? '&#9733;':'&#9734;'; ?>
                     </span>
                     <time datetime="<?= h($rev['created_at']); ?>"><?= h(date('M j, Y', strtotime($rev['created_at']))); ?></time>
                 </div>
@@ -580,7 +602,28 @@ if (function_exists('includeHeader')) {
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/lightgallery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/plugins/zoom/lg-zoom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.7.2/plugins/thumbnail/lg-thumbnail.min.js"></script>
+
 <script>
+let galleryInstance = null;
+const galleryContainer = document.getElementById('lightGallery-container');
+
+if (galleryContainer) {
+    galleryInstance = lightGallery(galleryContainer, {
+        plugins: [lgZoom, lgThumbnail],
+        speed: 500,
+        download: false,
+    });
+}
+
+function openGallery(index) {
+    if (galleryInstance) {
+        galleryInstance.openGallery(index);
+    }
+}
+
 function swapMainImage(url, btn) {
     const main = document.getElementById('mainProductImage');
     if (main) main.src = url;
