@@ -23,19 +23,19 @@ include __DIR__ . '/header.php';
             </div>
             
             <div class="seller-nav">
-                <a href="/seller/" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : ''; ?>">
+                <a href="/seller/dashboard.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
-                <a href="/seller/products/" class="seller-nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/products/') !== false ? 'active' : ''; ?>">
+                <a href="/seller/products.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'products.php' || strpos($_SERVER['REQUEST_URI'], '/products/') !== false ? 'active' : ''; ?>">
                     <i class="fas fa-box"></i> Products
                 </a>
-                <a href="/seller/orders/" class="seller-nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/orders/') !== false ? 'active' : ''; ?>">
+                <a href="/seller/orders.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'orders.php' ? 'active' : ''; ?>">
                     <i class="fas fa-shopping-cart"></i> Orders
                 </a>
-                <a href="/seller/analytics/" class="seller-nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/analytics/') !== false ? 'active' : ''; ?>">
+                <a href="/seller/analytics.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'analytics.php' ? 'active' : ''; ?>">
                     <i class="fas fa-chart-line"></i> Analytics
                 </a>
-                <a href="/seller/account/" class="seller-nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/account/') !== false ? 'active' : ''; ?>">
+                <a href="/seller/profile.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'profile.php' ? 'active' : ''; ?>">
                     <i class="fas fa-user-cog"></i> Account
                 </a>
             </div>

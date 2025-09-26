@@ -29,8 +29,16 @@ function toNullIfEmpty($v){ $v=is_string($v)?trim($v):$v; return ($v===''||$v===
 function toNumericOrNull($v){ return ($v===''||$v===null)?null:(is_numeric($v)?0+$v:null); }
 function db_columns_for_table(string $table): array{
   static $c=[]; if(isset($c[$table])) return $c[$table];
-  try{ $r=Database::query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",[$table])->fetchAll(PDO::FETCH_COLUMN);
-       return $c[$table]=array_flip($r?:[]);
+  try{ 
+    // Try SQLite PRAGMA first (most common in this project)
+    $r=Database::query("PRAGMA table_info($table)")->fetchAll(PDO::FETCH_ASSOC);
+    if($r){ 
+      $cols=[]; foreach($r as $row) $cols[]=$row['name']; 
+      return $c[$table]=array_flip($cols);
+    }
+    // Fallback to MySQL information_schema
+    $r=Database::query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",[$table])->fetchAll(PDO::FETCH_COLUMN);
+    return $c[$table]=array_flip($r?:[]);
   }catch(Throwable $e){ error_log("col detect fail {$table}: ".$e->getMessage()); return $c[$table]=[]; }
 }
 function db_has_col(array $cols, string $n): bool { return isset($cols[$n]); }
@@ -155,8 +163,15 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         ];
         $sets=[];$params=[]; foreach($fieldMap as $col=>$val){ if(db_has_col($pCols,$col)){ $sets[]="`$col`=:$col"; $params[":$col"]=$val; } }
         if(!$sets) throw new RuntimeException('No updatable columns found.');
-        $params[':id']=$id; $params[':seller_id']=Session::getUserId();
-        Database::query("UPDATE products SET ".implode(', ',$sets)." WHERE id=:id AND seller_id=:seller_id", $params);
+        $params[':id']=$id; 
+        // Use vendor_id if it exists in the table, otherwise fallback to seller_id
+        if(db_has_col($pCols, 'vendor_id') && $vendorInfo) {
+          $params[':vendor_id']=$vendorInfo['id'];
+          Database::query("UPDATE products SET ".implode(', ',$sets)." WHERE id=:id AND vendor_id=:vendor_id", $params);
+        } else {
+          $params[':seller_id']=Session::getUserId();
+          Database::query("UPDATE products SET ".implode(', ',$sets)." WHERE id=:id AND seller_id=:seller_id", $params);
+        }
 
         // delete images
         if(!empty($_POST['delete_images']) && is_array($_POST['delete_images'])){
