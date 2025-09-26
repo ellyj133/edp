@@ -821,6 +821,86 @@ function toggleLongDescription() {
     if (!desc) return;
     if (desc.hasAttribute('hidden')) desc.removeAttribute('hidden'); else desc.setAttribute('hidden','');
 }
+
+// eBay-style product page functions
+function changeMainImage(imageUrl, index) {
+    const mainImg = document.getElementById('mainProductImage');
+    if (mainImg) {
+        mainImg.src = imageUrl;
+    }
+    
+    // Update active thumbnail
+    document.querySelectorAll('.ebay-thumbnail').forEach((thumb, i) => {
+        thumb.classList.toggle('active', i === index);
+    });
+}
+
+function buyNow() {
+    const quantity = document.getElementById('quantity').value;
+    // Add buy now functionality
+    alert(`Buy Now: ${quantity} item(s)`);
+    // TODO: Implement actual buy now functionality
+}
+
+function addToCart() {
+    const quantity = document.getElementById('quantity').value;
+    const productId = <?= (int)$productId; ?>;
+    
+    fetch('/cart.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=add&product_id=${productId}&quantity=${quantity}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Item added to cart!');
+        } else {
+            alert('Error adding item to cart');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding item to cart');
+    });
+}
+
+function makeOffer() {
+    // Add make offer functionality
+    const currentPrice = <?= $price; ?>;
+    const offer = prompt(`Make an offer (Current price: $${currentPrice.toFixed(2)}):`);
+    if (offer && !isNaN(offer) && parseFloat(offer) > 0) {
+        alert(`Offer of $${parseFloat(offer).toFixed(2)} submitted!`);
+        // TODO: Implement actual offer functionality
+    }
+}
+
+function addToWatchlist() {
+    const productId = <?= (int)$productId; ?>;
+    
+    fetch('/wishlist/toggle.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `product_id=${productId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Added to watchlist!');
+        } else {
+            alert('Error adding to watchlist');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding to watchlist');
+    });
+}
+
 document.querySelectorAll('.swatch-row .swatch, .option-row .swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
         const group = swatch.parentElement;
