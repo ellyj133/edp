@@ -65,7 +65,7 @@ includeHeader($page_title);
             <?php foreach (array_slice($flashDeals, 0, 6) as $deal): ?>
                 <div class="deal-card flash-deal">
                     <div class="deal-image">
-                        <img src="<?php echo getProductImageUrl($deal['image_url'] ?? ''); ?>" 
+                        <img src="<?php echo getSafeProductImageUrl($deal); ?>" 
                              alt="<?php echo htmlspecialchars($deal['name']); ?>">
                         <div class="discount-badge">-<?php echo rand(20, 50); ?>%</div>
                     </div>
@@ -132,7 +132,7 @@ includeHeader($page_title);
             <?php foreach ($featuredDeals as $deal): ?>
                 <div class="featured-deal-card">
                     <div class="deal-image">
-                        <img src="<?php echo getProductImageUrl($deal['image_url'] ?? ''); ?>" 
+                        <img src="<?php echo getSafeProductImageUrl($deal); ?>" 
                              alt="<?php echo htmlspecialchars($deal['name']); ?>">
                         <div class="deal-badge">Featured</div>
                     </div>

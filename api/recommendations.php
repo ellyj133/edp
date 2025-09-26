@@ -66,7 +66,7 @@ try {
             'id' => $item['id'],
             'name' => $item['name'],
             'price' => formatPrice($item['price']),
-            'image_url' => getProductImageUrl($item['image_url'] ?? ''),
+            'image_url' => getSafeProductImageUrl($item),
             'url' => "/product.php?id={$item['id']}"
         ];
     }, $recommendations);

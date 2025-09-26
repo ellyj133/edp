@@ -47,7 +47,7 @@ includeHeader($page_title);
                         <?php foreach ($cartItems as $item): ?>
                             <div class="cart-item" style="display: flex; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid #eee;">
                                 <div class="item-image" style="width: 100px; height: 100px; margin-right: 1rem;">
-                                    <img src="<?php echo getProductImageUrl($item['product_image']); ?>" 
+                                    <img src="<?php echo getSafeProductImageUrl($item); ?>" 
                                          alt="<?php echo htmlspecialchars($item['name']); ?>"
                                          style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
                                 </div>

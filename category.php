@@ -197,7 +197,7 @@ includeHeader($page_title);
                     <?php foreach ($products as $prod): ?>
                         <div class="product-card">
                             <div class="product-image">
-                                <img src="<?php echo getProductImageUrl($prod['image_url'] ?? ''); ?>" 
+                                <img src="<?php echo getSafeProductImageUrl($prod); ?>" 
                                      alt="<?php echo htmlspecialchars($prod['name']); ?>">
                                 <?php if ($prod['price'] < $prod['price'] * 1.2): ?>
                                     <div class="sale-badge">Sale</div>

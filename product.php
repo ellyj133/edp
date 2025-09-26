@@ -70,8 +70,8 @@ foreach ($images as $img) {
 if (!$primaryImage && !empty($images[0]['image_url'])) {
     $primaryImage = $images[0]['image_url'];
 }
-$primaryImage = $primaryImage
-    ?? ($productData['image_url'] ?? ($productData['thumbnail_path'] ?? '/images/placeholder-product.png'));
+// Use safe image URL function for better fallback handling
+$primaryImage = getSafeProductImageUrl($productData, $primaryImage);
 
 // Reviews & rating
 $reviews = $productModel->getReviews($productId, 8);

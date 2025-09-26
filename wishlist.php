@@ -29,7 +29,7 @@ includeHeader($page_title);
             <?php foreach ($wishlistItems as $item): ?>
                 <div class="wishlist-item" data-product-id="<?php echo $item['product_id']; ?>">
                     <div class="item-image">
-                        <img src="<?php echo getProductImageUrl($item['image_url'] ?? ''); ?>" 
+                        <img src="<?php echo getSafeProductImageUrl($item); ?>" 
                              alt="<?php echo htmlspecialchars($item['name']); ?>">
                         <button class="remove-wishlist-btn" onclick="removeFromWishlist(<?php echo $item['product_id']; ?>)">
                             ❌
