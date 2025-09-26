@@ -553,7 +553,7 @@ function renderTrendingSection($trendingProducts) {
                         <article class="product-card-shelf">
                             <div class="media-wrapper">
                                 <img src="<?= $safeTrendingUrl ?>" alt="Trending Product <?= $i ?>">
-                                <button type="button" class="wishlist-btn" aria-label="Add to wishlist">♡</button>
+                                <button type="button" class="wishlist-btn add-to-wishlist" data-product-id="<?= $i ?>" aria-label="Add to wishlist">♡</button>
                                 <div class="trending-badge">🔥</div>
                             </div>
                             <div class="price-row">
@@ -561,7 +561,7 @@ function renderTrendingSection($trendingProducts) {
                             </div>
                             <h3 class="product-title-shelf">Trending Item <?= $i ?></h3>
                             <div class="pill-btn-row">
-                                <button class="pill-btn" type="button"><span class="add-icon">＋</span>Add</button>
+                                <button class="pill-btn add-to-cart" data-product-id="<?= $i ?>" type="button"><span class="add-icon">＋</span>Add</button>
                                 <button class="pill-btn secondary" type="button">Options</button>
                             </div>
                         </article>
@@ -665,7 +665,7 @@ function renderFeaturedSection($featuredProducts) {
                                 <span class="badge <?= $i % 2 ? 'trending' : 'new' ?>"><?= $i % 2 ? 'Trending' : 'New' ?></span>
                             </div>
                             <div class="product-actions">
-                                <button class="action-btn wishlist" aria-label="Add to wishlist">
+                                <button class="action-btn add-to-wishlist" data-product-id="<?= $i ?>" aria-label="Add to wishlist">
                                     <i class="fas fa-heart"></i>
                                 </button>
                                 <button class="action-btn quick-view" aria-label="Quick view">
@@ -690,7 +690,7 @@ function renderFeaturedSection($featuredProducts) {
                                 <span class="discount">-<?= rand(20, 40) ?>%</span>
                                 <?php endif; ?>
                             </div>
-                            <button class="add-to-cart-btn">
+                            <button class="add-to-cart" data-product-id="<?= $i ?>">
                                 <i class="fas fa-shopping-cart"></i>
                                 Add to Cart
                             </button>
@@ -732,7 +732,7 @@ function renderNewArrivalsSection($newArrivals) {
                             </div>
                             <h3 class="product-title-shelf">New Arrival <?= $i ?></h3>
                             <div class="pill-btn-row">
-                                <button class="pill-btn" type="button"><span class="add-icon">＋</span>Add</button>
+                                <button class="pill-btn add-to-cart" data-product-id="<?= 100 + $i ?>" type="button"><span class="add-icon">＋</span>Add</button>
                                 <button class="pill-btn secondary" type="button">Options</button>
                             </div>
                         </article>
