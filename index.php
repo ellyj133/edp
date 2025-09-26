@@ -445,7 +445,7 @@ function renderDealsSection($bannersByPosition) {
                         <span>12h 34m left</span>
                     </div>
                     <div class="deal-image">
-                        <img src="/images/products/deal-1.jpg" alt="Flash Deal" loading="lazy">
+                        <img src="<?= getProductImageUrl('/images/products/deal-1.jpg') ?>" alt="Flash Deal" loading="lazy">
                         <div class="deal-badge">-55%</div>
                     </div>
                     <div class="deal-content">
@@ -464,7 +464,7 @@ function renderDealsSection($bannersByPosition) {
                         <span>6h 15m left</span>
                     </div>
                     <div class="deal-image">
-                        <img src="/images/products/deal-2.jpg" alt="Fashion Deal" loading="lazy">
+                        <img src="<?= getProductImageUrl('/images/products/deal-2.jpg') ?>" alt="Fashion Deal" loading="lazy">
                         <div class="deal-badge">-40%</div>
                     </div>
                     <div class="deal-content">
@@ -483,7 +483,7 @@ function renderDealsSection($bannersByPosition) {
                         <span>24h 00m left</span>
                     </div>
                     <div class="deal-image">
-                        <img src="/images/products/deal-3.jpg" alt="Home Deal" loading="lazy">
+                        <img src="<?= getProductImageUrl('/images/products/deal-3.jpg') ?>" alt="Home Deal" loading="lazy">
                         <div class="deal-badge">-30%</div>
                     </div>
                     <div class="deal-content">
@@ -514,10 +514,13 @@ function renderTrendingSection($trendingProducts) {
                 <div class="product-shelf-scroll" data-shelf="trending">
                     <?php if (empty($trendingProducts)): ?>
                         <!-- Mock trending products -->
-                        <?php for ($i = 1; $i <= 6; $i++): ?>
+                        <?php for ($i = 1; $i <= 6; $i++): 
+                            $mockTrendingPath = "/images/products/trending-{$i}.jpg";
+                            $safeTrendingUrl = getProductImageUrl($mockTrendingPath);
+                        ?>
                         <article class="product-card-shelf">
                             <div class="media-wrapper">
-                                <img src="/images/products/trending-<?= $i ?>.jpg" alt="Trending Product <?= $i ?>">
+                                <img src="<?= $safeTrendingUrl ?>" alt="Trending Product <?= $i ?>">
                                 <button type="button" class="wishlist-btn" aria-label="Add to wishlist">♡</button>
                                 <div class="trending-badge">🔥</div>
                             </div>
@@ -619,10 +622,13 @@ function renderFeaturedSection($featuredProducts) {
             <div class="products-carousel">
                 <div class="products-grid" id="featured-products">
                     <!-- Mock featured products since we have empty data -->
-                    <?php for ($i = 1; $i <= 4; $i++): ?>
+                    <?php for ($i = 1; $i <= 4; $i++): 
+                        $mockFeaturedPath = "/images/products/featured-{$i}.jpg";
+                        $safeFeaturedUrl = getProductImageUrl($mockFeaturedPath);
+                    ?>
                     <div class="product-card modern">
                         <div class="product-image">
-                            <img src="/images/products/featured-<?= $i ?>.jpg" alt="Featured Product <?= $i ?>" loading="lazy">
+                            <img src="<?= $safeFeaturedUrl ?>" alt="Featured Product <?= $i ?>" loading="lazy">
                             <div class="product-badges">
                                 <span class="badge <?= $i % 2 ? 'trending' : 'new' ?>"><?= $i % 2 ? 'Trending' : 'New' ?></span>
                             </div>
@@ -679,10 +685,13 @@ function renderNewArrivalsSection($newArrivals) {
                 <div class="product-shelf-scroll" data-shelf="arrivals">
                     <?php if (empty($newArrivals)): ?>
                         <!-- Mock new arrivals -->
-                        <?php for ($i = 1; $i <= 6; $i++): ?>
+                        <?php for ($i = 1; $i <= 6; $i++): 
+                            $mockImagePath = "/images/products/new-{$i}.jpg";
+                            $safeImageUrl = getProductImageUrl($mockImagePath);
+                        ?>
                         <article class="product-card-shelf">
                             <div class="media-wrapper">
-                                <img src="/images/products/new-<?= $i ?>.jpg" alt="New Arrival <?= $i ?>">
+                                <img src="<?= $safeImageUrl ?>" alt="New Arrival <?= $i ?>">
                                 <button type="button" class="wishlist-btn" aria-label="Add to wishlist">♡</button>
                                 <div class="new-badge">New</div>
                             </div>
@@ -766,10 +775,13 @@ function renderRecommendationsSection($bannersByPosition) {
             <?php else: ?>
             <div class="recommendations-grid">
                 <!-- Mock personalized recommendations for logged-in users -->
-                <?php for ($i = 1; $i <= 4; $i++): ?>
+                <?php for ($i = 1; $i <= 4; $i++): 
+                    $mockRecPath = "/images/products/rec-{$i}.jpg";
+                    $safeRecUrl = getProductImageUrl($mockRecPath);
+                ?>
                 <div class="recommendation-card">
                     <div class="rec-image">
-                        <img src="/images/products/rec-<?= $i ?>.jpg" alt="Recommended Product <?= $i ?>" loading="lazy">
+                        <img src="<?= $safeRecUrl ?>" alt="Recommended Product <?= $i ?>" loading="lazy">
                         <div class="rec-badge">For You</div>
                     </div>
                     <div class="rec-content">

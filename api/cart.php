@@ -408,7 +408,7 @@ function loadCartRecommendations() {
             if (data.success && Array.isArray(data.data) && data.data.length) {
                 container.innerHTML = data.data.map(product => {
                     const price = product.price || '';
-                    const img = product.image_url || '/images/placeholder-product.jpg';
+                    const img = product.image_url || '/images/placeholder-product.png';
                     return `
                         <div style="display:flex;align-items:center;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #eee;">
                             <img src="${img}" alt="${escapeHTML(product.name)}"
