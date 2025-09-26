@@ -51,7 +51,7 @@ if (env('APP_ENV', 'development') === 'development' && env('USE_SQLITE', false))
     define('DB_PASS', '');
     define('DB_CHARSET', 'utf8mb4');
     define('USE_SQLITE', true);
-    define('SQLITE_PATH', env('SQLITE_PATH', __DIR__ . '/../test_ecommerce.db'));
+    define('SQLITE_PATH', __DIR__ . '/../' . env('SQLITE_DATABASE_PATH', 'database/ecommerce.db'));
 } else {
     // Production configuration for duns1.fezalogistics.com
     define('DB_HOST', env('DB_HOST', 'localhost'));

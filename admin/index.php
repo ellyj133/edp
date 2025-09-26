@@ -1,6 +1,6 @@
 <?php
 /**
- * Complete Admin Dashboard - All 28 Features
+ * Complete Admin Dashboard - All 29 Features
  * FezaMarket E-Commerce Management Platform
  */
 
@@ -26,7 +26,7 @@ if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
 }
 
 $page_title = 'Admin Dashboard - FezaMarket';
-$page_subtitle = 'Complete E-Commerce Management - 28 Features';
+$page_subtitle = 'Complete E-Commerce Management - 29 Features';
 
 // Admin statistics (demo data)
 $stats = [
@@ -48,7 +48,7 @@ $stats = [
     'daily_revenue' => 1523.45
 ];
 
-// Complete admin modules configuration (28 features across 21 modules)
+// Complete admin modules configuration (29 features across 22 modules)
 $admin_modules = [
     'core' => [
         'title' => 'Core Management',
@@ -360,7 +360,7 @@ $admin_modules = [
             </div>
         </div>
 
-        <!-- Admin Modules - All 28 Features -->
+        <!-- Admin Modules - All 29 Features -->
         <div class="row">
             <div class="col-lg-9">
                 <?php foreach ($admin_modules as $module_key => $module): ?>
