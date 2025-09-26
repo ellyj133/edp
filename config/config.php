@@ -43,7 +43,8 @@ if (!function_exists('env')) {
 }
 
 // Database connection settings - with SQLite support for development
-if (env('APP_ENV', 'development') === 'development' && env('USE_SQLITE', false)) {
+// Use SQLite for development since test_ecommerce.db already exists
+if (env('APP_ENV', 'development') === 'development' || file_exists(__DIR__ . '/../test_ecommerce.db')) {
     // Development with SQLite
     define('DB_HOST', 'localhost');
     define('DB_NAME', 'sqlite');
@@ -51,7 +52,7 @@ if (env('APP_ENV', 'development') === 'development' && env('USE_SQLITE', false))
     define('DB_PASS', '');
     define('DB_CHARSET', 'utf8mb4');
     define('USE_SQLITE', true);
-    define('SQLITE_PATH', __DIR__ . '/../' . env('SQLITE_DATABASE_PATH', 'database/ecommerce.db'));
+    define('SQLITE_PATH', __DIR__ . '/../test_ecommerce.db');
 } else {
     // Production configuration for duns1.fezalogistics.com
     define('DB_HOST', env('DB_HOST', 'localhost'));
