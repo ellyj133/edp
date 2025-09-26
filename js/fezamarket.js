@@ -21,7 +21,7 @@ var FezaMarket = {
     bindEvents: function() {
         // Search functionality
         const searchForm = document.querySelector('.search-form');
-        const searchInput = document.getElementById('search-input');
+        const searchInput = document.getElementById('search-input'); // Use correct ID
         
         if (searchForm && searchInput) {
             searchForm.addEventListener('submit', this.handleSearch.bind(this));
@@ -86,7 +86,7 @@ var FezaMarket = {
     },
     
     initSearchSuggestions: function() {
-        const searchInput = document.getElementById('search-input');
+        const searchInput = document.getElementById('searchInput'); // Updated to use correct ID
         const suggestionsContainer = document.getElementById('search-suggestions');
         
         if (!searchInput) return;
@@ -111,13 +111,18 @@ var FezaMarket = {
                 overflow-y: auto;
                 display: none;
             `;
-            searchInput.closest('.search-form-container').appendChild(container);
+            // Use the correct parent container
+            const searchContainer = document.querySelector('.search-container');
+            if (searchContainer) {
+                searchContainer.style.position = 'relative'; // Ensure relative positioning for absolute child
+                searchContainer.appendChild(container);
+            }
         }
     },
     
     handleSearch: function(e) {
         e.preventDefault();
-        const searchInput = document.getElementById('search-input');
+        const searchInput = document.getElementById('search-input'); // Use correct ID
         const categorySelect = document.getElementById('category-select');
         
         if (!searchInput.value.trim()) return;
@@ -141,21 +146,24 @@ var FezaMarket = {
             return;
         }
         
-        // Mock search suggestions (in real app, this would be an API call)
-        const suggestions = [
-            'iPhone 15 Pro',
-            'Samsung Galaxy S24',
-            'MacBook Air M2',
-            'Nike Air Max',
-            'PlayStation 5',
-            'Nintendo Switch',
-            'Apple Watch',
-            'AirPods Pro',
-            'Gaming Laptop',
-            'Wireless Headphones'
-        ].filter(item => item.toLowerCase().includes(query.toLowerCase()));
-        
-        this.displaySearchSuggestions(suggestions);
+        // Make API call to get real search suggestions
+        fetch(`/api/search-suggestions.php?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.suggestions) {
+                    // Extract just the names from the suggestions array
+                    const suggestionNames = data.data.suggestions.map(s => s.name);
+                    this.displaySearchSuggestions(suggestionNames);
+                } else {
+                    // Fallback to empty suggestions on error
+                    this.displaySearchSuggestions([]);
+                }
+            })
+            .catch(error => {
+                console.warn('Search suggestions API failed:', error);
+                // Fallback to empty suggestions on error
+                this.displaySearchSuggestions([]);
+            });
     },
     
     displaySearchSuggestions: function(suggestions) {
@@ -167,20 +175,25 @@ var FezaMarket = {
             return;
         }
         
-        container.innerHTML = suggestions.map(suggestion => 
-            `<div class="suggestion-item" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;" 
-                  onclick="FezaMarket.selectSuggestion('${suggestion}')"
+        container.innerHTML = suggestions.map(suggestion => {
+            // Handle both string suggestions (fallback) and API object format
+            const displayName = typeof suggestion === 'string' ? suggestion : suggestion.name;
+            const searchValue = typeof suggestion === 'string' ? suggestion : suggestion.name;
+            const isCategory = typeof suggestion === 'object' && suggestion.type === 'category';
+            
+            return `<div class="suggestion-item" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;${isCategory ? ' font-style: italic; color: #666;' : ''}" 
+                  onclick="FezaMarket.selectSuggestion('${searchValue.replace(/'/g, "\\'")}')"
                   onmouseenter="this.style.backgroundColor='#f7f7f7'"
                   onmouseleave="this.style.backgroundColor='white'">
-                ${suggestion}
-             </div>`
-        ).join('');
+                ${displayName}
+             </div>`;
+        }).join('');
         
         container.style.display = 'block';
     },
     
     selectSuggestion: function(suggestion) {
-        const searchInput = document.getElementById('search-input');
+        const searchInput = document.getElementById('searchInput'); // Updated to use correct ID
         if (searchInput) {
             searchInput.value = suggestion;
             this.hideSearchSuggestions();
@@ -190,7 +203,7 @@ var FezaMarket = {
     
     showSearchSuggestions: function() {
         const container = document.getElementById('search-suggestions');
-        const input = document.getElementById('search-input');
+        const input = document.getElementById('searchInput'); // Updated to use correct ID
         
         if (container && input.value.trim().length >= 2) {
             container.style.display = 'block';

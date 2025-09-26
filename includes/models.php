@@ -209,17 +209,15 @@ class Product extends BaseModel {
     public function search($query, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
         $searchTerm = "%{$query}%";
         $stmt = $this->db->prepare("
-            SELECT p.*, v.business_name as vendor_name, pi.image_url
+            SELECT p.*, v.business_name as vendor_name
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
-            WHERE (p.name LIKE ? OR p.description LIKE ? OR p.tags LIKE ?) 
+            WHERE (p.name LIKE ? OR p.description LIKE ?) 
             AND p.status = 'active' 
-            GROUP BY p.id
-            ORDER BY p.featured DESC, p.created_at DESC 
+            ORDER BY p.featured DESC, p.updated_at DESC, p.created_at DESC 
             LIMIT {$limit} OFFSET {$offset}
         ");
-        $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
+        $stmt->execute([$searchTerm, $searchTerm]);
         return $stmt->fetchAll();
     }
     
