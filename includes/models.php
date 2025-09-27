@@ -515,7 +515,7 @@ class Cart extends BaseModel {
     public function getCartItems($userId) {
         $stmt = $this->db->prepare("
             SELECT c.*, p.name, p.price, p.stock_quantity, p.sku, 
-                   pi.image_url as product_image, v.business_name as vendor_name
+                   pi.file_path as product_image, v.business_name as vendor_name
             FROM {$this->table} c 
             JOIN products p ON c.product_id = p.id 
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
@@ -536,11 +536,11 @@ class Cart extends BaseModel {
         if ($existing) {
             // Update quantity
             $newQuantity = $existing['quantity'] + $quantity;
-            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             return $stmt->execute([$newQuantity, $existing['id']]);
         } else {
             // Add new item
-            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity) VALUES (?, ?, ?)");
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
             return $stmt->execute([$userId, $productId, $quantity]);
         }
     }
@@ -550,7 +550,7 @@ class Cart extends BaseModel {
             return $this->removeItem($userId, $productId);
         }
         
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE user_id = ? AND product_id = ?");
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND product_id = ?");
         return $stmt->execute([$quantity, $userId, $productId]);
     }
     
