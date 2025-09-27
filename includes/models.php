@@ -210,20 +210,36 @@ class Product extends BaseModel {
         return $stmt->fetchAll();
     }
     
-    public function search($query, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
+    public function search($query, $categoryId = null, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
         $searchTerm = "%{$query}%";
-        $stmt = $this->db->prepare("
+        
+        $sql = "
             SELECT p.*, v.business_name as vendor_name,
                    pi.file_path as image_url, pi.alt_text as image_alt
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE (p.name LIKE ? OR p.description LIKE ?) 
-            AND p.status = 'active' 
-            ORDER BY p.featured DESC, p.updated_at DESC, p.created_at DESC 
-            LIMIT {$limit} OFFSET {$offset}
-        ");
-        $stmt->execute([$searchTerm, $searchTerm]);
+            AND p.status = 'active'
+        ";
+        
+        $params = [$searchTerm, $searchTerm];
+        
+        if ($categoryId) {
+            $sql .= " AND p.category_id = ?";
+            $params[] = $categoryId;
+        }
+        
+        $sql .= " ORDER BY p.featured DESC, p.updated_at DESC, p.created_at DESC";
+        
+        if ($limit) {
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
     
