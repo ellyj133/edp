@@ -81,11 +81,19 @@ if (!class_exists('BaseModel')) {
         }
 
         protected function getTableColumns(): array {
+            if (!$this->db) {
+                throw new Exception("Database connection not available");
+            }
+            
             if (!isset($this->columnCache[$this->table])) {
-                // Use MySQL/MariaDB DESCRIBE instead of SQLite PRAGMA
-                $stmt = $this->db->query("DESCRIBE {$this->table}");
-                $cols = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-                $this->columnCache[$this->table] = array_flip($cols);
+                try {
+                    // Use MySQL/MariaDB DESCRIBE instead of SQLite PRAGMA
+                    $stmt = $this->db->query("DESCRIBE {$this->table}");
+                    $cols = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+                    $this->columnCache[$this->table] = array_flip($cols);
+                } catch (Exception $e) {
+                    throw new Exception("Failed to get table columns for {$this->table}: " . $e->getMessage());
+                }
             }
             return $this->columnCache[$this->table];
         }
@@ -117,6 +125,10 @@ if (!class_exists('BaseModel')) {
         }
 
         public function create($data) {
+            if (!$this->db) {
+                throw new Exception("Database connection not available");
+            }
+            
             $data = $this->filterDataToColumns($data);
             if (empty($data)) {
                 throw new InvalidArgumentException("No valid columns to insert for table {$this->table}");
