@@ -67,7 +67,7 @@ class User extends BaseModel {
             $userData = [
                 'username' => $data['username'],
                 'email' => $data['email'],
-                'password' => hashPassword($data['password']),
+                'pass_hash' => hashPassword($data['password']), // Fixed: use pass_hash column name
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'phone' => $data['phone'] ?? null,

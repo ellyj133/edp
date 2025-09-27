@@ -16,81 +16,86 @@ $success = '';
 $formData = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $formData = [
-        'username' => sanitizeInput($_POST['username'] ?? ''),
-        'email' => sanitizeInput($_POST['email'] ?? ''),
-        'first_name' => sanitizeInput($_POST['first_name'] ?? ''),
-        'last_name' => sanitizeInput($_POST['last_name'] ?? ''),
-        'phone' => sanitizeInput($_POST['phone'] ?? ''),
-        'password' => $_POST['password'] ?? '',
-        'confirm_password' => $_POST['confirm_password'] ?? ''
-    ];
-    
-    // Validation
-    $errors = [];
-    
-    if (empty($formData['username'])) {
-        $errors[] = 'Username is required';
-    } elseif (strlen($formData['username']) < 3) {
-        $errors[] = 'Username must be at least 3 characters long';
-    }
-    
-    if (empty($formData['email'])) {
-        $errors[] = 'Email is required';
-    } elseif (!validateEmail($formData['email'])) {
-        $errors[] = 'Please enter a valid email address';
-    }
-    
-    if (empty($formData['first_name'])) {
-        $errors[] = 'First name is required';
-    }
-    
-    if (empty($formData['last_name'])) {
-        $errors[] = 'Last name is required';
-    }
-    
-    if (empty($formData['password'])) {
-        $errors[] = 'Password is required';
-    } elseif (strlen($formData['password']) < 6) {
-        $errors[] = 'Password must be at least 6 characters long';
-    }
-    
-    if ($formData['password'] !== $formData['confirm_password']) {
-        $errors[] = 'Passwords do not match';
-    }
-    
-    // Check if username/email already exists
-    if (empty($errors)) {
-        $user = new User();
-        
-        if ($user->findByUsername($formData['username'])) {
-            $errors[] = 'Username already exists';
-        }
-        
-        if ($user->findByEmail($formData['email'])) {
-            $errors[] = 'Email already exists';
-        }
-    }
-    
-    if (empty($errors)) {
-        try {
-            $user = new User();
-            $userId = $user->register($formData);
-            
-            if ($userId) {
-                Logger::info("New user registered: {$formData['email']}");
-                // Redirect to OTP verification page (like reference implementation)
-                redirect("/verify-email.php?email=" . urlencode($formData['email']));
-            } else {
-                $error = 'Failed to create account or send verification email. Please try again.';
-            }
-        } catch (Exception $e) {
-            Logger::error("Registration error: " . $e->getMessage());
-            $error = 'An error occurred during registration. Please try again.';
-        }
+    // Verify CSRF token first
+    if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
+        $error = 'Invalid request. Please try again.';
     } else {
-        $error = implode('<br>', $errors);
-    }
+        $formData = [
+            'username' => sanitizeInput($_POST['username'] ?? ''),
+            'email' => sanitizeInput($_POST['email'] ?? ''),
+            'first_name' => sanitizeInput($_POST['first_name'] ?? ''),
+            'last_name' => sanitizeInput($_POST['last_name'] ?? ''),
+            'phone' => sanitizeInput($_POST['phone'] ?? ''),
+            'password' => $_POST['password'] ?? '',
+            'confirm_password' => $_POST['confirm_password'] ?? ''
+        ];
+        
+        // Validation
+        $errors = [];
+        
+        if (empty($formData['username'])) {
+            $errors[] = 'Username is required';
+        } elseif (strlen($formData['username']) < 3) {
+            $errors[] = 'Username must be at least 3 characters long';
+        }
+        
+        if (empty($formData['email'])) {
+            $errors[] = 'Email is required';
+        } elseif (!validateEmail($formData['email'])) {
+            $errors[] = 'Please enter a valid email address';
+        }
+        
+        if (empty($formData['first_name'])) {
+            $errors[] = 'First name is required';
+        }
+        
+        if (empty($formData['last_name'])) {
+            $errors[] = 'Last name is required';
+        }
+        
+        if (empty($formData['password'])) {
+            $errors[] = 'Password is required';
+        } elseif (strlen($formData['password']) < 6) {
+            $errors[] = 'Password must be at least 6 characters long';
+        }
+        
+        if ($formData['password'] !== $formData['confirm_password']) {
+            $errors[] = 'Passwords do not match';
+        }
+        
+        // Check if username/email already exists
+        if (empty($errors)) {
+            $user = new User();
+            
+            if ($user->findByUsername($formData['username'])) {
+                $errors[] = 'Username already exists';
+            }
+            
+            if ($user->findByEmail($formData['email'])) {
+                $errors[] = 'Email already exists';
+            }
+        }
+        
+        if (empty($errors)) {
+            try {
+                $user = new User();
+                $userId = $user->register($formData);
+                
+                if ($userId) {
+                    Logger::info("New user registered: {$formData['email']}");
+                    // Redirect to OTP verification page (like reference implementation)
+                    redirect("/verify-email.php?email=" . urlencode($formData['email']));
+                } else {
+                    $error = 'Failed to create account or send verification email. Please try again.';
+                }
+            } catch (Exception $e) {
+                Logger::error("Registration error: " . $e->getMessage());
+                $error = 'An error occurred during registration. Please try again.';
+            }
+        } else {
+            $error = implode('<br>', $errors);
+        }
+    } // End of CSRF token verification else block
 }
 
 $page_title = 'Register';
