@@ -7,7 +7,7 @@
 /**
  * Transaction Model - Payment processing
  */
-class Transaction extends BaseModel {
+class TransactionAdvanced extends BaseModel {
     protected $table = 'transactions';
     
     public function getTotalVolume() {

@@ -1,194 +1,12 @@
 <?php
 /**
- * Additional Models
- * E-Commerce Platform
+ * Extended Models for E-Commerce Platform
+ * Updated with full functionality support
  */
 
-/**
- * Order Model
- */
-class Order extends BaseModel {
-    protected $table = 'orders';
-    
-    public function createOrder($userId, $orderData) {
-        try {
-            $this->db->beginTransaction();
-            
-            // Generate order number
-            $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-            
-            // Insert order
-            $stmt = $this->db->prepare("
-                INSERT INTO {$this->table} 
-                (user_id, order_number, subtotal, tax_amount, shipping_amount, discount_amount, total, 
-                 shipping_address, billing_address, payment_method) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            
-            $stmt->execute([
-                $userId,
-                $orderNumber,
-                $orderData['subtotal'],
-                $orderData['tax_amount'],
-                $orderData['shipping_amount'],
-                $orderData['discount_amount'] ?? 0,
-                $orderData['total'],
-                $orderData['shipping_address'],
-                $orderData['billing_address'],
-                $orderData['payment_method']
-            ]);
-            
-            $orderId = $this->db->lastInsertId();
-            
-            // Add order items
-            $cart = new Cart();
-            $cartItems = $cart->getCartItems($userId);
-            
-            foreach ($cartItems as $item) {
-                $this->addOrderItem($orderId, $item);
-                
-                // Decrease product stock
-                $product = new Product();
-                $product->decreaseStock($item['product_id'], $item['quantity']);
-            }
-            
-            // Clear cart
-            $cart->clearCart($userId);
-            
-            $this->db->commit();
-            return $orderId;
-            
-        } catch (Exception $e) {
-            $this->db->rollback();
-            throw $e;
-        }
-    }
-    
-    private function addOrderItem($orderId, $item) {
-        $stmt = $this->db->prepare("
-            INSERT INTO order_items 
-            (order_id, product_id, vendor_id, sku, qty, price, subtotal, product_name) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        $product = new Product();
-        $productData = $product->find($item['product_id']);
-        
-        return $stmt->execute([
-            $orderId,
-            $item['product_id'],
-            $productData['vendor_id'],
-            $item['sku'] ?? $productData['sku'],
-            $item['quantity'],
-            $item['price'],
-            $item['quantity'] * $item['price'],
-            $item['name'] ?? $productData['name']
-        ]);
-    }
-    
-    public function getUserOrders($userId, $limit = ORDERS_PER_PAGE, $offset = 0) {
-        $sql = "
-            SELECT * FROM {$this->table} 
-            WHERE user_id = ? 
-            ORDER BY created_at DESC 
-        ";
-        
-        $params = [$userId];
-        
-        if ($limit) {
-            $sql .= " LIMIT ? OFFSET ?";
-            $params[] = $limit;
-            $params[] = $offset;
-        }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
-    }
-    
-    public function getOrderItems($orderId) {
-        $stmt = $this->db->prepare("
-            SELECT oi.*, p.name as current_product_name 
-            FROM order_items oi 
-            LEFT JOIN products p ON oi.product_id = p.id 
-            WHERE oi.order_id = ?
-        ");
-        $stmt->execute([$orderId]);
-        return $stmt->fetchAll();
-    }
-    
-    public function updateStatus($orderId, $status) {
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ?");
-        return $stmt->execute([$status, $orderId]);
-    }
-    
-    public function updatePaymentStatus($orderId, $status, $transactionId = null) {
-        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = NOW()";
-        $params = [$status];
-        
-        if ($transactionId) {
-            $sql .= ", payment_transaction_id = ?";
-            $params[] = $transactionId;
-        }
-        
-        $sql .= " WHERE id = ?";
-        $params[] = $orderId;
-        
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
-    }
-    
-    public function getVendorOrders($vendorId, $limit = null, $offset = 0) {
-        $sql = "
-            SELECT DISTINCT o.*, u.first_name, u.last_name, u.email 
-            FROM {$this->table} o 
-            JOIN order_items oi ON o.id = oi.order_id 
-            JOIN users u ON o.user_id = u.id 
-            WHERE oi.vendor_id = ? 
-            ORDER BY o.created_at DESC
-        ";
-        
-        $params = [$vendorId];
-
-        if ($limit) {
-            $sql .= " LIMIT ? OFFSET ?";
-            $params[] = $limit;
-            $params[] = $offset;
-        }
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
-    }
-    
-    public function getOrderStats($vendorId = null) {
-        $whereClause = $vendorId ? "WHERE oi.vendor_id = ?" : "";
-        $params = $vendorId ? [$vendorId] : [];
-        
-        $stmt = $this->db->prepare("
-            SELECT 
-                COUNT(DISTINCT o.id) as total_orders,
-                SUM(oi.subtotal) as total_revenue,
-                AVG(oi.subtotal) as average_order_value,
-                COUNT(CASE WHEN o.status = 'pending' THEN 1 END) as pending_orders,
-                COUNT(CASE WHEN o.status = 'processing' THEN 1 END) as processing_orders,
-                COUNT(CASE WHEN o.status = 'shipped' THEN 1 END) as shipped_orders,
-                COUNT(CASE WHEN o.status = 'delivered' THEN 1 END) as delivered_orders
-            FROM orders o 
-            JOIN order_items oi ON o.id = oi.order_id 
-            {$whereClause}
-        ");
-        
-        $stmt->execute($params);
-        return $stmt->fetch();
-    }
-}
-
-/**
- * Vendor Model
- */
-class Vendor extends BaseModel {
-    protected $table = 'vendors';
+// User Profile Model
+class UserProfile extends BaseModel {
+    protected $table = 'user_profiles';
     
     public function findByUserId($userId) {
         $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = ?");
@@ -196,88 +14,178 @@ class Vendor extends BaseModel {
         return $stmt->fetch();
     }
     
-    public function createVendorApplication($userId, $vendorData) {
-        $vendorData['user_id'] = $userId;
-        $vendorData['status'] = 'pending';
-        return $this->create($vendorData);
+    public function createProfile($userId, $data) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, first_name, last_name, display_name, bio, phone, date_of_birth, gender, language, timezone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([
+            $userId,
+            $data['first_name'] ?? null,
+            $data['last_name'] ?? null,
+            $data['display_name'] ?? null,
+            $data['bio'] ?? null,
+            $data['phone'] ?? null,
+            $data['date_of_birth'] ?? null,
+            $data['gender'] ?? null,
+            $data['language'] ?? 'en',
+            $data['timezone'] ?? 'UTC'
+        ]);
     }
     
-    public function getApproved($limit = null, $offset = 0) {
-        $sql = "
-            SELECT v.*, u.username, u.email, u.first_name, u.last_name 
-            FROM {$this->table} v 
-            JOIN users u ON v.user_id = u.id 
-            WHERE v.status = 'approved'
-            ORDER BY v.created_at DESC
-        ";
+    public function updateProfile($userId, $data) {
+        $fields = [];
+        $values = [];
         
-        $params = [];
-
-        if ($limit) {
-            $sql .= " LIMIT ? OFFSET ?";
-            $params[] = $limit;
-            $params[] = $offset;
+        foreach (['first_name', 'last_name', 'display_name', 'bio', 'phone', 'date_of_birth', 'gender', 'language', 'timezone', 'avatar_url'] as $field) {
+            if (isset($data[$field])) {
+                $fields[] = "$field = ?";
+                $values[] = $data[$field];
+            }
         }
         
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
-    }
-    
-    public function getPending() {
-        $stmt = $this->db->prepare("
-            SELECT v.*, u.username, u.email, u.first_name, u.last_name 
-            FROM {$this->table} v 
-            JOIN users u ON v.user_id = u.id 
-            WHERE v.status = 'pending'
-            ORDER BY v.created_at ASC
-        ");
-        $stmt->execute();
-        return $stmt->fetchAll();
-    }
-    
-    public function approve($vendorId) {
-        return $this->update($vendorId, ['status' => 'approved']);
-    }
-    
-    public function suspend($vendorId) {
-        return $this->update($vendorId, ['status' => 'suspended']);
-    }
-    
-    public function getVendorStats($vendorId) {
-        $product = new Product();
-        $order = new Order();
+        if (empty($fields)) return false;
         
-        $productCount = $product->count("vendor_id = {$vendorId}");
-        $orderStats = $order->getOrderStats($vendorId);
+        $fields[] = "updated_at = CURRENT_TIMESTAMP";
+        $values[] = $userId;
         
-        return [
-            'product_count' => $productCount,
-            'total_orders' => $orderStats['total_orders'] ?? 0,
-            'total_revenue' => $orderStats['total_revenue'] ?? 0,
-            'average_order_value' => $orderStats['average_order_value'] ?? 0
-        ];
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE user_id = ?");
+        return $stmt->execute($values);
     }
 }
 
-/**
- * Review Model
- */
+// Address Model
+class Address extends BaseModel {
+    protected $table = 'addresses';
+    
+    public function getUserAddresses($userId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function createAddress($userId, $data) {
+        // If this is set as default, unset others first
+        if (!empty($data['is_default'])) {
+            $this->db->prepare("UPDATE {$this->table} SET is_default = 0 WHERE user_id = ?")->execute([$userId]);
+        }
+        
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, type, label, first_name, last_name, company, address_line1, address_line2, city, state, postal_code, country, phone, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([
+            $userId,
+            $data['type'] ?? 'both',
+            $data['label'] ?? null,
+            $data['first_name'] ?? null,
+            $data['last_name'] ?? null,
+            $data['company'] ?? null,
+            $data['address_line1'],
+            $data['address_line2'] ?? null,
+            $data['city'],
+            $data['state'],
+            $data['postal_code'],
+            $data['country'] ?? 'US',
+            $data['phone'] ?? null,
+            $data['is_default'] ?? 0
+        ]);
+    }
+}
+
+// Enhanced Wishlist Model
+class Wishlist extends BaseModel {
+    protected $table = 'wishlists';
+    
+    public function getUserWishlist($userId, $limit = null) {
+        $sql = "
+            SELECT w.*, p.name, p.price, p.status, pi.file_path as image_url,
+                   v.business_name as vendor_name
+            FROM {$this->table} w
+            JOIN products p ON w.product_id = p.id
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            LEFT JOIN vendors v ON p.vendor_id = v.id
+            WHERE w.user_id = ? AND p.status = 'active'
+            ORDER BY w.created_at DESC
+        ";
+        
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function addToWishlist($userId, $productId, $notes = null) {
+        $stmt = $this->db->prepare("INSERT IGNORE INTO {$this->table} (user_id, product_id, notes) VALUES (?, ?, ?)");
+        return $stmt->execute([$userId, $productId, $notes]);
+    }
+    
+    public function removeFromWishlist($userId, $productId) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ? AND product_id = ?");
+        return $stmt->execute([$userId, $productId]);
+    }
+    
+    public function isInWishlist($userId, $productId) {
+        $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE user_id = ? AND product_id = ?");
+        $stmt->execute([$userId, $productId]);
+        return $stmt->fetchColumn() !== false;
+    }
+}
+
+// Enhanced Review Model
 class Review extends BaseModel {
     protected $table = 'reviews';
     
-    public function addReview($userId, $productId, $rating, $title, $comment, $orderItemId = null) {
-        $data = [
-            'user_id' => $userId,
-            'product_id' => $productId,
-            'rating' => $rating,
-            'title' => $title,
-            'comment' => $comment,
-            'order_item_id' => $orderItemId,
-            'status' => 'pending'
-        ];
+    public function getProductReviews($productId, $limit = null, $offset = 0) {
+        $sql = "
+            SELECT r.*, up.first_name, up.last_name, up.display_name,
+                   CASE 
+                       WHEN up.display_name IS NOT NULL AND up.display_name != '' THEN up.display_name
+                       WHEN up.first_name IS NOT NULL THEN up.first_name || ' ' || COALESCE(up.last_name, '')
+                       ELSE 'Anonymous'
+                   END as reviewer_name
+            FROM {$this->table} r
+            LEFT JOIN user_profiles up ON r.user_id = up.user_id
+            WHERE r.product_id = ? AND r.status = 'active' AND r.is_approved = 1
+            ORDER BY r.created_at DESC
+        ";
         
-        return $this->create($data);
+        if ($limit) {
+            $sql .= " LIMIT $limit OFFSET $offset";
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$productId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function addReview($data) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (product_id, user_id, order_id, rating, title, review_text, pros, cons, is_verified_purchase) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([
+            $data['product_id'],
+            $data['user_id'],
+            $data['order_id'] ?? null,
+            $data['rating'],
+            $data['title'] ?? null,
+            $data['review_text'] ?? null,
+            $data['pros'] ?? null,
+            $data['cons'] ?? null,
+            $data['is_verified_purchase'] ?? 0
+        ]);
+    }
+    
+    public function getProductRatingStats($productId) {
+        $stmt = $this->db->prepare("
+            SELECT 
+                AVG(rating) as average_rating,
+                COUNT(*) as total_reviews,
+                SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
+                SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_star,
+                SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_star,
+                SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
+                SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
+            FROM {$this->table} 
+            WHERE product_id = ? AND status = 'active' AND is_approved = 1
+        ");
+        $stmt->execute([$productId]);
+        return $stmt->fetch();
     }
     
     public function getUserReviews($userId, $limit = null, $offset = 0) {
@@ -312,10 +220,10 @@ class Review extends BaseModel {
     
     public function getPending() {
         $stmt = $this->db->prepare("
-            SELECT r.*, p.name as product_name, u.first_name, u.last_name 
+            SELECT r.*, p.name as product_name, up.first_name, up.last_name 
             FROM {$this->table} r 
             JOIN products p ON r.product_id = p.id 
-            JOIN users u ON r.user_id = u.id 
+            LEFT JOIN user_profiles up ON r.user_id = up.user_id
             WHERE r.status = 'pending' 
             ORDER BY r.created_at ASC
         ");
@@ -324,68 +232,635 @@ class Review extends BaseModel {
     }
 }
 
-/**
- * Wishlist Model
- */
-class Wishlist extends BaseModel {
-    protected $table = 'wishlists';
+// Notification Model
+class Notification extends BaseModel {
+    protected $table = 'notifications';
     
-    public function addToWishlist($userId, $productId) {
-        try {
-            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id) VALUES (?, ?)");
-            return $stmt->execute([$userId, $productId]);
-        } catch (PDOException $e) {
-            // Handle duplicate entry
-            return false;
+    public function getUserNotifications($userId, $limit = 20, $unreadOnly = false) {
+        $sql = "SELECT * FROM {$this->table} WHERE user_id = ?";
+        
+        if ($unreadOnly) {
+            $sql .= " AND is_read = 0";
         }
-    }
-    
-    public function removeFromWishlist($userId, $productId) {
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ? AND product_id = ?");
-        return $stmt->execute([$userId, $productId]);
-    }
-    
-    public function getUserWishlist($userId) {
-        $stmt = $this->db->prepare("
-            SELECT w.*, p.name, p.price, p.status, pi.image_url 
-            FROM {$this->table} w 
-            JOIN products p ON w.product_id = p.id 
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
-            WHERE w.user_id = ? 
-            ORDER BY w.created_at DESC
-        ");
+        
+        $sql .= " ORDER BY created_at DESC LIMIT $limit";
+        
+        $stmt = $this->db->prepare($sql);
         $stmt->execute([$userId]);
         return $stmt->fetchAll();
     }
     
-    public function isInWishlist($userId, $productId) {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table} WHERE user_id = ? AND product_id = ?");
-        $stmt->execute([$userId, $productId]);
-        return $stmt->fetchColumn() > 0;
+    public function createNotification($userId, $type, $title, $message, $data = null, $actionUrl = null) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, type, title, message, data, action_url) VALUES (?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([$userId, $type, $title, $message, $data ? json_encode($data) : null, $actionUrl]);
+    }
+    
+    public function markAsRead($notificationId, $userId) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?");
+        return $stmt->execute([$notificationId, $userId]);
+    }
+    
+    public function markAllAsRead($userId) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE user_id = ? AND is_read = 0");
+        return $stmt->execute([$userId]);
+    }
+    
+    public function getUnreadCount($userId) {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table} WHERE user_id = ? AND is_read = 0");
+        $stmt->execute([$userId]);
+        return $stmt->fetchColumn();
     }
 }
 
-/**
- * AI Recommendations Model
- */
-class Recommendation extends BaseModel {
-    protected $table = 'recommendation_logs';
+// Transaction Model
+class Transaction extends BaseModel {
+    protected $table = 'transactions';
     
-    /**
-     * Single source of truth for allowed activity types
-     * Must match DB CHECK constraint: activity_type IN ('view_product','add_to_cart','purchase','search','review')
-     */
+    public function createTransaction($data) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, order_id, type, amount, currency, status, payment_method, gateway, gateway_transaction_id, gateway_fee, platform_fee, net_amount, description, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([
+            $data['user_id'],
+            $data['order_id'] ?? null,
+            $data['type'],
+            $data['amount'],
+            $data['currency'] ?? 'USD',
+            $data['status'] ?? 'pending',
+            $data['payment_method'] ?? null,
+            $data['gateway'] ?? null,
+            $data['gateway_transaction_id'] ?? null,
+            $data['gateway_fee'] ?? 0,
+            $data['platform_fee'] ?? 0,
+            $data['net_amount'] ?? $data['amount'],
+            $data['description'] ?? null,
+            isset($data['metadata']) ? json_encode($data['metadata']) : null
+        ]);
+    }
+    
+    public function updateTransactionStatus($transactionId, $status, $processedAt = null) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, processed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        return $stmt->execute([$status, $processedAt ?? date('Y-m-d H:i:s'), $transactionId]);
+    }
+    
+    public function getUserTransactions($userId, $limit = 20) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = ? ORDER BY created_at DESC LIMIT $limit");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+}
+
+// Coupon Model
+class Coupon extends BaseModel {
+    protected $table = 'coupons';
+    
+    public function findByCode($code) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE code = ? AND is_active = 1");
+        $stmt->execute([$code]);
+        return $stmt->fetch();
+    }
+    
+    public function validateCoupon($code, $userId, $cartTotal, $productIds = []) {
+        $coupon = $this->findByCode($code);
+        
+        if (!$coupon) {
+            return ['valid' => false, 'message' => 'Coupon not found'];
+        }
+        
+        // Check if coupon is active and not expired
+        if ($coupon['starts_at'] && strtotime($coupon['starts_at']) > time()) {
+            return ['valid' => false, 'message' => 'Coupon not yet active'];
+        }
+        
+        if ($coupon['expires_at'] && strtotime($coupon['expires_at']) < time()) {
+            return ['valid' => false, 'message' => 'Coupon has expired'];
+        }
+        
+        // Check usage limits
+        if ($coupon['usage_limit'] && $coupon['usage_count'] >= $coupon['usage_limit']) {
+            return ['valid' => false, 'message' => 'Coupon usage limit reached'];
+        }
+        
+        // Check user usage limit
+        if ($coupon['user_limit']) {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM coupon_usage WHERE coupon_id = ? AND user_id = ?");
+            $stmt->execute([$coupon['id'], $userId]);
+            $userUsage = $stmt->fetchColumn();
+            
+            if ($userUsage >= $coupon['user_limit']) {
+                return ['valid' => false, 'message' => 'You have reached the usage limit for this coupon'];
+            }
+        }
+        
+        // Check minimum amount
+        if ($coupon['minimum_amount'] && $cartTotal < $coupon['minimum_amount']) {
+            return ['valid' => false, 'message' => "Minimum order amount is $" . number_format($coupon['minimum_amount'], 2)];
+        }
+        
+        return ['valid' => true, 'coupon' => $coupon];
+    }
+    
+    public function calculateDiscount($coupon, $cartTotal) {
+        switch ($coupon['type']) {
+            case 'percentage':
+                $discount = $cartTotal * ($coupon['value'] / 100);
+                if ($coupon['maximum_discount'] && $discount > $coupon['maximum_discount']) {
+                    $discount = $coupon['maximum_discount'];
+                }
+                break;
+            case 'fixed_amount':
+                $discount = min($coupon['value'], $cartTotal);
+                break;
+            case 'free_shipping':
+                $discount = 0; // Handle separately in shipping calculation
+                break;
+            default:
+                $discount = 0;
+        }
+        
+        return round($discount, 2);
+    }
+    
+    public function recordUsage($couponId, $userId, $orderId, $discountAmount) {
+        // Record usage
+        $stmt = $this->db->prepare("INSERT INTO coupon_usage (coupon_id, user_id, order_id, discount_amount) VALUES (?, ?, ?, ?)");
+        $result = $stmt->execute([$couponId, $userId, $orderId, $discountAmount]);
+        
+        // Update usage count
+        if ($result) {
+            $stmt = $this->db->prepare("UPDATE {$this->table} SET usage_count = usage_count + 1 WHERE id = ?");
+            $stmt->execute([$couponId]);
+        }
+        
+        return $result;
+    }
+}
+
+// Enhanced Order Model
+class Order extends BaseModel {
+    protected $table = 'orders';
+    
+    public function createOrder($userId, $orderData) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Generate order number
+            $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+            
+            // Insert order
+            $stmt = $this->db->prepare("
+                INSERT INTO {$this->table} 
+                (user_id, order_number, status, total, created_at) 
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ");
+            
+            $stmt->execute([
+                $userId,
+                $orderNumber,
+                $orderData['status'] ?? 'pending',
+                $orderData['total']
+            ]);
+            
+            $orderId = $this->db->lastInsertId();
+            
+            // Insert order items if provided
+            if (!empty($orderData['items'])) {
+                $itemStmt = $this->db->prepare("
+                    INSERT INTO order_items 
+                    (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name, product_sku, product_image) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                
+                foreach ($orderData['items'] as $item) {
+                    $itemStmt->execute([
+                        $orderId,
+                        $item['product_id'],
+                        $item['vendor_id'] ?? null,
+                        $item['quantity'],
+                        $item['unit_price'],
+                        $item['total_price'],
+                        $item['product_name'],
+                        $item['product_sku'] ?? null,
+                        $item['product_image'] ?? null
+                    ]);
+                }
+            } else {
+                // Legacy: Add from cart
+                $cart = new Cart();
+                $cartItems = $cart->getCartItems($userId);
+                
+                foreach ($cartItems as $item) {
+                    $this->addOrderItem($orderId, $item);
+                    
+                    // Decrease product stock
+                    $product = new Product();
+                    $product->decreaseStock($item['product_id'], $item['quantity']);
+                }
+                
+                // Clear cart
+                $cart->clearCart($userId);
+            }
+            
+            $this->db->commit();
+            return $orderId;
+            
+        } catch (Exception $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+    }
+    
+    private function addOrderItem($orderId, $item) {
+        $stmt = $this->db->prepare("
+            INSERT INTO order_items 
+            (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name, product_sku) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        
+        $product = new Product();
+        $productData = $product->find($item['product_id']);
+        
+        return $stmt->execute([
+            $orderId,
+            $item['product_id'],
+            $productData['vendor_id'],
+            $item['quantity'],
+            $item['price'],
+            $item['quantity'] * $item['price'],
+            $item['name'] ?? $productData['name'],
+            $item['sku'] ?? $productData['sku']
+        ]);
+    }
+    
+    public function getOrderWithItems($orderId, $userId = null) {
+        $sql = "
+            SELECT o.*
+            FROM {$this->table} o
+            WHERE o.id = ?
+        ";
+        
+        $params = [$orderId];
+        
+        if ($userId) {
+            $sql .= " AND o.user_id = ?";
+            $params[] = $userId;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $order = $stmt->fetch();
+        
+        if ($order) {
+            // Get order items
+            $itemStmt = $this->db->prepare("SELECT * FROM order_items WHERE order_id = ?");
+            $itemStmt->execute([$orderId]);
+            $order['items'] = $itemStmt->fetchAll();
+        }
+        
+        return $order;
+    }
+    
+    public function getUserOrders($userId, $limit = 20, $offset = 0) {
+        $sql = "
+            SELECT o.*, COUNT(oi.id) as item_count
+            FROM {$this->table} o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            WHERE o.user_id = ?
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        ";
+        
+        $params = [$userId];
+        
+        if ($limit) {
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+    
+    public function getOrderItems($orderId) {
+        $stmt = $this->db->prepare("
+            SELECT oi.*, p.name as current_product_name 
+            FROM order_items oi 
+            LEFT JOIN products p ON oi.product_id = p.id 
+            WHERE oi.order_id = ?
+        ");
+        $stmt->execute([$orderId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function updateStatus($orderId, $status) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        return $stmt->execute([$status, $orderId]);
+    }
+    
+    public function updatePaymentStatus($orderId, $status, $transactionId = null) {
+        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = CURRENT_TIMESTAMP";
+        $params = [$status];
+        
+        if ($transactionId) {
+            $sql .= ", payment_transaction_id = ?";
+            $params[] = $transactionId;
+        }
+        
+        $sql .= " WHERE id = ?";
+        $params[] = $orderId;
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
+    }
+    
+    public function getVendorOrders($vendorId, $limit = null, $offset = 0) {
+        $sql = "
+            SELECT DISTINCT o.*, up.first_name, up.last_name, u.email 
+            FROM {$this->table} o 
+            JOIN order_items oi ON o.id = oi.order_id 
+            JOIN users u ON o.user_id = u.id 
+            LEFT JOIN user_profiles up ON u.id = up.user_id
+            WHERE oi.vendor_id = ? 
+            ORDER BY o.created_at DESC
+        ";
+        
+        $params = [$vendorId];
+
+        if ($limit) {
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+    
+    public function getOrderStats($vendorId = null) {
+        $whereClause = $vendorId ? "WHERE oi.vendor_id = ?" : "";
+        $params = $vendorId ? [$vendorId] : [];
+        
+        $stmt = $this->db->prepare("
+            SELECT 
+                COUNT(DISTINCT o.id) as total_orders,
+                SUM(oi.total_price) as total_revenue,
+                AVG(oi.total_price) as average_order_value,
+                COUNT(CASE WHEN o.status = 'pending' THEN 1 END) as pending_orders,
+                COUNT(CASE WHEN o.status = 'processing' THEN 1 END) as processing_orders,
+                COUNT(CASE WHEN o.status = 'shipped' THEN 1 END) as shipped_orders,
+                COUNT(CASE WHEN o.status = 'delivered' THEN 1 END) as delivered_orders
+            FROM orders o 
+            JOIN order_items oi ON o.id = oi.order_id 
+            {$whereClause}
+        ");
+        
+        $stmt->execute($params);
+        return $stmt->fetch();
+    }
+}
+
+// Vendor Model (kept existing with enhancements)
+class Vendor extends BaseModel {
+    protected $table = 'vendors';
+    
+    public function findByUserId($userId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        return $stmt->fetch();
+    }
+    
+    public function createVendorApplication($userId, $vendorData) {
+        $vendorData['user_id'] = $userId;
+        $vendorData['status'] = 'pending';
+        return $this->create($vendorData);
+    }
+    
+    public function getApproved($limit = null, $offset = 0) {
+        $sql = "
+            SELECT v.*, u.username, u.email, up.first_name, up.last_name 
+            FROM {$this->table} v 
+            JOIN users u ON v.user_id = u.id 
+            LEFT JOIN user_profiles up ON u.id = up.user_id
+            WHERE v.status = 'approved'
+            ORDER BY v.created_at DESC
+        ";
+        
+        $params = [];
+
+        if ($limit) {
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+    
+    public function getPending() {
+        $stmt = $this->db->prepare("
+            SELECT v.*, u.username, u.email, up.first_name, up.last_name 
+            FROM {$this->table} v 
+            JOIN users u ON v.user_id = u.id 
+            LEFT JOIN user_profiles up ON u.id = up.user_id
+            WHERE v.status = 'pending'
+            ORDER BY v.created_at ASC
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function approve($vendorId) {
+        return $this->update($vendorId, ['status' => 'approved']);
+    }
+    
+    public function suspend($vendorId) {
+        return $this->update($vendorId, ['status' => 'suspended']);
+    }
+    
+    public function getVendorStats($vendorId) {
+        $product = new Product();
+        $order = new Order();
+        
+        $productCount = $product->count("vendor_id = {$vendorId}");
+        $orderStats = $order->getOrderStats($vendorId);
+        
+        return [
+            'product_count' => $productCount,
+            'total_orders' => $orderStats['total_orders'] ?? 0,
+            'total_revenue' => $orderStats['total_revenue'] ?? 0,
+            'average_order_value' => $orderStats['average_order_value'] ?? 0
+        ];
+    }
+}
+
+// Support Ticket Model
+class SupportTicket extends BaseModel {
+    protected $table = 'support_tickets';
+    
+    public function createTicket($data) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, subject, message, priority, category, related_order_id, related_product_id, attachments) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([
+            $data['user_id'] ?? null,
+            $data['subject'],
+            $data['message'],
+            $data['priority'] ?? 'normal',
+            $data['category'] ?? null,
+            $data['related_order_id'] ?? null,
+            $data['related_product_id'] ?? null,
+            isset($data['attachments']) ? json_encode($data['attachments']) : null
+        ]);
+    }
+    
+    public function getUserTickets($userId, $limit = 20) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = ? ORDER BY created_at DESC LIMIT $limit");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getTicketWithMessages($ticketId, $userId = null) {
+        $sql = "SELECT * FROM {$this->table} WHERE id = ?";
+        $params = [$ticketId];
+        
+        if ($userId) {
+            $sql .= " AND user_id = ?";
+            $params[] = $userId;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $ticket = $stmt->fetch();
+        
+        if ($ticket) {
+            // Get messages
+            $stmt = $this->db->prepare("
+                SELECT sm.*, up.display_name, up.first_name, up.last_name
+                FROM support_messages sm
+                LEFT JOIN user_profiles up ON sm.user_id = up.user_id
+                WHERE sm.ticket_id = ?
+                ORDER BY sm.created_at ASC
+            ");
+            $stmt->execute([$ticketId]);
+            $ticket['messages'] = $stmt->fetchAll();
+        }
+        
+        return $ticket;
+    }
+}
+
+// User Activity Model
+class UserActivity extends BaseModel {
+    protected $table = 'user_activities';
+    
+    public function logActivity($userId, $activityType, $data = null, $ipAddress = null, $userAgent = null) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, activity_type, activity_data, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)");
+        return $stmt->execute([
+            $userId,
+            $activityType,
+            $data ? json_encode($data) : null,
+            $ipAddress,
+            $userAgent
+        ]);
+    }
+    
+    public function getUserActivities($userId, $limit = 50) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = ? ORDER BY created_at DESC LIMIT $limit");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+}
+
+// Settings Model
+class Setting extends BaseModel {
+    protected $table = 'settings';
+    
+    public function getSetting($key, $default = null) {
+        $stmt = $this->db->prepare("SELECT value, type FROM {$this->table} WHERE key = ?");
+        $stmt->execute([$key]);
+        $result = $stmt->fetch();
+        
+        if (!$result) {
+            return $default;
+        }
+        
+        $value = $result['value'];
+        
+        // Convert based on type
+        switch ($result['type']) {
+            case 'boolean':
+                return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            case 'integer':
+                return (int)$value;
+            case 'json':
+                return json_decode($value, true);
+            default:
+                return $value;
+        }
+    }
+    
+    public function setSetting($key, $value, $type = 'string', $description = null, $isPublic = false, $updatedBy = null) {
+        // Convert value based on type
+        switch ($type) {
+            case 'boolean':
+                $value = $value ? '1' : '0';
+                break;
+            case 'json':
+                $value = json_encode($value);
+                break;
+        }
+        
+        $stmt = $this->db->prepare("
+            INSERT INTO {$this->table} 
+            (`key`, `value`, type, description, is_public, updated_by, updated_at) 
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+            `value` = VALUES(`value`),
+            type = VALUES(type),
+            description = VALUES(description),
+            is_public = VALUES(is_public),
+            updated_by = VALUES(updated_by),
+            updated_at = CURRENT_TIMESTAMP
+        ");
+        
+        return $stmt->execute([$key, $value, $type, $description, $isPublic ? 1 : 0, $updatedBy]);
+    }
+    
+    public function getPublicSettings() {
+        $stmt = $this->db->prepare("SELECT key, value, type FROM {$this->table} WHERE is_public = 1");
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+        
+        $settings = [];
+        foreach ($results as $row) {
+            $value = $row['value'];
+            
+            switch ($row['type']) {
+                case 'boolean':
+                    $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                    break;
+                case 'integer':
+                    $value = (int)$value;
+                    break;
+                case 'json':
+                    $value = json_decode($value, true);
+                    break;
+            }
+            
+            $settings[$row['key']] = $value;
+        }
+        
+        return $settings;
+    }
+}
+
+// AI Recommendations Model (Enhanced)
+class Recommendation extends BaseModel {
+    protected $table = 'user_activities';
+    
     const ALLOWED_ACTIVITY_TYPES = ['view_product', 'add_to_cart', 'purchase', 'search', 'review'];
     
-    /**
-     * Log user activity with validation and error handling
-     * 
-     * @param int|null $userId User ID (can be null for anonymous users)
-     * @param int|null $productId Product ID (can be null for non-product activities like search)
-     * @param string $activityType Activity type - must be valid or mappable
-     * @param array $metadata Additional activity metadata
-     * @return bool True on success, false on failure
-     */
     public function logActivity($userId, $productId, $activityType, $metadata = []) {
         // Validate activity type before DB interaction
         if (!in_array($activityType, self::ALLOWED_ACTIVITY_TYPES, true)) {
@@ -393,7 +868,7 @@ class Recommendation extends BaseModel {
             $aliasMap = [
                 'view' => 'view_product',
                 'view_item' => 'view_product',
-                'view_homepage' => 'view_product', // Fix for index.php call
+                'view_homepage' => 'view_product',
                 'cart' => 'add_to_cart',
                 'add' => 'add_to_cart',
                 'buy' => 'purchase',
@@ -403,7 +878,6 @@ class Recommendation extends BaseModel {
             $activityType = $aliasMap[$activityType] ?? null;
         }
         
-        // If still invalid after mapping, log warning and return false
         if ($activityType === null) {
             error_log("Invalid activity_type provided to logActivity(): " . ($activityType ?? 'null'));
             return false;
@@ -411,57 +885,45 @@ class Recommendation extends BaseModel {
         
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO user_activities 
-                (user_id, activity_type, product_id, metadata, ip_address, user_agent) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO {$this->table} 
+                (user_id, activity_type, activity_data, ip_address, user_agent) 
+                VALUES (?, ?, ?, ?, ?)
             ");
             
-            // Create variables for bindParam (must be passed by reference)
-            $metadataJson = json_encode($metadata);
-            $ipAddress = getClientIP();
+            $metadataJson = json_encode(array_merge($metadata, ['product_id' => $productId]));
+            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '';
             $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
             
-            // Bind parameters with explicit types
-            $stmt->bindParam(1, $userId, PDO::PARAM_INT);
-            $stmt->bindParam(2, $activityType, PDO::PARAM_STR);
-            $stmt->bindParam(3, $productId, PDO::PARAM_INT);
-            $stmt->bindParam(4, $metadataJson, PDO::PARAM_STR);
-            $stmt->bindParam(5, $ipAddress, PDO::PARAM_STR);
-            $stmt->bindParam(6, $userAgent, PDO::PARAM_STR);
-            
-            return $stmt->execute();
+            return $stmt->execute([$userId, $activityType, $metadataJson, $ipAddress, $userAgent]);
             
         } catch (PDOException $e) {
-            // Log PDO error info for debugging
-            $errorInfo = $this->db->errorInfo();
-            error_log("PDO Error in logActivity(): " . $e->getMessage() . 
-                     " | Error Info: " . implode(' | ', $errorInfo));
+            error_log("PDO Error in logActivity(): " . $e->getMessage());
             return false;
         }
     }
     
     public function getViewedTogether($productId, $limit = 6) {
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(*) as view_count, pi.image_url
-            FROM user_activities ua1 
-            JOIN user_activities ua2 ON ua1.user_id = ua2.user_id 
-                AND ua1.product_id != ua2.product_id 
-                AND ua1.activity_type = 'view_product' 
+            SELECT p.*, COUNT(*) as view_count, pi.file_path as image_url
+            FROM {$this->table} ua1 
+            JOIN {$this->table} ua2 ON ua1.user_id = ua2.user_id 
+                AND JSON_EXTRACT(ua1.activity_data, '$.product_id') != JSON_EXTRACT(ua2.activity_data, '$.product_id')
+                AND ua1.activity_type = 'view_product'
                 AND ua2.activity_type = 'view_product'
-            JOIN products p ON ua2.product_id = p.id 
+            JOIN products p ON CAST(JSON_EXTRACT(ua2.activity_data, '$.product_id') AS INTEGER) = p.id
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
-            WHERE ua1.product_id = ? AND p.status = 'active'
+            WHERE JSON_EXTRACT(ua1.activity_data, '$.product_id') = ? AND p.status = 'active'
             GROUP BY p.id 
             ORDER BY view_count DESC, p.created_at DESC 
             LIMIT ?
         ");
-        $stmt->execute([$productId]);
+        $stmt->execute([$productId, $limit]);
         return $stmt->fetchAll();
     }
     
     public function getPurchasedTogether($productId, $limit = 6) {
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(*) as purchase_count, pi.image_url
+            SELECT p.*, COUNT(*) as purchase_count, pi.file_path as image_url
             FROM order_items oi1 
             JOIN order_items oi2 ON oi1.order_id = oi2.order_id 
                 AND oi1.product_id != oi2.product_id 
@@ -472,46 +934,42 @@ class Recommendation extends BaseModel {
             ORDER BY purchase_count DESC, p.created_at DESC 
             LIMIT ?
         ");
-        $stmt->execute([$productId]);
+        $stmt->execute([$productId, $limit]);
         return $stmt->fetchAll();
     }
     
     public function getTrendingProducts($limit = 8) {
-        // Fixed MariaDB compatible trending products query
-        // Updated to use existing columns and proper MariaDB syntax
         $sql = "
             SELECT p.id, p.name AS title, p.price,
-                   COALESCE(SUM(oi.qty), 0) AS sold,
-                   MAX(pi.image_url) AS image
+                   COALESCE(SUM(oi.quantity), 0) AS sold,
+                   pi.file_path AS image_url
             FROM products p 
             LEFT JOIN order_items oi ON oi.product_id = p.id
             LEFT JOIN orders o ON o.id = oi.order_id 
-              AND o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+              AND o.created_at >= date('now', '-7 days')
               AND o.status IN ('paid','shipped','delivered')
             LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
             WHERE p.status = 'active'
-            GROUP BY p.id, p.name, p.price
+            GROUP BY p.id, p.name, p.price, pi.file_path
             ORDER BY sold DESC, p.created_at DESC 
             LIMIT ?
         ";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
-        $stmt->execute();
+        $stmt->execute([$limit]);
         return $stmt->fetchAll();
     }
     
     public function getPersonalizedRecommendations($userId, $limit = 8) {
-        // Get user's purchase history and preferences
         $stmt = $this->db->prepare("
             SELECT p.*, 
                    COUNT(DISTINCT ua.id) as user_interest_score,
                    AVG(r.rating) as avg_rating,
-                   pi.image_url
+                   pi.file_path as image_url
             FROM products p 
-            LEFT JOIN user_activities ua ON p.id = ua.product_id 
+            LEFT JOIN {$this->table} ua ON JSON_EXTRACT(ua.activity_data, '$.product_id') = p.id
                 AND ua.user_id = ?
-            LEFT JOIN reviews r ON p.id = r.product_id AND r.status = 'approved'
+            LEFT JOIN reviews r ON p.id = r.product_id AND r.status = 'active'
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.status = 'active'
                 AND p.id NOT IN (
@@ -524,7 +982,7 @@ class Recommendation extends BaseModel {
             ORDER BY user_interest_score DESC, avg_rating DESC, p.featured DESC 
             LIMIT ?
         ");
-        $stmt->execute([$userId, $userId]);
+        $stmt->execute([$userId, $userId, $limit]);
         return $stmt->fetchAll();
     }
     
@@ -542,49 +1000,6 @@ class Recommendation extends BaseModel {
                 return $this->getViewedTogether($productId, $limit);
         }
     }
-    
-    public function logRecommendationClick($userId, $productId, $recommendationType) {
-        return $this->create([
-            'user_id' => $userId,
-            'product_id' => $productId,
-            'recommendation_type' => $recommendationType,
-            'clicked' => 1
-        ]);
-    }
 }
 
-/**
- * Settings Model
- */
-class Settings extends BaseModel {
-    protected $table = 'settings';
-    
-    public function getSetting($key, $default = null) {
-        $stmt = $this->db->prepare("SELECT setting_value FROM {$this->table} WHERE setting_key = ?");
-        $stmt->execute([$key]);
-        $result = $stmt->fetchColumn();
-        return $result !== false ? $result : $default;
-    }
-    
-    public function setSetting($key, $value, $description = '') {
-        // Use MySQL UPSERT syntax
-        $stmt = $this->db->prepare("
-            INSERT INTO {$this->table} (setting_key, setting_value, description) 
-            VALUES (?, ?, ?) 
-            ON DUPLICATE KEY UPDATE 
-                setting_value = VALUES(setting_value), 
-                updated_at = NOW()
-        ");
-        return $stmt->execute([$key, $value, $description]);
-    }
-    
-    public function getAllSettings() {
-        $stmt = $this->db->query("SELECT * FROM {$this->table} ORDER BY setting_key");
-        $settings = [];
-        while ($row = $stmt->fetch()) {
-            $settings[$row['setting_key']] = $row['setting_value'];
-        }
-        return $settings;
-    }
-}
 ?>

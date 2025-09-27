@@ -1,15 +1,4 @@
 -- E-Commerce Platform Database Schema
--- MariaDB/MySQL Complete Schema with 240+ Tables  
--- Converted from SQLite to MariaDB/MySQL
--- Updated: 2025-09-27
-
-SET foreign_key_checks = 0;
-SET sql_mode = ''STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'';
-
--- Core Platform Configuration
--- This schema includes 240+ tables for a complete e-commerce platform
-
--- E-Commerce Platform Database Schema
 -- MariaDB/MySQL Compatible Version
 -- Updated: 2025-09-27
 
@@ -38,14 +27,13 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    INDEX idx_user_id (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- User Addresses Table
 CREATE TABLE IF NOT EXISTS addresses (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
     type VARCHAR(20) DEFAULT 'both', -- billing, shipping, both
     label VARCHAR(50),
     first_name VARCHAR(50),
@@ -58,20 +46,19 @@ CREATE TABLE IF NOT EXISTS addresses (
     postal_code VARCHAR(20) NOT NULL,
     country VARCHAR(2) DEFAULT 'US',
     phone VARCHAR(20),
-    is_default TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    is_default INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Order Items Table
 CREATE TABLE IF NOT EXISTS order_items (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    order_id INT(11) NOT NULL,
-    product_id INT(11) NOT NULL,
-    vendor_id INT(11),
-    quantity INT(11) NOT NULL DEFAULT 1,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    vendor_id INTEGER,
+    quantity INTEGER NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
     total_price DECIMAL(10,2) NOT NULL,
     product_name VARCHAR(255) NOT NULL,
@@ -79,84 +66,74 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_image VARCHAR(500),
     status VARCHAR(50) DEFAULT 'pending',
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_order_id (order_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    INDEX idx_product_id (product_id),
     FOREIGN KEY (product_id) REFERENCES products(id),
-    INDEX idx_vendor_id (vendor_id),
     FOREIGN KEY (vendor_id) REFERENCES vendors(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Wishlists Table
 CREATE TABLE IF NOT EXISTS wishlists (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    product_id INT(11) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
     variant_info TEXT, -- JSON for product variants
     notes TEXT,
     priority VARCHAR(20) DEFAULT 'medium', -- low, medium, high
-    is_public TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    is_public INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_product_id (product_id),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     UNIQUE(user_id, product_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Product Reviews Table
 CREATE TABLE IF NOT EXISTS reviews (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    product_id INT(11) NOT NULL,
-    user_id INT(11) NOT NULL,
-    order_id INT(11),
-    rating INT(11) NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    order_id INTEGER,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     title VARCHAR(255),
     review_text TEXT,
     pros TEXT,
     cons TEXT,
-    is_verified_purchase TINYINT(1) DEFAULT 0,
-    is_approved TINYINT(1) DEFAULT 1,
-    approved_by INT(11),
-    helpful_votes INT(11) DEFAULT 0,
-    total_votes INT(11) DEFAULT 0,
+    is_verified_purchase INTEGER DEFAULT 0,
+    is_approved INTEGER DEFAULT 1,
+    approved_by INTEGER,
+    helpful_votes INTEGER DEFAULT 0,
+    total_votes INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'active', -- active, hidden, spam
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_product_id (product_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_order_id (order_id),
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
-    INDEX idx_approved_by (approved_by),
     FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Notifications Table
 CREATE TABLE IF NOT EXISTS notifications (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
     type VARCHAR(50) NOT NULL, -- order, product, system, promotion
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     data TEXT, -- JSON data
-    is_read TINYINT(1) DEFAULT 0,
-    read_at TIMESTAMP,
+    is_read INTEGER DEFAULT 0,
+    read_at DATETIME,
     action_url VARCHAR(500),
-    expires_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    expires_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Transactions Table
 CREATE TABLE IF NOT EXISTS transactions (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    order_id INT(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    order_id INTEGER,
     type VARCHAR(50) NOT NULL, -- payment, refund, payout, fee
     amount DECIMAL(15,2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'USD',
@@ -169,38 +146,35 @@ CREATE TABLE IF NOT EXISTS transactions (
     net_amount DECIMAL(15,2),
     description TEXT,
     metadata TEXT, -- JSON
-    processed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    processed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    INDEX idx_order_id (order_id),
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Payment Methods Table
 CREATE TABLE IF NOT EXISTS payment_methods (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
     type VARCHAR(50) NOT NULL, -- card, paypal, bank, crypto
     provider VARCHAR(50) NOT NULL,
     token VARCHAR(255) NOT NULL,
     last_four VARCHAR(4),
     brand VARCHAR(50),
-    exp_month INT(11),
-    exp_year INT(11),
-    is_default TINYINT(1) DEFAULT 0,
-    is_active TINYINT(1) DEFAULT 1,
+    exp_month INTEGER,
+    exp_year INTEGER,
+    is_default INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
     metadata TEXT, -- JSON
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Coupons Table
 CREATE TABLE IF NOT EXISTS coupons (
-    id INT(11) NOT NULL AUTO_INCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -208,185 +182,167 @@ CREATE TABLE IF NOT EXISTS coupons (
     value DECIMAL(10,2) NOT NULL,
     minimum_amount DECIMAL(10,2) DEFAULT 0,
     maximum_discount DECIMAL(10,2),
-    usage_limit INT(11),
-    usage_count INT(11) DEFAULT 0,
-    user_limit INT(11) DEFAULT 1,
-    is_active TINYINT(1) DEFAULT 1,
-    starts_at TIMESTAMP,
-    expires_at TIMESTAMP,
+    usage_limit INTEGER,
+    usage_count INTEGER DEFAULT 0,
+    user_limit INTEGER DEFAULT 1,
+    is_active INTEGER DEFAULT 1,
+    starts_at DATETIME,
+    expires_at DATETIME,
     applicable_products TEXT, -- JSON array of product IDs
     applicable_categories TEXT, -- JSON array of category IDs
-    created_by INT(11),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_created_by (created_by),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Coupon Usage Table
 CREATE TABLE IF NOT EXISTS coupon_usage (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    coupon_id INT(11) NOT NULL,
-    user_id INT(11) NOT NULL,
-    order_id INT(11) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    coupon_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    order_id INTEGER NOT NULL,
     discount_amount DECIMAL(10,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_coupon_id (coupon_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_order_id (order_id),
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- User Activities Table
 CREATE TABLE IF NOT EXISTS user_activities (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     activity_type VARCHAR(100) NOT NULL,
     activity_data TEXT, -- JSON
     ip_address VARCHAR(45),
     user_agent TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Admin Activity Logs Table
 CREATE TABLE IF NOT EXISTS admin_activity_logs (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    admin_id INT(11) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id INTEGER NOT NULL,
     action VARCHAR(100) NOT NULL,
     target_type VARCHAR(50),
-    target_id INT(11),
+    target_id INTEGER,
     old_values TEXT, -- JSON
     new_values TEXT, -- JSON
     ip_address VARCHAR(45),
     user_agent TEXT,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_admin_id (admin_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Audit Log Table
 CREATE TABLE IF NOT EXISTS audit_log (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     action VARCHAR(100) NOT NULL,
     resource_type VARCHAR(100),
     resource_id VARCHAR(100),
     ip_address VARCHAR(45),
     user_agent VARCHAR(255),
     new_values TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Refunds Table
 CREATE TABLE IF NOT EXISTS refunds (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    order_id INT(11) NOT NULL,
-    order_item_id INT(11),
-    transaction_id INT(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    order_item_id INTEGER,
+    transaction_id INTEGER,
     amount DECIMAL(15,2) NOT NULL,
     reason VARCHAR(255),
     status VARCHAR(50) DEFAULT 'pending', -- pending, approved, processed, rejected
-    processed_by INT(11),
-    processed_at TIMESTAMP,
+    processed_by INTEGER,
+    processed_at DATETIME,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_order_id (order_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    INDEX idx_order_item_id (order_item_id),
     FOREIGN KEY (order_item_id) REFERENCES order_items(id),
-    INDEX idx_transaction_id (transaction_id),
     FOREIGN KEY (transaction_id) REFERENCES transactions(id),
-    INDEX idx_processed_by (processed_by),
     FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Support Tickets Table
 CREATE TABLE IF NOT EXISTS support_tickets (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     subject VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     priority VARCHAR(20) DEFAULT 'normal', -- low, normal, high, urgent
     status VARCHAR(20) DEFAULT 'open', -- open, in_progress, resolved, closed
     category VARCHAR(50),
-    assigned_to INT(11),
-    related_order_id INT(11),
-    related_product_id INT(11),
+    assigned_to INTEGER,
+    related_order_id INTEGER,
+    related_product_id INTEGER,
     attachments TEXT, -- JSON
-    first_response_at TIMESTAMP,
-    resolved_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
+    first_response_at DATETIME,
+    resolved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_assigned_to (assigned_to),
     FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_related_order_id (related_order_id),
     FOREIGN KEY (related_order_id) REFERENCES orders(id) ON DELETE SET NULL,
-    INDEX idx_related_product_id (related_product_id),
     FOREIGN KEY (related_product_id) REFERENCES products(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Support Messages Table
 CREATE TABLE IF NOT EXISTS support_messages (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    ticket_id INT(11) NOT NULL,
-    user_id INT(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    user_id INTEGER,
     message TEXT NOT NULL,
-    is_internal TINYINT(1) DEFAULT 0,
+    is_internal INTEGER DEFAULT 0,
     attachments TEXT, -- JSON
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_ticket_id (ticket_id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Settings Table
 CREATE TABLE IF NOT EXISTS settings (
-    id INT(11) NOT NULL AUTO_INCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     key VARCHAR(255) NOT NULL UNIQUE,
     value TEXT,
     type VARCHAR(50) DEFAULT 'string', -- string, integer, boolean, json
     description TEXT,
-    is_public TINYINT(1) DEFAULT 0,
-    updated_by INT(11),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_updated_by (updated_by),
+    is_public INTEGER DEFAULT 0,
+    updated_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Performance Indexes
-CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions(order_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_coupons_active ON coupons(is_active) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon_id ON coupon_usage(coupon_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_coupon_usage_user_id ON coupon_usage(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_user_activities_user_id ON user_activities(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_user_activities_type ON user_activities(activity_type) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions(order_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
+CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
+CREATE INDEX IF NOT EXISTS idx_coupons_active ON coupons(is_active);
+CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon_id ON coupon_usage(coupon_id);
+CREATE INDEX IF NOT EXISTS idx_coupon_usage_user_id ON coupon_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_activities_user_id ON user_activities(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_activities_type ON user_activities(activity_type);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
 
 -- Default Settings
 INSERT OR IGNORE INTO settings (key, value, type, description, is_public) VALUES
@@ -399,7 +355,7 @@ INSERT OR IGNORE INTO settings (key, value, type, description, is_public) VALUES
 ('items_per_page', '20', 'integer', 'Items per page for listings', 1),
 ('allow_guest_checkout', 'false', 'boolean', 'Allow guest checkout', 1),
 ('require_email_verification', 'true', 'boolean', 'Require email verification', 0),
-('maintenance_mode', 'false', 'boolean', 'Maintenance mode', 0) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+('maintenance_mode', 'false', 'boolean', 'Maintenance mode', 0);
 
 --
 -- Database: `ecommerce_platform`
@@ -416,7 +372,7 @@ CREATE DEFINER=`duns1`@`localhost` PROCEDURE `add_column_if_missing` (IN `p_tabl
       AND TABLE_NAME = p_table
       AND COLUMN_NAME = p_column
   ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN ', p_definition) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    SET @ddl = CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN ', p_definition);
     SELECT CONCAT('ADDING COLUMN: ', @ddl) AS info;
     PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
   END IF;
@@ -429,7 +385,7 @@ CREATE DEFINER=`duns1`@`localhost` PROCEDURE `add_index_if_missing` (IN `p_table
       AND TABLE_NAME = p_table
       AND INDEX_NAME = p_index
   ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', p_table, '` ADD ', p_definition) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    SET @ddl = CONCAT('ALTER TABLE `', p_table, '` ADD ', p_definition);
     SELECT CONCAT('ADDING INDEX: ', @ddl) AS info;
     PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
   END IF;
@@ -505,7 +461,7 @@ CREATE TABLE `admin_actions` (
 --
 
 INSERT INTO `admin_actions` (`id`, `user_id`, `action`, `target_type`, `target_id`, `old_data`, `new_data`, `notes`, `ip_address`, `created_at`) VALUES
-(1, 1, 'update', 'category', 1, NULL, '{\"name\":\"Electronics\",\"parent_id\":null,\"slug\":\"electronics\",\"is_active\":1}', '', NULL, '2025-09-14 22:04:01') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(1, 1, 'update', 'category', 1, NULL, '{\"name\":\"Electronics\",\"parent_id\":null,\"slug\":\"electronics\",\"is_active\":1}', '', NULL, '2025-09-14 22:04:01');
 
 -- --------------------------------------------------------
 
@@ -757,7 +713,7 @@ INSERT INTO `audit_log` (`id`, `user_id`, `action`, `resource_type`, `resource_i
 (35, 4, 'login_success', 'user', '4', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 02:31:22'),
 (36, NULL, 'login_failed', 'user', NULL, '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '{\"email\":\"ellyj164@gmail.com\"}', '2025-09-21 10:56:56'),
 (37, 4, 'login_success', 'user', '4', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 10:57:04'),
-(38, 4, 'login_success', 'user', '4', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 13:07:53') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(38, 4, 'login_success', 'user', '4', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 13:07:53');
 
 -- --------------------------------------------------------
 
@@ -847,7 +803,7 @@ CREATE TABLE `brands` (
 INSERT INTO `brands` (`id`, `name`, `slug`, `description`, `logo_path`, `website_url`, `is_active`, `created_at`, `updated_at`) VALUES
 (1, 'Generic Brand', 'generic-brand', 'Default brand placeholder', NULL, NULL, 1, '2025-09-15 17:25:42', '2025-09-15 17:25:42'),
 (2, 'Acme', 'acme', 'Acme demonstration brand', NULL, NULL, 1, '2025-09-15 17:25:42', '2025-09-15 17:25:42'),
-(3, 'Private Label', 'private-label', NULL, NULL, NULL, 1, '2025-09-21 00:11:14', '2025-09-21 00:11:14') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(3, 'Private Label', 'private-label', NULL, NULL, NULL, 1, '2025-09-21 00:11:14', '2025-09-21 00:11:14');
 
 -- --------------------------------------------------------
 
@@ -1627,7 +1583,7 @@ INSERT INTO `categories` (`id`, `name`, `description`, `parent_id`, `slug`, `ima
 (1402, 'Travel Accessories', 'Travel pillows, adapters and accessories', 14, 'travel-accessories', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
 (1501, 'Guitars', 'Acoustic and electric guitars', 15, 'guitars', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
 (1502, 'Keyboards & Pianos', 'Digital pianos and keyboards', 15, 'keyboards-pianos', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1503, 'Drums', 'Drum sets and percussion', 15, 'drums', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(1503, 'Drums', 'Drum sets and percussion', 15, 'drums', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24');
 
 -- --------------------------------------------------------
 
@@ -1882,7 +1838,7 @@ INSERT INTO `currencies` (`id`, `code`, `name`, `symbol`, `decimal_places`, `exc
 (3, 'GBP', 'British Pound', '£', 2, 0.750000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
 (4, 'JPY', 'Japanese Yen', '¥', 0, 110.000000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
 (5, 'CAD', 'Canadian Dollar', 'C$', 2, 1.250000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(6, 'AUD', 'Australian Dollar', 'A$', 2, 1.350000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(6, 'AUD', 'Australian Dollar', 'A$', 2, 1.350000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
 
 -- --------------------------------------------------------
 
@@ -1940,7 +1896,7 @@ CREATE TABLE `customer_profiles` (
 --
 
 INSERT INTO `customer_profiles` (`id`, `user_id`, `date_of_birth`, `gender`, `interests`, `preferred_language`, `preferred_currency`, `marketing_consent`, `data_processing_consent`, `newsletter_subscription`, `sms_notifications`, `loyalty_points`, `total_spent`, `total_orders`, `favorite_categories`, `created_at`, `updated_at`) VALUES
-(1, 4, NULL, NULL, NULL, 'en', 'USD', 0, 1, 0, 0, 0, 0.00, 0, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(1, 4, NULL, NULL, NULL, 'en', 'USD', 0, 1, 0, 0, 0, 0.00, 0, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24');
 
 -- --------------------------------------------------------
 
@@ -2142,7 +2098,7 @@ CREATE TABLE `email_tokens` (
 --
 
 INSERT INTO `email_tokens` (`id`, `user_id`, `token`, `type`, `email`, `expires_at`, `used_at`, `ip_address`, `created_at`) VALUES
-(1, 5, '7ab495d655a50fd0e2f4317d4a2af14cdea18c06caccbc25010954ee7bbcc194', 'email_verification', 'niyogushimwaj967@gmail.com', '2025-09-20 22:38:57', NULL, '172.68.42.184', '2025-09-20 22:23:57') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(1, 5, '7ab495d655a50fd0e2f4317d4a2af14cdea18c06caccbc25010954ee7bbcc194', 'email_verification', 'niyogushimwaj967@gmail.com', '2025-09-20 22:38:57', NULL, '172.68.42.184', '2025-09-20 22:23:57');
 
 -- --------------------------------------------------------
 
@@ -2573,7 +2529,7 @@ INSERT INTO `login_attempts` (`id`, `identifier`, `ip_address`, `success`, `user
 (34, 'niyogushimwaj967@gmail.com', '197.234.242.180', 1, NULL, '2025-09-21 00:27:04'),
 (35, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-21 00:31:22'),
 (37, 'ellyj164@gmail.com', '197.234.242.154', 1, NULL, '2025-09-21 08:57:04'),
-(38, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-21 11:07:53') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(38, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-21 11:07:53');
 
 -- --------------------------------------------------------
 
@@ -2604,7 +2560,7 @@ INSERT INTO `loyalty_tiers` (`id`, `name`, `description`, `min_points`, `max_poi
 (1, 'Bronze', 'Entry level tier', 0, 999, '{\"free_shipping_threshold\": 100, \"birthday_bonus\": 50}', 1.00, NULL, NULL, 1, 1, '2025-09-14 21:54:26'),
 (2, 'Silver', 'Intermediate tier', 1000, 4999, '{\"free_shipping_threshold\": 75, \"birthday_bonus\": 100, \"early_access\": true}', 1.25, NULL, NULL, 2, 1, '2025-09-14 21:54:26'),
 (3, 'Gold', 'Premium tier', 5000, 14999, '{\"free_shipping\": true, \"birthday_bonus\": 200, \"early_access\": true, \"priority_support\": true}', 1.50, NULL, NULL, 3, 1, '2025-09-14 21:54:26'),
-(4, 'Platinum', 'Elite tier', 15000, NULL, '{\"free_shipping\": true, \"birthday_bonus\": 500, \"early_access\": true, \"priority_support\": true, \"exclusive_offers\": true}', 2.00, NULL, NULL, 4, 1, '2025-09-14 21:54:26') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(4, 'Platinum', 'Elite tier', 15000, NULL, '{\"free_shipping\": true, \"birthday_bonus\": 500, \"early_access\": true, \"priority_support\": true, \"exclusive_offers\": true}', 2.00, NULL, NULL, 4, 1, '2025-09-14 21:54:26');
 
 -- --------------------------------------------------------
 
@@ -2919,7 +2875,7 @@ CREATE TABLE `otp_attempts` (
 --
 
 INSERT INTO `otp_attempts` (`id`, `user_id`, `email`, `ip_address`, `attempted_at`, `success`, `token_type`) VALUES
-(1, 5, 'niyogushimwaj967@gmail.com', '172.68.42.185', '2025-09-21 00:24:28', 0, 'email_verification') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(1, 5, 'niyogushimwaj967@gmail.com', '172.68.42.185', '2025-09-21 00:24:28', 0, 'email_verification');
 
 -- --------------------------------------------------------
 
@@ -3206,7 +3162,7 @@ CREATE TABLE `products` (
 
 INSERT INTO `products` (`id`, `seller_id`, `vendor_id`, `category_id`, `brand_id`, `name`, `slug`, `description`, `short_description`, `sku`, `barcode`, `price`, `compare_price`, `sale_price`, `cost_price`, `currency_code`, `stock_quantity`, `min_stock_level`, `max_stock_level`, `weight`, `dimensions`, `status`, `visibility`, `track_inventory`, `allow_backorder`, `stock_qty`, `low_stock_threshold`, `featured`, `digital`, `downloadable`, `virtual`, `tags`, `attributes`, `variations`, `shipping_class`, `weight_kg`, `length_cm`, `width_cm`, `height_cm`, `seo_title`, `seo_description`, `seo_keywords`, `published_at`, `scheduled_at`, `return_policy_text`, `warranty_text`, `compliance_notes`, `age_restriction`, `digital_is`, `digital_url`, `digital_file_path`, `thumbnail_path`, `custom_barcode`, `mpn`, `gtin`, `condition`, `brand`, `tax_status`, `tax_class`, `meta_title`, `meta_description`, `view_count`, `purchase_count`, `average_rating`, `review_count`, `created_at`, `updated_at`) VALUES
 (1, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 21:00:47', '2025-09-14 21:00:47'),
-(2, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 21:17:44', '2025-09-14 21:17:44') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(2, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 21:17:44', '2025-09-14 21:17:44');
 
 -- --------------------------------------------------------
 
@@ -4797,7 +4753,7 @@ INSERT INTO `settings` (`id`, `setting_group`, `setting_key`, `setting_value`, `
 (21, 'features', 'enable_reviews', 'true', 'boolean', 1, 0, 'Enable product reviews', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
 (22, 'features', 'enable_wishlist', 'true', 'boolean', 1, 0, 'Enable wishlist functionality', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
 (23, 'features', 'enable_loyalty', 'true', 'boolean', 1, 0, 'Enable loyalty program', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(24, 'features', 'enable_live_streaming', 'true', 'boolean', 1, 0, 'Enable live streaming features', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(24, 'features', 'enable_live_streaming', 'true', 'boolean', 1, 0, 'Enable live streaming features', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
 
 -- --------------------------------------------------------
 
@@ -4888,7 +4844,7 @@ CREATE TABLE `subscriptions` (
 --
 
 INSERT INTO `subscriptions` (`subscription_id`, `user_id`, `channel`, `opt_in_status`, `subscription_type`, `source`, `opted_in_at`, `opted_out_at`, `updated_at`, `created_at`) VALUES
-(1, 4, 'email', 1, 'all', NULL, '2025-09-11 17:56:21', NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(1, 4, 'email', 1, 'all', NULL, '2025-09-11 17:56:21', NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
 
 -- --------------------------------------------------------
 
@@ -5149,7 +5105,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `username`, `email`, `pass_hash`, `first_name`, `last_name`, `phone`, `role`, `status`, `verified_at`, `avatar`, `bio`, `preferences`, `two_factor_enabled`, `two_fa_secret`, `login_email_alerts`, `login_sms_alerts`, `new_device_alerts`, `suspicious_activity_alerts`, `last_login_at`, `last_login_ip`, `created_at`, `updated_at`, `last_login`) VALUES
 (4, 'Joseph', 'ellyj164@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$Yjg2Y2dNN0wzdFZZOUEuUA$XCK6vnbTtHx4S8EJvZP0qHf3xXNl0UQKNxa9fIcTHWs', 'xxxx', 'Mark bb', '+250 789 721 783', 'admin', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-11 17:56:21', '2025-09-21 00:28:43', NULL),
-(5, 'niyo', 'niyogushimwaj967@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$RW9vWGRWVHNRY0xrTVpKRg$4NdBl5tNh3vcmVSxIt5ROsXzYLH8z1YFnd8HLkxxZAY', 'NIYogu', 'Joseph', '+250 785 241 817', 'customer', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-20 22:23:57', '2025-09-21 00:32:20', NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(5, 'niyo', 'niyogushimwaj967@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$RW9vWGRWVHNRY0xrTVpKRg$4NdBl5tNh3vcmVSxIt5ROsXzYLH8z1YFnd8HLkxxZAY', 'NIYogu', 'Joseph', '+250 785 241 817', 'customer', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-20 22:23:57', '2025-09-21 00:32:20', NULL);
 
 -- --------------------------------------------------------
 
@@ -5348,7 +5304,7 @@ INSERT INTO `user_sessions` (`id`, `user_id`, `session_token`, `ip_address`, `us
 (21, 5, '6704b4de660ddc6e8d9164f3766f4fb51fa2e69d426914839dce67aa088fdf31040980c2da4814c55e0f7d394452d8cf65344ddcbd811f75ca1dc3e5a165847f', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 00:27:04', '2025-09-21 01:27:04', 1, 'b378b0d439c6140bcfe6e651ae07d6238c17825ceaeb2c8c07b7b144d21f85b3', '2025-09-21 02:27:04'),
 (22, 4, 'f5e9dfdcd300c36413a2b387bc9b43f7c61bdab1a18a57cad62a41a4b1bb9e5e80902e3241ddb9b3baa402172811d0cdb074cf6e90021dae3bed8021f7cc2d45', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 00:31:22', '2025-09-21 01:31:22', 1, 'e35af7b71dc7111e95584e52ddc69eead7715ee96484874670ec1f9c8c7e0696', '2025-09-21 02:31:22'),
 (23, 4, '17f2c2a513cb00ea106ded0edfdc8465cf5ce7e94ee7a904eca94cb214fd4cfbe0e1ccd24a246831a472ec1bec15e64ec6586fb864076bf5d199da7b254e8c3f', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 08:57:04', '2025-09-21 09:57:04', 1, '6d761f39b7a07245e02f186554c44ddaf4b1ba0620d0a5f2900adf5c7abb030b', '2025-09-21 10:57:04'),
-(24, 4, '4fb2f4a6be0ff7e4ce7a37455d4270094b7180ddeb15c0443817ce56b31c0fb34202f7cfd13e2c0a9f4502a3209fa9095c5be8ca6c4c9dd6850ca263115ec952', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 11:07:53', '2025-09-21 12:07:53', 1, 'cd24a266e6ba806401e754034eaa260adebdec513f755fc4a276e7be12591015', '2025-09-21 13:07:53') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(24, 4, '4fb2f4a6be0ff7e4ce7a37455d4270094b7180ddeb15c0443817ce56b31c0fb34202f7cfd13e2c0a9f4502a3209fa9095c5be8ca6c4c9dd6850ca263115ec952', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 11:07:53', '2025-09-21 12:07:53', 1, 'cd24a266e6ba806401e754034eaa260adebdec513f755fc4a276e7be12591015', '2025-09-21 13:07:53');
 
 -- --------------------------------------------------------
 
@@ -5408,7 +5364,7 @@ CREATE TABLE `vendors` (
 
 INSERT INTO `vendors` (`id`, `user_id`, `business_name`, `business_description`, `business_type`, `tax_id`, `business_address`, `business_phone`, `business_email`, `website`, `description`, `logo_url`, `banner_url`, `status`, `commission_rate`, `payment_details`, `business_documents`, `approved_at`, `approved_by`, `created_at`, `updated_at`) VALUES
 (3, 4, 'ffffeza', 'ffffff', 'individual', '', 'fffffffffffffff', NULL, NULL, NULL, NULL, NULL, NULL, 'approved', 10.00, NULL, NULL, NULL, NULL, '2025-09-14 22:46:17', '2025-09-14 22:48:37'),
-(4, 5, 'Joseph store', 'Businesss managenebt', 'individual', '', 'BUsiness tools to manage my account', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', 10.00, NULL, NULL, NULL, NULL, '2025-09-21 00:27:33', '2025-09-20 22:31:07') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(4, 5, 'Joseph store', 'Businesss managenebt', 'individual', '', 'BUsiness tools to manage my account', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', 10.00, NULL, NULL, NULL, NULL, '2025-09-21 00:27:33', '2025-09-20 22:31:07');
 
 -- --------------------------------------------------------
 
@@ -5535,7 +5491,7 @@ CREATE TABLE `warehouses` (
 
 INSERT INTO `warehouses` (`id`, `name`, `code`, `address`, `city`, `state`, `postal_code`, `country`, `phone`, `email`, `manager_id`, `capacity`, `is_active`, `operating_hours`, `created_at`, `updated_at`) VALUES
 (1, 'Main Warehouse', 'MAIN', '123 Warehouse St', 'Los Angeles', 'CA', '90210', 'US', '+1-555-0123', 'warehouse@example.com', NULL, NULL, 1, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(2, 'East Coast Facility', 'EAST', '456 Shipping Ave', 'New York', 'NY', '10001', 'US', '+1-555-0124', 'east@example.com', NULL, NULL, 1, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(2, 'East Coast Facility', 'EAST', '456 Shipping Ave', 'New York', 'NY', '10001', 'US', '+1-555-0124', 'east@example.com', NULL, NULL, 1, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
 
 -- --------------------------------------------------------
 
@@ -5592,7 +5548,7 @@ ALTER TABLE `activity_feed`
   ADD KEY `idx_action` (`action`),
   ADD KEY `idx_target` (`target_type`,`target_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_activity_feed_actor_action` (`actor_id`,`action`,`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_activity_feed_actor_action` (`actor_id`,`action`,`created_at`);
 
 --
 -- Indexes for table `addresses`
@@ -5601,7 +5557,7 @@ ALTER TABLE `addresses`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_type` (`type`),
-  ADD KEY `idx_is_default` (`is_default`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_default` (`is_default`);
 
 --
 -- Indexes for table `admin_actions`
@@ -5611,7 +5567,7 @@ ALTER TABLE `admin_actions`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_action` (`action`),
   ADD KEY `idx_target` (`target_type`,`target_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `admin_activity_logs`
@@ -5622,7 +5578,7 @@ ALTER TABLE `admin_activity_logs`
   ADD KEY `idx_action` (`action`),
   ADD KEY `idx_resource_type` (`resource_type`),
   ADD KEY `idx_resource_id` (`resource_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `admin_analytics`
@@ -5632,7 +5588,7 @@ ALTER TABLE `admin_analytics`
   ADD UNIQUE KEY `idx_metric_period_date` (`metric_name`,`period_type`,`date_recorded`),
   ADD KEY `idx_metric_type` (`metric_type`),
   ADD KEY `idx_period_type` (`period_type`),
-  ADD KEY `idx_date_recorded` (`date_recorded`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_date_recorded` (`date_recorded`);
 
 --
 -- Indexes for table `admin_dashboards`
@@ -5641,7 +5597,7 @@ ALTER TABLE `admin_dashboards`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_is_default` (`is_default`),
-  ADD KEY `idx_is_shared` (`is_shared`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_shared` (`is_shared`);
 
 --
 -- Indexes for table `admin_roles`
@@ -5652,7 +5608,7 @@ ALTER TABLE `admin_roles`
   ADD KEY `idx_name` (`name`),
   ADD KEY `idx_is_system_role` (`is_system_role`),
   ADD KEY `idx_hierarchy_level` (`hierarchy_level`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `admin_widgets`
@@ -5661,7 +5617,7 @@ ALTER TABLE `admin_widgets`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_dashboard_id` (`dashboard_id`),
   ADD KEY `idx_widget_type` (`widget_type`),
-  ADD KEY `idx_is_visible` (`is_visible`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_visible` (`is_visible`);
 
 --
 -- Indexes for table `ai_recommendations`
@@ -5675,7 +5631,7 @@ ALTER TABLE `ai_recommendations`
   ADD KEY `idx_is_clicked` (`is_clicked`),
   ADD KEY `idx_is_purchased` (`is_purchased`),
   ADD KEY `idx_expires_at` (`expires_at`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `api_endpoints`
@@ -5686,7 +5642,7 @@ ALTER TABLE `api_endpoints`
   ADD KEY `idx_is_public` (`is_public`),
   ADD KEY `idx_requires_auth` (`requires_auth`),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_version` (`version`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_version` (`version`);
 
 --
 -- Indexes for table `api_keys`
@@ -5697,7 +5653,7 @@ ALTER TABLE `api_keys`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_is_active` (`is_active`),
   ADD KEY `idx_last_used_at` (`last_used_at`),
-  ADD KEY `idx_expires_at` (`expires_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_expires_at` (`expires_at`);
 
 --
 -- Indexes for table `api_logs`
@@ -5709,7 +5665,7 @@ ALTER TABLE `api_logs`
   ADD KEY `idx_method` (`method`),
   ADD KEY `idx_response_status` (`response_status`),
   ADD KEY `idx_ip_address` (`ip_address`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `audit_log`
@@ -5718,7 +5674,7 @@ ALTER TABLE `audit_log`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_action` (`action`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_action` (`action`);
 
 --
 -- Indexes for table `audit_logs`
@@ -5732,7 +5688,7 @@ ALTER TABLE `audit_logs`
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_ip_address` (`ip_address`),
   ADD KEY `idx_target` (`target_type`,`target_id`),
-  ADD KEY `idx_audit_logs_composite` (`user_id`,`category`,`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_audit_logs_composite` (`user_id`,`category`,`created_at`);
 
 --
 -- Indexes for table `backups`
@@ -5742,7 +5698,7 @@ ALTER TABLE `backups`
   ADD KEY `idx_backup_type` (`backup_type`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_delete_after` (`delete_after`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `bounces`
@@ -5753,7 +5709,7 @@ ALTER TABLE `bounces`
   ADD KEY `idx_bounce_type` (`bounce_type`),
   ADD KEY `idx_email_address` (`email_address`),
   ADD KEY `idx_timestamp` (`timestamp`),
-  ADD KEY `idx_bounces_email_type` (`email_address`,`bounce_type`,`timestamp`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_bounces_email_type` (`email_address`,`bounce_type`,`timestamp`);
 
 --
 -- Indexes for table `brands`
@@ -5762,7 +5718,7 @@ ALTER TABLE `brands`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uq_brands_name` (`name`),
   ADD UNIQUE KEY `uq_brands_slug` (`slug`),
-  ADD KEY `idx_brands_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_brands_active` (`is_active`);
 
 --
 -- Indexes for table `buyers`
@@ -5771,7 +5727,7 @@ ALTER TABLE `buyers`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `user_id` (`user_id`),
   ADD KEY `idx_tier` (`tier`),
-  ADD KEY `idx_last_activity` (`last_activity`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_last_activity` (`last_activity`);
 
 --
 -- Indexes for table `buyer_addresses`
@@ -5779,7 +5735,7 @@ ALTER TABLE `buyers`
 ALTER TABLE `buyer_addresses`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_buyer` (`buyer_id`),
-  ADD KEY `idx_defaults` (`is_default_billing`,`is_default_shipping`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_defaults` (`is_default_billing`,`is_default_shipping`);
 
 --
 -- Indexes for table `buyer_consents`
@@ -5788,7 +5744,7 @@ ALTER TABLE `buyer_consents`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_buyer_type` (`buyer_id`,`consent_type`),
   ADD KEY `idx_consent_given` (`consent_given`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `buyer_disputes`
@@ -5800,7 +5756,7 @@ ALTER TABLE `buyer_disputes`
   ADD KEY `idx_order` (`order_id`),
   ADD KEY `idx_vendor` (`vendor_id`),
   ADD KEY `idx_deadline` (`deadline`),
-  ADD KEY `fk_buyer_disputes_resolver` (`resolved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_disputes_resolver` (`resolved_by`);
 
 --
 -- Indexes for table `buyer_dispute_evidence`
@@ -5809,7 +5765,7 @@ ALTER TABLE `buyer_dispute_evidence`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_dispute` (`dispute_id`),
   ADD KEY `idx_submission_date` (`submission_date`),
-  ADD KEY `fk_buyer_dispute_evidence_user` (`submitted_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_dispute_evidence_user` (`submitted_by`);
 
 --
 -- Indexes for table `buyer_dispute_messages`
@@ -5818,7 +5774,7 @@ ALTER TABLE `buyer_dispute_messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_dispute` (`dispute_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_buyer_dispute_messages_sender` (`sender_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_dispute_messages_sender` (`sender_id`);
 
 --
 -- Indexes for table `buyer_dsr_requests`
@@ -5827,7 +5783,7 @@ ALTER TABLE `buyer_dsr_requests`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_buyer_status` (`buyer_id`,`status`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_processed_by` (`processed_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_processed_by` (`processed_by`);
 
 --
 -- Indexes for table `buyer_kpis`
@@ -5835,7 +5791,7 @@ ALTER TABLE `buyer_dsr_requests`
 ALTER TABLE `buyer_kpis`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `buyer_date` (`buyer_id`,`metric_date`),
-  ADD KEY `idx_metric_date` (`metric_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_metric_date` (`metric_date`);
 
 --
 -- Indexes for table `buyer_loyalty_accounts`
@@ -5844,7 +5800,7 @@ ALTER TABLE `buyer_loyalty_accounts`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `buyer_program` (`buyer_id`,`program_name`),
   ADD KEY `idx_tier` (`tier`),
-  ADD KEY `idx_status` (`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `buyer_loyalty_ledger`
@@ -5854,7 +5810,7 @@ ALTER TABLE `buyer_loyalty_ledger`
   ADD KEY `idx_loyalty_account` (`loyalty_account_id`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_expiry_date` (`expiry_date`),
-  ADD KEY `idx_reference` (`reference_type`,`reference_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_reference` (`reference_type`,`reference_id`);
 
 --
 -- Indexes for table `buyer_messages`
@@ -5864,7 +5820,7 @@ ALTER TABLE `buyer_messages`
   ADD KEY `idx_buyer_conversation` (`buyer_id`,`conversation_id`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_read_at` (`read_at`),
-  ADD KEY `fk_buyer_messages_sender` (`sender_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_messages_sender` (`sender_id`);
 
 --
 -- Indexes for table `buyer_notifications`
@@ -5872,7 +5828,7 @@ ALTER TABLE `buyer_messages`
 ALTER TABLE `buyer_notifications`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_buyer_read` (`buyer_id`,`read_at`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `buyer_orders`
@@ -5882,7 +5838,7 @@ ALTER TABLE `buyer_orders`
   ADD UNIQUE KEY `buyer_order` (`buyer_id`,`order_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_rating` (`rating`),
-  ADD KEY `fk_buyer_orders_order` (`order_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_orders_order` (`order_id`);
 
 --
 -- Indexes for table `buyer_payment_methods`
@@ -5892,21 +5848,21 @@ ALTER TABLE `buyer_payment_methods`
   ADD KEY `idx_buyer` (`buyer_id`),
   ADD KEY `idx_is_default` (`is_default`),
   ADD KEY `idx_fingerprint` (`fingerprint`),
-  ADD KEY `fk_buyer_payment_methods_address` (`billing_address_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_payment_methods_address` (`billing_address_id`);
 
 --
 -- Indexes for table `buyer_preferences`
 --
 ALTER TABLE `buyer_preferences`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `buyer_category_key` (`buyer_id`,`category`,`preference_key`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD UNIQUE KEY `buyer_category_key` (`buyer_id`,`category`,`preference_key`);
 
 --
 -- Indexes for table `buyer_profiles`
 --
 ALTER TABLE `buyer_profiles`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `buyer_id` (`buyer_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD UNIQUE KEY `buyer_id` (`buyer_id`);
 
 --
 -- Indexes for table `buyer_rmas`
@@ -5916,7 +5872,7 @@ ALTER TABLE `buyer_rmas`
   ADD UNIQUE KEY `rma_number` (`rma_number`),
   ADD KEY `idx_buyer_status` (`buyer_id`,`status`),
   ADD KEY `idx_order` (`order_id`),
-  ADD KEY `idx_vendor` (`vendor_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_vendor` (`vendor_id`);
 
 --
 -- Indexes for table `buyer_rma_messages`
@@ -5925,7 +5881,7 @@ ALTER TABLE `buyer_rma_messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_rma` (`rma_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_buyer_rma_messages_sender` (`sender_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_rma_messages_sender` (`sender_id`);
 
 --
 -- Indexes for table `buyer_subscriptions`
@@ -5934,7 +5890,7 @@ ALTER TABLE `buyer_subscriptions`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `buyer_type_category_vendor` (`buyer_id`,`subscription_type`,`category`,`vendor_id`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `fk_buyer_subscriptions_vendor` (`vendor_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_subscriptions_vendor` (`vendor_id`);
 
 --
 -- Indexes for table `buyer_tickets`
@@ -5946,7 +5902,7 @@ ALTER TABLE `buyer_tickets`
   ADD KEY `idx_assigned_to` (`assigned_to`),
   ADD KEY `idx_category` (`category`),
   ADD KEY `fk_buyer_tickets_order` (`order_id`),
-  ADD KEY `fk_buyer_tickets_product` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_tickets_product` (`product_id`);
 
 --
 -- Indexes for table `buyer_ticket_replies`
@@ -5955,7 +5911,7 @@ ALTER TABLE `buyer_ticket_replies`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_ticket` (`ticket_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_buyer_ticket_replies_sender` (`sender_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_ticket_replies_sender` (`sender_id`);
 
 --
 -- Indexes for table `buyer_tracking`
@@ -5964,14 +5920,14 @@ ALTER TABLE `buyer_tracking`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_buyer_order` (`buyer_order_id`),
   ADD KEY `idx_tracking_number` (`tracking_number`),
-  ADD KEY `idx_status` (`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `buyer_wallets`
 --
 ALTER TABLE `buyer_wallets`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `buyer_currency` (`buyer_id`,`currency`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD UNIQUE KEY `buyer_currency` (`buyer_id`,`currency`);
 
 --
 -- Indexes for table `buyer_wallet_entries`
@@ -5980,7 +5936,7 @@ ALTER TABLE `buyer_wallet_entries`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_wallet` (`wallet_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_reference` (`reference_type`,`reference_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_reference` (`reference_type`,`reference_id`);
 
 --
 -- Indexes for table `buyer_wishlist`
@@ -5991,7 +5947,7 @@ ALTER TABLE `buyer_wishlist`
   ADD KEY `idx_list_name` (`list_name`),
   ADD KEY `idx_privacy` (`privacy`),
   ADD KEY `idx_price_alert` (`price_alert_enabled`,`target_price`),
-  ADD KEY `fk_buyer_wishlist_product` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_buyer_wishlist_product` (`product_id`);
 
 --
 -- Indexes for table `buyer_wishlist_alerts`
@@ -5999,7 +5955,7 @@ ALTER TABLE `buyer_wishlist`
 ALTER TABLE `buyer_wishlist_alerts`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_wishlist` (`wishlist_id`),
-  ADD KEY `idx_triggered_at` (`triggered_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_triggered_at` (`triggered_at`);
 
 --
 -- Indexes for table `campaigns`
@@ -6011,7 +5967,7 @@ ALTER TABLE `campaigns`
   ADD KEY `idx_start_date` (`start_date`),
   ADD KEY `idx_end_date` (`end_date`),
   ADD KEY `idx_created_by` (`created_by`),
-  ADD KEY `idx_campaigns_type_status_dates` (`campaign_type`,`status`,`start_date`,`end_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_campaigns_type_status_dates` (`campaign_type`,`status`,`start_date`,`end_date`);
 
 --
 -- Indexes for table `campaign_assets`
@@ -6020,7 +5976,7 @@ ALTER TABLE `campaign_assets`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_campaign_id` (`campaign_id`),
   ADD KEY `idx_asset_type` (`asset_type`),
-  ADD KEY `idx_is_primary` (`is_primary`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_primary` (`is_primary`);
 
 --
 -- Indexes for table `campaign_messages`
@@ -6030,7 +5986,7 @@ ALTER TABLE `campaign_messages`
   ADD UNIQUE KEY `idx_campaign_message` (`campaign_id`,`message_id`),
   ADD KEY `idx_campaign_id` (`campaign_id`),
   ADD KEY `idx_message_id` (`message_id`),
-  ADD KEY `idx_status` (`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `campaign_products`
@@ -6041,7 +5997,7 @@ ALTER TABLE `campaign_products`
   ADD KEY `idx_campaign_id` (`campaign_id`),
   ADD KEY `idx_product_id` (`product_id`),
   ADD KEY `idx_vendor_id` (`vendor_id`),
-  ADD KEY `idx_joined_at` (`joined_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_joined_at` (`joined_at`);
 
 --
 -- Indexes for table `campaign_stats`
@@ -6049,7 +6005,7 @@ ALTER TABLE `campaign_products`
 ALTER TABLE `campaign_stats`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_campaign_date` (`campaign_id`,`metric_date`),
-  ADD KEY `idx_metric_date` (`metric_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_metric_date` (`metric_date`);
 
 --
 -- Indexes for table `campaign_targets`
@@ -6057,7 +6013,7 @@ ALTER TABLE `campaign_stats`
 ALTER TABLE `campaign_targets`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_campaign_id` (`campaign_id`),
-  ADD KEY `idx_target_type` (`target_type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_target_type` (`target_type`);
 
 --
 -- Indexes for table `cart`
@@ -6067,7 +6023,7 @@ ALTER TABLE `cart`
   ADD UNIQUE KEY `idx_user_product` (`user_id`,`product_id`),
   ADD KEY `idx_session_id` (`session_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_cart_product` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_cart_product` (`product_id`);
 
 --
 -- Indexes for table `categories`
@@ -6077,7 +6033,7 @@ ALTER TABLE `categories`
   ADD UNIQUE KEY `idx_slug` (`slug`),
   ADD KEY `idx_parent_id` (`parent_id`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_sort_order` (`sort_order`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_sort_order` (`sort_order`);
 
 --
 -- Indexes for table `category_attributes`
@@ -6087,7 +6043,7 @@ ALTER TABLE `category_attributes`
   ADD KEY `idx_category_id` (`category_id`),
   ADD KEY `idx_attribute_name` (`attribute_name`),
   ADD KEY `idx_is_filterable` (`is_filterable`),
-  ADD KEY `idx_sort_order` (`sort_order`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_sort_order` (`sort_order`);
 
 --
 -- Indexes for table `chat_messages`
@@ -6100,7 +6056,7 @@ ALTER TABLE `chat_messages`
   ADD KEY `idx_is_deleted` (`is_deleted`),
   ADD KEY `idx_parent_message_id` (`parent_message_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_chat_messages_moderator` (`deleted_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_chat_messages_moderator` (`deleted_by`);
 
 --
 -- Indexes for table `cms_media`
@@ -6110,7 +6066,7 @@ ALTER TABLE `cms_media`
   ADD KEY `idx_filename` (`filename`),
   ADD KEY `idx_media_type` (`media_type`),
   ADD KEY `idx_uploaded_by` (`uploaded_by`),
-  ADD KEY `idx_is_public` (`is_public`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_public` (`is_public`);
 
 --
 -- Indexes for table `cms_pages`
@@ -6123,7 +6079,7 @@ ALTER TABLE `cms_pages`
   ADD KEY `idx_parent_id` (`parent_id`),
   ADD KEY `idx_sort_order` (`sort_order`),
   ADD KEY `idx_created_by` (`created_by`),
-  ADD KEY `idx_updated_by` (`updated_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_updated_by` (`updated_by`);
 
 --
 -- Indexes for table `cms_posts`
@@ -6136,7 +6092,7 @@ ALTER TABLE `cms_posts`
   ADD KEY `idx_author_id` (`author_id`),
   ADD KEY `idx_category_id` (`category_id`),
   ADD KEY `idx_published_at` (`published_at`),
-  ADD KEY `idx_cms_posts_type_status_published` (`post_type`,`status`,`published_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_cms_posts_type_status_published` (`post_type`,`status`,`published_at`);
 
 --
 -- Indexes for table `comm_messages`
@@ -6149,7 +6105,7 @@ ALTER TABLE `comm_messages`
   ADD KEY `idx_template_id` (`template_id`),
   ADD KEY `idx_campaign_id` (`campaign_id`),
   ADD KEY `idx_sent_at` (`sent_at`),
-  ADD KEY `idx_comm_messages_channel_status` (`channel`,`status`,`sent_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_comm_messages_channel_status` (`channel`,`status`,`sent_at`);
 
 --
 -- Indexes for table `coupons`
@@ -6160,7 +6116,7 @@ ALTER TABLE `coupons`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_valid_from` (`valid_from`),
   ADD KEY `idx_valid_to` (`valid_to`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `coupon_redemptions`
@@ -6170,7 +6126,7 @@ ALTER TABLE `coupon_redemptions`
   ADD KEY `idx_coupon_id` (`coupon_id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_order_id` (`order_id`),
-  ADD KEY `idx_redeemed_at` (`redeemed_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_redeemed_at` (`redeemed_at`);
 
 --
 -- Indexes for table `coupon_rules`
@@ -6179,7 +6135,7 @@ ALTER TABLE `coupon_rules`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_coupon_id` (`coupon_id`),
   ADD KEY `idx_rule_type` (`rule_type`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `coupon_usage`
@@ -6189,7 +6145,7 @@ ALTER TABLE `coupon_usage`
   ADD KEY `idx_coupon_id` (`coupon_id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_order_id` (`order_id`),
-  ADD KEY `idx_used_at` (`used_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_used_at` (`used_at`);
 
 --
 -- Indexes for table `currencies`
@@ -6198,7 +6154,7 @@ ALTER TABLE `currencies`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_code` (`code`),
   ADD KEY `idx_is_base_currency` (`is_base_currency`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `customer_order_feedback`
@@ -6210,7 +6166,7 @@ ALTER TABLE `customer_order_feedback`
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_rating` (`rating`),
   ADD KEY `idx_is_public` (`is_public`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `customer_profiles`
@@ -6220,7 +6176,7 @@ ALTER TABLE `customer_profiles`
   ADD UNIQUE KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_preferred_language` (`preferred_language`),
   ADD KEY `idx_loyalty_points` (`loyalty_points`),
-  ADD KEY `idx_total_spent` (`total_spent`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_total_spent` (`total_spent`);
 
 --
 -- Indexes for table `customer_support_conversations`
@@ -6232,7 +6188,7 @@ ALTER TABLE `customer_support_conversations`
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_admin_id` (`admin_id`),
   ADD KEY `idx_message_type` (`message_type`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `dashboard_widgets`
@@ -6242,7 +6198,7 @@ ALTER TABLE `dashboard_widgets`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_widget_type` (`widget_type`),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_dashboard_widgets_user_active` (`user_id`,`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_dashboard_widgets_user_active` (`user_id`,`is_active`);
 
 --
 -- Indexes for table `disputes`
@@ -6259,7 +6215,7 @@ ALTER TABLE `disputes`
   ADD KEY `idx_assigned_to` (`assigned_to`),
   ADD KEY `idx_sla_due_date` (`sla_due_date`),
   ADD KEY `fk_disputes_escalated` (`escalated_to`),
-  ADD KEY `idx_disputes_status_priority` (`status`,`priority`,`sla_due_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_disputes_status_priority` (`status`,`priority`,`sla_due_date`);
 
 --
 -- Indexes for table `dispute_decisions`
@@ -6269,7 +6225,7 @@ ALTER TABLE `dispute_decisions`
   ADD KEY `idx_dispute_id` (`dispute_id`),
   ADD KEY `idx_decided_by` (`decided_by`),
   ADD KEY `idx_decision` (`decision`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `dispute_evidence`
@@ -6279,7 +6235,7 @@ ALTER TABLE `dispute_evidence`
   ADD KEY `idx_dispute_id` (`dispute_id`),
   ADD KEY `idx_uploaded_by` (`uploaded_by`),
   ADD KEY `idx_evidence_type` (`evidence_type`),
-  ADD KEY `idx_is_public` (`is_public`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_public` (`is_public`);
 
 --
 -- Indexes for table `dispute_messages`
@@ -6290,7 +6246,7 @@ ALTER TABLE `dispute_messages`
   ADD KEY `idx_sender_id` (`sender_id`),
   ADD KEY `idx_sender_type` (`sender_type`),
   ADD KEY `idx_is_internal` (`is_internal`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `email_logs`
@@ -6301,7 +6257,7 @@ ALTER TABLE `email_logs`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `email_queue`
@@ -6312,7 +6268,7 @@ ALTER TABLE `email_queue`
   ADD KEY `idx_priority` (`priority`),
   ADD KEY `idx_scheduled_at` (`scheduled_at`),
   ADD KEY `idx_attempts` (`attempts`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `email_tokens`
@@ -6323,7 +6279,7 @@ ALTER TABLE `email_tokens`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_expires_at` (`expires_at`),
-  ADD KEY `idx_used_at` (`used_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_used_at` (`used_at`);
 
 --
 -- Indexes for table `fact_campaigns`
@@ -6331,7 +6287,7 @@ ALTER TABLE `email_tokens`
 ALTER TABLE `fact_campaigns`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_campaign_date` (`campaign_id`,`date_key`),
-  ADD KEY `idx_date_key` (`date_key`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_date_key` (`date_key`);
 
 --
 -- Indexes for table `fact_sales`
@@ -6346,7 +6302,7 @@ ALTER TABLE `fact_sales`
   ADD KEY `idx_date_key` (`date_key`),
   ADD KEY `idx_time_key` (`time_key`),
   ADD KEY `fk_fact_sales_order_item` (`order_item_id`),
-  ADD KEY `idx_fact_sales_date_vendor` (`date_key`,`vendor_id`,`total_amount`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_fact_sales_date_vendor` (`date_key`,`vendor_id`,`total_amount`);
 
 --
 -- Indexes for table `fact_users`
@@ -6355,7 +6311,7 @@ ALTER TABLE `fact_users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_user_date` (`user_id`,`date_key`),
   ADD KEY `idx_date_key` (`date_key`),
-  ADD KEY `idx_user_segment` (`user_segment`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_user_segment` (`user_segment`);
 
 --
 -- Indexes for table `file_uploads`
@@ -6366,7 +6322,7 @@ ALTER TABLE `file_uploads`
   ADD KEY `idx_file_hash` (`file_hash`),
   ADD KEY `idx_upload_type` (`upload_type`),
   ADD KEY `idx_reference` (`reference_type`,`reference_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `homepage_banners`
@@ -6380,14 +6336,14 @@ ALTER TABLE `homepage_banners`
   ADD KEY `idx_end_date` (`end_date`),
   ADD KEY `idx_created_by` (`created_by`),
   ADD KEY `idx_status_position_sort` (`status`,`position`,`sort_order`),
-  ADD KEY `idx_status_start_end` (`status`,`start_date`,`end_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_status_start_end` (`status`,`start_date`,`end_date`);
 
 --
 -- Indexes for table `homepage_sections`
 --
 ALTER TABLE `homepage_sections`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uk_section_key` (`section_key`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD UNIQUE KEY `uk_section_key` (`section_key`);
 
 --
 -- Indexes for table `inventory_alerts`
@@ -6398,7 +6354,7 @@ ALTER TABLE `inventory_alerts`
   ADD KEY `idx_alert_type` (`alert_type`),
   ADD KEY `idx_priority` (`priority`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_acknowledged_by` (`acknowledged_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_acknowledged_by` (`acknowledged_by`);
 
 --
 -- Indexes for table `invoices`
@@ -6409,7 +6365,7 @@ ALTER TABLE `invoices`
   ADD KEY `idx_order_id` (`order_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_invoice_date` (`invoice_date`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `jobs`
@@ -6421,7 +6377,7 @@ ALTER TABLE `jobs`
   ADD KEY `idx_priority` (`priority`),
   ADD KEY `idx_next_run_at` (`next_run_at`),
   ADD KEY `idx_created_by` (`created_by`),
-  ADD KEY `idx_jobs_status_priority_next_run` (`status`,`priority`,`next_run_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_jobs_status_priority_next_run` (`status`,`priority`,`next_run_at`);
 
 --
 -- Indexes for table `kpi_daily`
@@ -6431,7 +6387,7 @@ ALTER TABLE `kpi_daily`
   ADD UNIQUE KEY `idx_metric_date` (`metric_date`),
   ADD KEY `idx_total_sales` (`total_sales`),
   ADD KEY `idx_total_orders` (`total_orders`),
-  ADD KEY `idx_kpi_daily_date_sales` (`metric_date`,`total_sales`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_kpi_daily_date_sales` (`metric_date`,`total_sales`);
 
 --
 -- Indexes for table `kyc_decisions`
@@ -6441,7 +6397,7 @@ ALTER TABLE `kyc_decisions`
   ADD KEY `idx_kyc_request_id` (`kyc_request_id`),
   ADD KEY `idx_reviewer_id` (`reviewer_id`),
   ADD KEY `idx_decision` (`decision`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `kyc_documents`
@@ -6450,7 +6406,7 @@ ALTER TABLE `kyc_documents`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_kyc_request_id` (`kyc_request_id`),
   ADD KEY `idx_document_type` (`document_type`),
-  ADD KEY `idx_verification_status` (`verification_status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_verification_status` (`verification_status`);
 
 --
 -- Indexes for table `kyc_flags`
@@ -6461,7 +6417,7 @@ ALTER TABLE `kyc_flags`
   ADD KEY `idx_flag_type` (`flag_type`),
   ADD KEY `idx_severity` (`severity`),
   ADD KEY `idx_is_resolved` (`is_resolved`),
-  ADD KEY `fk_kyc_flags_resolver` (`resolved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_kyc_flags_resolver` (`resolved_by`);
 
 --
 -- Indexes for table `kyc_requests`
@@ -6473,7 +6429,7 @@ ALTER TABLE `kyc_requests`
   ADD KEY `idx_priority` (`priority`),
   ADD KEY `idx_assigned_to` (`assigned_to`),
   ADD KEY `idx_submitted_at` (`submitted_at`),
-  ADD KEY `idx_kyc_requests_status_priority` (`status`,`priority`,`submitted_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_kyc_requests_status_priority` (`status`,`priority`,`submitted_at`);
 
 --
 -- Indexes for table `live_chat_messages`
@@ -6485,7 +6441,7 @@ ALTER TABLE `live_chat_messages`
   ADD KEY `idx_message_type` (`message_type`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_is_moderated` (`is_moderated`),
-  ADD KEY `fk_live_chat_messages_moderator` (`moderated_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_live_chat_messages_moderator` (`moderated_by`);
 
 --
 -- Indexes for table `live_streams`
@@ -6497,7 +6453,7 @@ ALTER TABLE `live_streams`
   ADD KEY `idx_scheduled_at` (`scheduled_at`),
   ADD KEY `idx_started_at` (`started_at`),
   ADD KEY `idx_viewer_count` (`viewer_count`),
-  ADD KEY `idx_live_streams_status_scheduled` (`status`,`scheduled_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_live_streams_status_scheduled` (`status`,`scheduled_at`);
 
 --
 -- Indexes for table `live_stream_products`
@@ -6507,7 +6463,7 @@ ALTER TABLE `live_stream_products`
   ADD UNIQUE KEY `idx_stream_product` (`stream_id`,`product_id`),
   ADD KEY `idx_product_id` (`product_id`),
   ADD KEY `idx_featured_order` (`featured_order`),
-  ADD KEY `idx_active` (`active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_active` (`active`);
 
 --
 -- Indexes for table `login_attempts`
@@ -6517,7 +6473,7 @@ ALTER TABLE `login_attempts`
   ADD KEY `idx_identifier` (`identifier`),
   ADD KEY `idx_ip_address` (`ip_address`),
   ADD KEY `idx_success` (`success`),
-  ADD KEY `idx_attempted_at` (`attempted_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_attempted_at` (`attempted_at`);
 
 --
 -- Indexes for table `loyalty_tiers`
@@ -6526,7 +6482,7 @@ ALTER TABLE `loyalty_tiers`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_min_points` (`min_points`),
   ADD KEY `idx_sort_order` (`sort_order`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `marketing_campaigns`
@@ -6537,7 +6493,7 @@ ALTER TABLE `marketing_campaigns`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_start_date` (`start_date`),
   ADD KEY `idx_end_date` (`end_date`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `menus`
@@ -6545,7 +6501,7 @@ ALTER TABLE `marketing_campaigns`
 ALTER TABLE `menus`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_location` (`location`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `messages`
@@ -6557,7 +6513,7 @@ ALTER TABLE `messages`
   ADD KEY `idx_recipient_id` (`recipient_id`),
   ADD KEY `idx_read_at` (`read_at`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_parent_message_id` (`parent_message_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_parent_message_id` (`parent_message_id`);
 
 --
 -- Indexes for table `message_delivery_logs`
@@ -6567,7 +6523,7 @@ ALTER TABLE `message_delivery_logs`
   ADD KEY `idx_message_id` (`message_id`),
   ADD KEY `idx_event_type` (`event_type`),
   ADD KEY `idx_event_timestamp` (`event_timestamp`),
-  ADD KEY `idx_delivery_logs_message_event` (`message_id`,`event_type`,`event_timestamp`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_delivery_logs_message_event` (`message_id`,`event_type`,`event_timestamp`);
 
 --
 -- Indexes for table `message_templates`
@@ -6579,7 +6535,7 @@ ALTER TABLE `message_templates`
   ADD KEY `idx_language` (`language`),
   ADD KEY `idx_is_active` (`is_active`),
   ADD KEY `idx_created_by` (`created_by`),
-  ADD KEY `idx_message_templates_type_active` (`type`,`is_active`,`category`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_message_templates_type_active` (`type`,`is_active`,`category`);
 
 --
 -- Indexes for table `migrations`
@@ -6588,7 +6544,7 @@ ALTER TABLE `migrations`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_filename` (`filename`),
   ADD KEY `idx_batch` (`batch`),
-  ADD KEY `idx_executed_at` (`executed_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_executed_at` (`executed_at`);
 
 --
 -- Indexes for table `multi_language_content`
@@ -6599,7 +6555,7 @@ ALTER TABLE `multi_language_content`
   ADD KEY `idx_content_type` (`content_type`),
   ADD KEY `idx_content_id` (`content_id`),
   ADD KEY `idx_language_code` (`language_code`),
-  ADD KEY `idx_translator_id` (`translator_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_translator_id` (`translator_id`);
 
 --
 -- Indexes for table `notifications`
@@ -6611,14 +6567,14 @@ ALTER TABLE `notifications`
   ADD KEY `idx_read_at` (`read_at`),
   ADD KEY `idx_priority` (`priority`),
   ADD KEY `idx_expires_at` (`expires_at`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `notification_preferences`
 --
 ALTER TABLE `notification_preferences`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `idx_user_type` (`user_id`,`type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD UNIQUE KEY `idx_user_type` (`user_id`,`type`);
 
 --
 -- Indexes for table `orders`
@@ -6631,7 +6587,7 @@ ALTER TABLE `orders`
   ADD KEY `idx_payment_status` (`payment_status`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_payment_transaction_id` (`payment_transaction_id`),
-  ADD KEY `idx_orders_status_created` (`status`,`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_orders_status_created` (`status`,`created_at`);
 
 --
 -- Indexes for table `order_disputes`
@@ -6645,7 +6601,7 @@ ALTER TABLE `order_disputes`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_dispute_type` (`dispute_type`),
   ADD KEY `idx_resolved_by` (`resolved_by`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `order_items`
@@ -6656,7 +6612,7 @@ ALTER TABLE `order_items`
   ADD KEY `idx_product_id` (`product_id`),
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_orders_vendor_status` (`vendor_id`,`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_orders_vendor_status` (`vendor_id`,`status`);
 
 --
 -- Indexes for table `order_status_history`
@@ -6666,7 +6622,7 @@ ALTER TABLE `order_status_history`
   ADD KEY `idx_order_id` (`order_id`),
   ADD KEY `idx_to_status` (`to_status`),
   ADD KEY `idx_changed_by` (`changed_by`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `otp_attempts`
@@ -6677,7 +6633,7 @@ ALTER TABLE `otp_attempts`
   ADD KEY `idx_email` (`email`),
   ADD KEY `idx_ip_address` (`ip_address`),
   ADD KEY `idx_attempted_at` (`attempted_at`),
-  ADD KEY `idx_token_type` (`token_type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_token_type` (`token_type`);
 
 --
 -- Indexes for table `payments`
@@ -6691,7 +6647,7 @@ ALTER TABLE `payments`
   ADD KEY `idx_gateway_transaction_id` (`gateway_transaction_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_payments_status_gateway` (`status`,`gateway`,`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_payments_status_gateway` (`status`,`gateway`,`created_at`);
 
 --
 -- Indexes for table `payment_events`
@@ -6702,7 +6658,7 @@ ALTER TABLE `payment_events`
   ADD KEY `idx_event_type` (`event_type`),
   ADD KEY `idx_gateway_event_id` (`gateway_event_id`),
   ADD KEY `idx_processed` (`processed`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `payment_gateways`
@@ -6713,7 +6669,7 @@ ALTER TABLE `payment_gateways`
   ADD KEY `idx_provider` (`provider`),
   ADD KEY `idx_is_active` (`is_active`),
   ADD KEY `idx_is_default` (`is_default`),
-  ADD KEY `idx_sort_order` (`sort_order`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_sort_order` (`sort_order`);
 
 --
 -- Indexes for table `payment_methods`
@@ -6723,13 +6679,13 @@ ALTER TABLE `payment_methods`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_is_default` (`is_default`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `payment_reconciliations`
 --
 ALTER TABLE `payment_reconciliations`
-  ADD PRIMARY KEY (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `payouts`
@@ -6739,7 +6695,7 @@ ALTER TABLE `payouts`
   ADD KEY `idx_payout_request_id` (`payout_request_id`),
   ADD KEY `idx_batch_id` (`batch_id`),
   ADD KEY `idx_gateway_payout_id` (`gateway_payout_id`),
-  ADD KEY `idx_status` (`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `payout_requests`
@@ -6751,7 +6707,7 @@ ALTER TABLE `payout_requests`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_payout_method` (`payout_method`),
   ADD KEY `idx_processed_by` (`processed_by`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `platform_notifications`
@@ -6764,7 +6720,7 @@ ALTER TABLE `platform_notifications`
   ADD KEY `idx_target_audience` (`target_audience`),
   ADD KEY `idx_start_date` (`start_date`),
   ADD KEY `idx_end_date` (`end_date`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `platform_notification_reads`
@@ -6773,7 +6729,7 @@ ALTER TABLE `platform_notification_reads`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_notification_user` (`notification_id`,`user_id`),
   ADD KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_read_at` (`read_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_read_at` (`read_at`);
 
 --
 -- Indexes for table `products`
@@ -6792,15 +6748,15 @@ ALTER TABLE `products`
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_products_status_featured` (`status`,`featured`),
   ADD KEY `idx_products_vendor_status` (`vendor_id`,`status`),
-  ADD KEY `idx_products_brand` (`brand_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-ALTER TABLE `products` ADD FULLTEXT KEY `idx_search` (`name`,`description`,`tags`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_products_brand` (`brand_id`);
+ALTER TABLE `products` ADD FULLTEXT KEY `idx_search` (`name`,`description`,`tags`);
 
 --
 -- Indexes for table `product_analytics`
 --
 ALTER TABLE `product_analytics`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_analytics_product_date` (`product_id`,`metric_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_analytics_product_date` (`product_id`,`metric_date`);
 
 --
 -- Indexes for table `product_approvals`
@@ -6811,14 +6767,14 @@ ALTER TABLE `product_approvals`
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_reviewed_by` (`reviewed_by`),
-  ADD KEY `idx_submitted_at` (`submitted_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_submitted_at` (`submitted_at`);
 
 --
 -- Indexes for table `product_attributes`
 --
 ALTER TABLE `product_attributes`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_attributes_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_attributes_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_audit_logs`
@@ -6828,7 +6784,7 @@ ALTER TABLE `product_audit_logs`
   ADD KEY `idx_product_id` (`product_id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_action` (`action`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `product_autosaves`
@@ -6836,14 +6792,14 @@ ALTER TABLE `product_audit_logs`
 ALTER TABLE `product_autosaves`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_seller_id` (`seller_id`),
-  ADD KEY `idx_updated_at` (`updated_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_updated_at` (`updated_at`);
 
 --
 -- Indexes for table `product_bulk_operations`
 --
 ALTER TABLE `product_bulk_operations`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_bulk_ops_user_id` (`user_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_bulk_ops_user_id` (`user_id`);
 
 --
 -- Indexes for table `product_bulk_uploads`
@@ -6852,7 +6808,7 @@ ALTER TABLE `product_bulk_uploads`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `product_categories`
@@ -6860,28 +6816,28 @@ ALTER TABLE `product_bulk_uploads`
 ALTER TABLE `product_categories`
   ADD PRIMARY KEY (`product_id`,`category_id`),
   ADD KEY `idx_category_id` (`category_id`),
-  ADD KEY `idx_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_certificates`
 --
 ALTER TABLE `product_certificates`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_certificates_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_certificates_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_drafts`
 --
 ALTER TABLE `product_drafts`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_drafts_user_id` (`user_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_drafts_user_id` (`user_id`);
 
 --
 -- Indexes for table `product_images`
 --
 ALTER TABLE `product_images`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_inventory`
@@ -6889,7 +6845,7 @@ ALTER TABLE `product_images`
 ALTER TABLE `product_inventory`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_product_inventory_product_id` (`product_id`),
-  ADD KEY `idx_product_inventory_sku` (`sku`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_inventory_sku` (`sku`);
 
 --
 -- Indexes for table `product_media`
@@ -6897,14 +6853,14 @@ ALTER TABLE `product_inventory`
 ALTER TABLE `product_media`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_product_media_product_id` (`product_id`),
-  ADD KEY `idx_product_media_type` (`media_type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_media_type` (`media_type`);
 
 --
 -- Indexes for table `product_pricing`
 --
 ALTER TABLE `product_pricing`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_pricing_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_pricing_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_recommendations`
@@ -6916,7 +6872,7 @@ ALTER TABLE `product_recommendations`
   ADD KEY `idx_recommended_product_id` (`recommended_product_id`),
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_score` (`score`),
-  ADD KEY `idx_expires_at` (`expires_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_expires_at` (`expires_at`);
 
 --
 -- Indexes for table `product_relations`
@@ -6925,7 +6881,7 @@ ALTER TABLE `product_relations`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_product_relations_product_id` (`product_id`),
   ADD KEY `idx_product_relations_related_product_id` (`related_product_id`),
-  ADD KEY `idx_product_relations_type` (`relation_type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_relations_type` (`relation_type`);
 
 --
 -- Indexes for table `product_reviews`
@@ -6937,27 +6893,27 @@ ALTER TABLE `product_reviews`
   ADD KEY `idx_order_id` (`order_id`),
   ADD KEY `idx_rating` (`rating`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `fk_product_reviews_moderator` (`moderated_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_product_reviews_moderator` (`moderated_by`);
 
 --
 -- Indexes for table `product_seo`
 --
 ALTER TABLE `product_seo`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_seo_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_seo_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_shipping`
 --
 ALTER TABLE `product_shipping`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_product_shipping_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_shipping_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_tag`
 --
 ALTER TABLE `product_tag`
-  ADD PRIMARY KEY (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `product_variants`
@@ -6965,7 +6921,7 @@ ALTER TABLE `product_tag`
 ALTER TABLE `product_variants`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `sku` (`sku`),
-  ADD KEY `idx_product_variants_product_id` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product_variants_product_id` (`product_id`);
 
 --
 -- Indexes for table `product_views`
@@ -6976,7 +6932,7 @@ ALTER TABLE `product_views`
   ADD KEY `idx_product_id` (`product_id`),
   ADD KEY `idx_session_id` (`session_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_ip_address` (`ip_address`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_ip_address` (`ip_address`);
 
 --
 -- Indexes for table `push_subscriptions`
@@ -6986,7 +6942,7 @@ ALTER TABLE `push_subscriptions`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_endpoint` (`endpoint`(255)),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_last_used` (`last_used`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_last_used` (`last_used`);
 
 --
 -- Indexes for table `reconciliations`
@@ -6996,7 +6952,7 @@ ALTER TABLE `reconciliations`
   ADD UNIQUE KEY `idx_date_gateway` (`reconciliation_date`,`gateway`),
   ADD KEY `idx_gateway` (`gateway`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_reconciled_by` (`reconciled_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_reconciled_by` (`reconciled_by`);
 
 --
 -- Indexes for table `redirects`
@@ -7006,7 +6962,7 @@ ALTER TABLE `redirects`
   ADD UNIQUE KEY `idx_from_url` (`from_url`),
   ADD KEY `idx_to_url` (`to_url`),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `refunds`
@@ -7019,7 +6975,7 @@ ALTER TABLE `refunds`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_refund_method` (`refund_method`),
   ADD KEY `idx_processed_by` (`processed_by`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `report_jobs`
@@ -7029,7 +6985,7 @@ ALTER TABLE `report_jobs`
   ADD KEY `idx_report_type` (`report_type`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_created_by` (`created_by`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `reviews`
@@ -7044,7 +7000,7 @@ ALTER TABLE `reviews`
   ADD KEY `idx_verified_purchase` (`verified_purchase`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `fk_reviews_responder` (`responded_by`),
-  ADD KEY `fk_reviews_approver` (`approved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_reviews_approver` (`approved_by`);
 
 --
 -- Indexes for table `review_helpfulness`
@@ -7052,7 +7008,7 @@ ALTER TABLE `reviews`
 ALTER TABLE `review_helpfulness`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_review_user` (`review_id`,`user_id`),
-  ADD KEY `idx_user_id` (`user_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_user_id` (`user_id`);
 
 --
 -- Indexes for table `search_queries`
@@ -7063,7 +7019,7 @@ ALTER TABLE `search_queries`
   ADD KEY `idx_query` (`query`),
   ADD KEY `idx_clicked_product_id` (`clicked_product_id`),
   ADD KEY `idx_session_id` (`session_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `security_logs`
@@ -7077,7 +7033,7 @@ ALTER TABLE `security_logs`
   ADD KEY `idx_risk_score` (`risk_score`),
   ADD KEY `idx_is_resolved` (`is_resolved`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_security_logs_resolver` (`resolved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_security_logs_resolver` (`resolved_by`);
 
 --
 -- Indexes for table `seller_analytics`
@@ -7087,7 +7043,7 @@ ALTER TABLE `seller_analytics`
   ADD UNIQUE KEY `idx_vendor_date` (`vendor_id`,`metric_date`),
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_metric_date` (`metric_date`),
-  ADD KEY `idx_total_revenue` (`total_revenue`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_total_revenue` (`total_revenue`);
 
 --
 -- Indexes for table `seller_bank_details`
@@ -7095,7 +7051,7 @@ ALTER TABLE `seller_analytics`
 ALTER TABLE `seller_bank_details`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor` (`vendor_id`),
-  ADD KEY `idx_is_default` (`is_default`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_default` (`is_default`);
 
 --
 -- Indexes for table `seller_campaigns`
@@ -7103,7 +7059,7 @@ ALTER TABLE `seller_bank_details`
 ALTER TABLE `seller_campaigns`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_status` (`vendor_id`,`status`),
-  ADD KEY `idx_dates` (`start_date`,`end_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_dates` (`start_date`,`end_date`);
 
 --
 -- Indexes for table `seller_campaign_assets`
@@ -7111,7 +7067,7 @@ ALTER TABLE `seller_campaigns`
 ALTER TABLE `seller_campaign_assets`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_campaign` (`campaign_id`),
-  ADD KEY `idx_status` (`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `seller_campaign_stats`
@@ -7119,7 +7075,7 @@ ALTER TABLE `seller_campaign_assets`
 ALTER TABLE `seller_campaign_stats`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `campaign_date` (`campaign_id`,`date`),
-  ADD KEY `idx_date` (`date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_date` (`date`);
 
 --
 -- Indexes for table `seller_chat_messages`
@@ -7128,7 +7084,7 @@ ALTER TABLE `seller_chat_messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_stream` (`stream_id`),
   ADD KEY `idx_user` (`user_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `seller_commissions`
@@ -7142,7 +7098,7 @@ ALTER TABLE `seller_commissions`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_payout_id` (`payout_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_seller_commissions_vendor_status` (`vendor_id`,`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_seller_commissions_vendor_status` (`vendor_id`,`status`);
 
 --
 -- Indexes for table `seller_coupons`
@@ -7152,7 +7108,7 @@ ALTER TABLE `seller_coupons`
   ADD UNIQUE KEY `vendor_code` (`vendor_id`,`code`),
   ADD KEY `idx_code` (`code`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_dates` (`start_date`,`end_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_dates` (`start_date`,`end_date`);
 
 --
 -- Indexes for table `seller_coupon_redemptions`
@@ -7162,7 +7118,7 @@ ALTER TABLE `seller_coupon_redemptions`
   ADD KEY `idx_coupon` (`coupon_id`),
   ADD KEY `idx_order` (`order_id`),
   ADD KEY `idx_customer` (`customer_id`),
-  ADD KEY `idx_redeemed_at` (`redeemed_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_redeemed_at` (`redeemed_at`);
 
 --
 -- Indexes for table `seller_coupon_rules`
@@ -7170,7 +7126,7 @@ ALTER TABLE `seller_coupon_redemptions`
 ALTER TABLE `seller_coupon_rules`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_coupon` (`coupon_id`),
-  ADD KEY `idx_rule_type` (`rule_type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_rule_type` (`rule_type`);
 
 --
 -- Indexes for table `seller_disputes`
@@ -7182,7 +7138,7 @@ ALTER TABLE `seller_disputes`
   ADD KEY `idx_order` (`order_id`),
   ADD KEY `idx_deadline` (`deadline`),
   ADD KEY `fk_seller_disputes_customer` (`customer_id`),
-  ADD KEY `fk_seller_disputes_resolver` (`resolved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_disputes_resolver` (`resolved_by`);
 
 --
 -- Indexes for table `seller_dispute_evidence`
@@ -7191,7 +7147,7 @@ ALTER TABLE `seller_dispute_evidence`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_dispute` (`dispute_id`),
   ADD KEY `idx_submission_date` (`submission_date`),
-  ADD KEY `fk_seller_dispute_evidence_user` (`submitted_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_dispute_evidence_user` (`submitted_by`);
 
 --
 -- Indexes for table `seller_dispute_messages`
@@ -7200,7 +7156,7 @@ ALTER TABLE `seller_dispute_messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_dispute` (`dispute_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_seller_dispute_messages_sender` (`sender_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_dispute_messages_sender` (`sender_id`);
 
 --
 -- Indexes for table `seller_documents`
@@ -7210,7 +7166,7 @@ ALTER TABLE `seller_documents`
   ADD KEY `idx_vendor_type` (`vendor_id`,`document_type`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_expiry_date` (`expiry_date`),
-  ADD KEY `fk_seller_documents_reviewer` (`reviewed_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_documents_reviewer` (`reviewed_by`);
 
 --
 -- Indexes for table `seller_inventory`
@@ -7220,7 +7176,7 @@ ALTER TABLE `seller_inventory`
   ADD UNIQUE KEY `vendor_product_variant_location` (`vendor_id`,`product_id`,`variant_id`,`location`),
   ADD KEY `idx_quantity_available` (`quantity_available`),
   ADD KEY `fk_seller_inventory_product` (`product_id`),
-  ADD KEY `fk_seller_inventory_updater` (`updated_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_inventory_updater` (`updated_by`);
 
 --
 -- Indexes for table `seller_kpis`
@@ -7228,7 +7184,7 @@ ALTER TABLE `seller_inventory`
 ALTER TABLE `seller_kpis`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `vendor_date` (`vendor_id`,`metric_date`),
-  ADD KEY `idx_metric_date` (`metric_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_metric_date` (`metric_date`);
 
 --
 -- Indexes for table `seller_kyc`
@@ -7239,7 +7195,7 @@ ALTER TABLE `seller_kyc`
   ADD KEY `idx_verification_status` (`verification_status`),
   ADD KEY `idx_verification_type` (`verification_type`),
   ADD KEY `idx_verified_by` (`verified_by`),
-  ADD KEY `idx_submitted_at` (`submitted_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_submitted_at` (`submitted_at`);
 
 --
 -- Indexes for table `seller_live_streams`
@@ -7248,7 +7204,7 @@ ALTER TABLE `seller_live_streams`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `stream_key` (`stream_key`),
   ADD KEY `idx_vendor_status` (`vendor_id`,`status`),
-  ADD KEY `idx_scheduled_start` (`scheduled_start`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_scheduled_start` (`scheduled_start`);
 
 --
 -- Indexes for table `seller_messages`
@@ -7258,7 +7214,7 @@ ALTER TABLE `seller_messages`
   ADD KEY `idx_vendor_conversation` (`vendor_id`,`conversation_id`),
   ADD KEY `idx_customer` (`customer_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_seller_messages_order` (`order_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_messages_order` (`order_id`);
 
 --
 -- Indexes for table `seller_message_templates`
@@ -7266,7 +7222,7 @@ ALTER TABLE `seller_messages`
 ALTER TABLE `seller_message_templates`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_category` (`vendor_id`,`category`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `seller_notifications`
@@ -7274,7 +7230,7 @@ ALTER TABLE `seller_message_templates`
 ALTER TABLE `seller_notifications`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_read` (`vendor_id`,`read_at`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `seller_orders`
@@ -7285,7 +7241,7 @@ ALTER TABLE `seller_orders`
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_payout_status` (`payout_status`),
   ADD KEY `idx_tracking_number` (`tracking_number`),
-  ADD KEY `fk_seller_orders_order` (`order_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_orders_order` (`order_id`);
 
 --
 -- Indexes for table `seller_order_items`
@@ -7294,7 +7250,7 @@ ALTER TABLE `seller_order_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_seller_order` (`seller_order_id`),
   ADD KEY `idx_order_item` (`order_item_id`),
-  ADD KEY `idx_product` (`product_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_product` (`product_id`);
 
 --
 -- Indexes for table `seller_payouts`
@@ -7306,7 +7262,7 @@ ALTER TABLE `seller_payouts`
   ADD KEY `idx_requested_at` (`requested_at`),
   ADD KEY `idx_processed_by` (`processed_by`),
   ADD KEY `idx_reference_number` (`reference_number`),
-  ADD KEY `idx_seller_payouts_vendor_status` (`vendor_id`,`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_seller_payouts_vendor_status` (`vendor_id`,`status`);
 
 --
 -- Indexes for table `seller_payout_requests`
@@ -7315,7 +7271,7 @@ ALTER TABLE `seller_payout_requests`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_status` (`vendor_id`,`status`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_seller_payout_requests_processor` (`processed_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_payout_requests_processor` (`processed_by`);
 
 --
 -- Indexes for table `seller_performance_metrics`
@@ -7323,7 +7279,7 @@ ALTER TABLE `seller_payout_requests`
 ALTER TABLE `seller_performance_metrics`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `vendor_date` (`vendor_id`,`metric_date`),
-  ADD KEY `idx_metric_date` (`metric_date`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_metric_date` (`metric_date`);
 
 --
 -- Indexes for table `seller_products`
@@ -7334,7 +7290,7 @@ ALTER TABLE `seller_products`
   ADD KEY `idx_approval_status` (`approval_status`),
   ADD KEY `idx_sku` (`sku`),
   ADD KEY `fk_seller_products_product` (`product_id`),
-  ADD KEY `fk_seller_products_approver` (`approved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_products_approver` (`approved_by`);
 
 --
 -- Indexes for table `seller_product_media`
@@ -7342,7 +7298,7 @@ ALTER TABLE `seller_products`
 ALTER TABLE `seller_product_media`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_seller_product` (`seller_product_id`),
-  ADD KEY `idx_sort_order` (`sort_order`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_sort_order` (`sort_order`);
 
 --
 -- Indexes for table `seller_product_variants`
@@ -7350,7 +7306,7 @@ ALTER TABLE `seller_product_media`
 ALTER TABLE `seller_product_variants`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_seller_product` (`seller_product_id`),
-  ADD KEY `idx_sku` (`sku`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_sku` (`sku`);
 
 --
 -- Indexes for table `seller_profiles`
@@ -7358,7 +7314,7 @@ ALTER TABLE `seller_product_variants`
 ALTER TABLE `seller_profiles`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_vendor_id` (`vendor_id`),
-  ADD KEY `idx_is_verified` (`is_verified`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_verified` (`is_verified`);
 
 --
 -- Indexes for table `seller_reports_jobs`
@@ -7366,7 +7322,7 @@ ALTER TABLE `seller_profiles`
 ALTER TABLE `seller_reports_jobs`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_status` (`vendor_id`,`status`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `seller_rmas`
@@ -7376,7 +7332,7 @@ ALTER TABLE `seller_rmas`
   ADD UNIQUE KEY `rma_number` (`rma_number`),
   ADD KEY `idx_vendor_status` (`vendor_id`,`status`),
   ADD KEY `idx_order` (`order_id`),
-  ADD KEY `idx_customer` (`customer_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_customer` (`customer_id`);
 
 --
 -- Indexes for table `seller_rma_notes`
@@ -7385,7 +7341,7 @@ ALTER TABLE `seller_rma_notes`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_rma` (`rma_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_seller_rma_notes_user` (`user_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_rma_notes_user` (`user_id`);
 
 --
 -- Indexes for table `seller_sales_reports`
@@ -7393,7 +7349,7 @@ ALTER TABLE `seller_rma_notes`
 ALTER TABLE `seller_sales_reports`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_type` (`vendor_id`,`report_type`),
-  ADD KEY `idx_period` (`period_start`,`period_end`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_period` (`period_start`,`period_end`);
 
 --
 -- Indexes for table `seller_shipping_rates`
@@ -7403,7 +7359,7 @@ ALTER TABLE `seller_shipping_rates`
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_shipping_zone_id` (`shipping_zone_id`),
   ADD KEY `idx_method` (`method`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `seller_shipping_zones`
@@ -7412,7 +7368,7 @@ ALTER TABLE `seller_shipping_zones`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_sort_order` (`sort_order`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_sort_order` (`sort_order`);
 
 --
 -- Indexes for table `seller_staff`
@@ -7424,7 +7380,7 @@ ALTER TABLE `seller_staff`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_role` (`role`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `idx_invited_by` (`invited_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_invited_by` (`invited_by`);
 
 --
 -- Indexes for table `seller_stock_logs`
@@ -7434,7 +7390,7 @@ ALTER TABLE `seller_stock_logs`
   ADD KEY `idx_inventory` (`inventory_id`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_reference` (`reference_type`,`reference_id`),
-  ADD KEY `fk_seller_stock_logs_user` (`performed_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_seller_stock_logs_user` (`performed_by`);
 
 --
 -- Indexes for table `seller_stream_products`
@@ -7443,13 +7399,13 @@ ALTER TABLE `seller_stream_products`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_stream` (`stream_id`),
   ADD KEY `idx_product` (`product_id`),
-  ADD KEY `idx_featured_at` (`featured_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_featured_at` (`featured_at`);
 
 --
 -- Indexes for table `seo_meta`
 --
 ALTER TABLE `seo_meta`
-  ADD UNIQUE KEY `uniq_entity` (`entity_type`,`entity_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD UNIQUE KEY `uniq_entity` (`entity_type`,`entity_id`);
 
 --
 -- Indexes for table `seo_metadata`
@@ -7458,7 +7414,7 @@ ALTER TABLE `seo_metadata`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_entity` (`entity_type`,`entity_id`),
   ADD KEY `idx_entity_type` (`entity_type`),
-  ADD KEY `idx_entity_id` (`entity_id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_entity_id` (`entity_id`);
 
 --
 -- Indexes for table `settings`
@@ -7469,13 +7425,13 @@ ALTER TABLE `settings`
   ADD KEY `idx_setting_group` (`setting_group`),
   ADD KEY `idx_is_public` (`is_public`),
   ADD KEY `idx_updated_by` (`updated_by`),
-  ADD KEY `idx_settings_group_public` (`setting_group`,`is_public`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_settings_group_public` (`setting_group`,`is_public`);
 
 --
 -- Indexes for table `shipping_carriers`
 --
 ALTER TABLE `shipping_carriers`
-  ADD PRIMARY KEY (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `stream_events`
@@ -7485,7 +7441,7 @@ ALTER TABLE `stream_events`
   ADD KEY `idx_stream_id` (`stream_id`),
   ADD KEY `idx_event_type` (`event_type`),
   ADD KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `stream_products`
@@ -7494,7 +7450,7 @@ ALTER TABLE `stream_products`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_stream_id` (`stream_id`),
   ADD KEY `idx_product_id` (`product_id`),
-  ADD KEY `idx_is_currently_featured` (`is_currently_featured`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_currently_featured` (`is_currently_featured`);
 
 --
 -- Indexes for table `stream_viewers`
@@ -7505,7 +7461,7 @@ ALTER TABLE `stream_viewers`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_session_id` (`session_id`),
   ADD KEY `idx_joined_at` (`joined_at`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `subscriptions`
@@ -7516,13 +7472,13 @@ ALTER TABLE `subscriptions`
   ADD KEY `idx_channel` (`channel`),
   ADD KEY `idx_opt_in_status` (`opt_in_status`),
   ADD KEY `idx_subscription_type` (`subscription_type`),
-  ADD KEY `idx_subscriptions_user_channel` (`user_id`,`channel`,`opt_in_status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_subscriptions_user_channel` (`user_id`,`channel`,`opt_in_status`);
 
 --
 -- Indexes for table `support_messages`
 --
 ALTER TABLE `support_messages`
-  ADD PRIMARY KEY (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `support_tickets`
@@ -7539,7 +7495,7 @@ ALTER TABLE `support_tickets`
   ADD KEY `idx_escalated_to` (`escalated_to`),
   ADD KEY `idx_related_order_id` (`related_order_id`),
   ADD KEY `idx_related_product_id` (`related_product_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `support_ticket_replies`
@@ -7550,7 +7506,7 @@ ALTER TABLE `support_ticket_replies`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_reply_type` (`reply_type`),
   ADD KEY `idx_is_internal` (`is_internal`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `system_alerts`
@@ -7562,7 +7518,7 @@ ALTER TABLE `system_alerts`
   ADD KEY `idx_is_resolved` (`is_resolved`),
   ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_resolved_by` (`resolved_by`),
-  ADD KEY `idx_system_alerts_type_severity` (`alert_type`,`severity`,`is_resolved`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_system_alerts_type_severity` (`alert_type`,`severity`,`is_resolved`);
 
 --
 -- Indexes for table `system_events`
@@ -7574,7 +7530,7 @@ ALTER TABLE `system_events`
   ADD KEY `idx_component` (`component`),
   ADD KEY `idx_is_resolved` (`is_resolved`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_system_events_resolver` (`resolved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_system_events_resolver` (`resolved_by`);
 
 --
 -- Indexes for table `system_settings`
@@ -7584,13 +7540,13 @@ ALTER TABLE `system_settings`
   ADD UNIQUE KEY `idx_setting_key` (`setting_key`),
   ADD KEY `idx_category` (`category`),
   ADD KEY `idx_is_public` (`is_public`),
-  ADD KEY `idx_updated_by` (`updated_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_updated_by` (`updated_by`);
 
 --
 -- Indexes for table `tags`
 --
 ALTER TABLE `tags`
-  ADD PRIMARY KEY (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `tax_rules`
@@ -7600,7 +7556,7 @@ ALTER TABLE `tax_rules`
   ADD KEY `idx_country` (`country`),
   ADD KEY `idx_state` (`state`),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_effective_from` (`effective_from`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_effective_from` (`effective_from`);
 
 --
 -- Indexes for table `templates`
@@ -7610,7 +7566,7 @@ ALTER TABLE `templates`
   ADD KEY `idx_template_type` (`template_type`),
   ADD KEY `idx_is_system` (`is_system`),
   ADD KEY `idx_is_active` (`is_active`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `transactions`
@@ -7622,7 +7578,7 @@ ALTER TABLE `transactions`
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_gateway_transaction_id` (`gateway_transaction_id`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `unsubscribe_links`
@@ -7633,7 +7589,7 @@ ALTER TABLE `unsubscribe_links`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_channel` (`channel`),
   ADD KEY `idx_message_id` (`message_id`),
-  ADD KEY `idx_is_used` (`is_used`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_used` (`is_used`);
 
 --
 -- Indexes for table `users`
@@ -7645,7 +7601,7 @@ ALTER TABLE `users`
   ADD KEY `idx_role` (`role`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `idx_users_role_status` (`role`,`status`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_users_role_status` (`role`,`status`);
 
 --
 -- Indexes for table `user_activities`
@@ -7656,7 +7612,7 @@ ALTER TABLE `user_activities`
   ADD KEY `idx_user_activities_product` (`product_id`),
   ADD KEY `idx_user_activities_session` (`session_id`),
   ADD KEY `idx_user_activities_action` (`activity_type`),
-  ADD KEY `idx_user_activities_created` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_user_activities_created` (`created_at`);
 
 --
 -- Indexes for table `user_audit_logs`
@@ -7666,7 +7622,7 @@ ALTER TABLE `user_audit_logs`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_admin_id` (`admin_id`),
   ADD KEY `idx_action` (`action`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `user_documents`
@@ -7676,7 +7632,7 @@ ALTER TABLE `user_documents`
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_document_type` (`document_type`),
   ADD KEY `idx_verification_status` (`verification_status`),
-  ADD KEY `idx_verified_by` (`verified_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_verified_by` (`verified_by`);
 
 --
 -- Indexes for table `user_follows`
@@ -7685,7 +7641,7 @@ ALTER TABLE `user_follows`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_follower_following` (`follower_id`,`following_id`,`type`),
   ADD KEY `idx_following_id` (`following_id`),
-  ADD KEY `idx_type` (`type`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_type` (`type`);
 
 --
 -- Indexes for table `user_logins`
@@ -7696,7 +7652,7 @@ ALTER TABLE `user_logins`
   ADD KEY `idx_login_type` (`login_type`),
   ADD KEY `idx_ip_address` (`ip_address`),
   ADD KEY `idx_success` (`success`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Indexes for table `user_profiles`
@@ -7704,7 +7660,7 @@ ALTER TABLE `user_logins`
 ALTER TABLE `user_profiles`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_user_profiles_timezone_language` (`timezone`,`language`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_user_profiles_timezone_language` (`timezone`,`language`);
 
 --
 -- Indexes for table `user_roles`
@@ -7713,7 +7669,7 @@ ALTER TABLE `user_roles`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_name` (`name`),
   ADD KEY `idx_is_system_role` (`is_system_role`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `user_role_assignments`
@@ -7723,7 +7679,7 @@ ALTER TABLE `user_role_assignments`
   ADD UNIQUE KEY `user_role_unique` (`user_id`,`role_id`),
   ADD KEY `role_id` (`role_id`),
   ADD KEY `assigned_by` (`assigned_by`),
-  ADD KEY `expires_at` (`expires_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `expires_at` (`expires_at`);
 
 --
 -- Indexes for table `user_sessions`
@@ -7732,7 +7688,7 @@ ALTER TABLE `user_sessions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_session_token` (`session_token`),
-  ADD KEY `idx_expires_at` (`expires_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_expires_at` (`expires_at`);
 
 --
 -- Indexes for table `user_two_factor_auth`
@@ -7742,7 +7698,7 @@ ALTER TABLE `user_two_factor_auth`
   ADD UNIQUE KEY `idx_user_method` (`user_id`,`method`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_method` (`method`),
-  ADD KEY `idx_is_enabled` (`is_enabled`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_enabled` (`is_enabled`);
 
 --
 -- Indexes for table `vendors`
@@ -7752,7 +7708,7 @@ ALTER TABLE `vendors`
   ADD UNIQUE KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_business_name` (`business_name`),
-  ADD KEY `fk_vendors_approver` (`approved_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_vendors_approver` (`approved_by`);
 
 --
 -- Indexes for table `vendor_commissions`
@@ -7762,7 +7718,7 @@ ALTER TABLE `vendor_commissions`
   ADD KEY `idx_vendor_id` (`vendor_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_effective_from` (`effective_from`),
-  ADD KEY `idx_created_by` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_by` (`created_by`);
 
 --
 -- Indexes for table `vendor_payouts`
@@ -7775,7 +7731,7 @@ ALTER TABLE `vendor_payouts`
   ADD KEY `idx_processed_at` (`processed_at`),
   ADD KEY `idx_period_from` (`period_from`),
   ADD KEY `idx_period_to` (`period_to`),
-  ADD KEY `idx_processed_by` (`processed_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_processed_by` (`processed_by`);
 
 --
 -- Indexes for table `wallets`
@@ -7784,7 +7740,7 @@ ALTER TABLE `wallets`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_user_wallet_type` (`user_id`,`wallet_type`),
   ADD KEY `idx_wallet_type` (`wallet_type`),
-  ADD KEY `idx_balance` (`balance`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_balance` (`balance`);
 
 --
 -- Indexes for table `wallet_entries`
@@ -7796,7 +7752,7 @@ ALTER TABLE `wallet_entries`
   ADD KEY `idx_transaction_type` (`transaction_type`),
   ADD KEY `idx_reference` (`reference_type`,`reference_id`),
   ADD KEY `idx_created_at` (`created_at`),
-  ADD KEY `fk_wallet_entries_creator` (`created_by`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `fk_wallet_entries_creator` (`created_by`);
 
 --
 -- Indexes for table `warehouses`
@@ -7806,7 +7762,7 @@ ALTER TABLE `warehouses`
   ADD UNIQUE KEY `idx_code` (`code`),
   ADD KEY `idx_name` (`name`),
   ADD KEY `idx_manager_id` (`manager_id`),
-  ADD KEY `idx_is_active` (`is_active`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_is_active` (`is_active`);
 
 --
 -- Indexes for table `webhook_subscriptions`
@@ -7815,7 +7771,7 @@ ALTER TABLE `webhook_subscriptions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_is_active` (`is_active`),
   ADD KEY `idx_created_by` (`created_by`),
-  ADD KEY `idx_last_triggered_at` (`last_triggered_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_last_triggered_at` (`last_triggered_at`);
 
 --
 -- Indexes for table `wishlists`
@@ -7826,7 +7782,7 @@ ALTER TABLE `wishlists`
   ADD KEY `idx_product_id` (`product_id`),
   ADD KEY `idx_priority` (`priority`),
   ADD KEY `idx_price_alert` (`price_alert`),
-  ADD KEY `idx_created_at` (`created_at`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -9730,7 +9686,7 @@ ALTER TABLE `notification_preferences`
 -- Constraints for table `orders`
 --
 ALTER TABLE `orders`
-  ADD CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `order_disputes`
@@ -9748,7 +9704,7 @@ ALTER TABLE `order_disputes`
 ALTER TABLE `order_items`
   ADD CONSTRAINT `fk_order_items_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_order_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`),
-  ADD CONSTRAINT `fk_order_items_vendor` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD CONSTRAINT `fk_order_items_vendor` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`);
 
 --
 -- Constraints for table `order_status_history`
@@ -10358,7 +10314,7 @@ ALTER TABLE `templates`
 --
 ALTER TABLE `transactions`
   ADD CONSTRAINT `fk_transactions_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `fk_transactions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ADD CONSTRAINT `fk_transactions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `unsubscribe_links`
@@ -10475,11 +10431,3 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-
--- Enable foreign key checks
-SET foreign_key_checks = 1;
-
--- Schema conversion completed
--- Total tables: 240+
--- All tables optimized for MariaDB/MySQL with InnoDB storage engine
--- UTF8MB4 charset for full Unicode support including emojis

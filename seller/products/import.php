@@ -9,9 +9,19 @@ function toNullIfEmpty($v){ $v=is_string($v)?trim($v):$v; return ($v===''||$v===
 function toNumericOrNull($v){ return ($v===''||$v===null)?null:(is_numeric($v)?0+$v:null); }
 function db_columns_for_table(string $table): array{
   static $c=[]; if(isset($c[$table])) return $c[$table];
-  try{ $r=Database::query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",[$table])->fetchAll(PDO::FETCH_COLUMN);
-       return $c[$table]=array_flip($r?:[]);
-  }catch(Throwable $e){ return $c[$table]=[]; }
+  try{ 
+    // Use MySQL/MariaDB DESCRIBE 
+    $r=Database::query("DESCRIBE $table")->fetchAll(PDO::FETCH_COLUMN, 0);
+    return $c[$table]=array_flip($r?:[]);
+  }catch(Throwable $e){ 
+    // Fallback to information_schema
+    try{
+      $r=Database::query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",[$table])->fetchAll(PDO::FETCH_COLUMN);
+      return $c[$table]=array_flip($r?:[]);
+    }catch(Throwable $e2){ 
+      return $c[$table]=[]; 
+    }
+  }
 }
 function db_has_col(array $cols, string $n): bool { return isset($cols[$n]); }
 

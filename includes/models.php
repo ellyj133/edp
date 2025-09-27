@@ -183,10 +183,12 @@ class Product extends BaseModel {
     
     public function findWithVendor($id) {
         $stmt = $this->db->prepare("
-            SELECT p.*, v.business_name as vendor_name, c.name as category_name 
+            SELECT p.*, v.business_name as vendor_name, c.name as category_name,
+                   pi.file_path as image_url, pi.alt_text as image_alt
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
             LEFT JOIN categories c ON p.category_id = c.id 
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.id = ?
         ");
         $stmt->execute([$id]);
@@ -195,9 +197,11 @@ class Product extends BaseModel {
     
     public function findByCategory($categoryId, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
         $stmt = $this->db->prepare("
-            SELECT p.*, v.business_name as vendor_name 
+            SELECT p.*, v.business_name as vendor_name,
+                   pi.file_path as image_url, pi.alt_text as image_alt
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.category_id = ? AND p.status = 'active' 
             ORDER BY p.featured DESC, p.created_at DESC 
             LIMIT {$limit} OFFSET {$offset}
@@ -206,21 +210,56 @@ class Product extends BaseModel {
         return $stmt->fetchAll();
     }
     
-    public function search($query, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
+    public function search($query, $categoryId = null, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
         $searchTerm = "%{$query}%";
-        $stmt = $this->db->prepare("
-            SELECT p.*, v.business_name as vendor_name
+        
+        $sql = "
+            SELECT p.*, v.business_name as vendor_name,
+                   pi.file_path as image_url, pi.alt_text as image_alt
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE (p.name LIKE ? OR p.description LIKE ?) 
-            AND p.status = 'active' 
-            ORDER BY p.featured DESC, p.updated_at DESC, p.created_at DESC 
-            LIMIT {$limit} OFFSET {$offset}
-        ");
-        $stmt->execute([$searchTerm, $searchTerm]);
+            AND p.status = 'active'
+        ";
+        
+        $params = [$searchTerm, $searchTerm];
+        
+        if ($categoryId) {
+            $sql .= " AND p.category_id = ?";
+            $params[] = $categoryId;
+        }
+        
+        $sql .= " ORDER BY p.featured DESC, p.updated_at DESC, p.created_at DESC";
+        
+        if ($limit) {
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
     
+    public function findAll($limit = null, $offset = 0) {
+        $sql = "
+            SELECT p.*, pi.file_path as image_url, pi.alt_text as image_alt,
+                   v.business_name as vendor_name
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            WHERE p.status = 'active'  
+            ORDER BY p.featured DESC, p.created_at DESC
+        ";
+        if ($limit) {
+            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+        }
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll();
+    }
+
     /**
      * Get products by vendor ID with prepared statements
      * Fixes seller center fatal error
@@ -245,9 +284,11 @@ class Product extends BaseModel {
     
     public function getFeatured($limit = 8) {
         $stmt = $this->db->prepare("
-            SELECT p.*, v.business_name as vendor_name 
+            SELECT p.*, v.business_name as vendor_name,
+                   pi.file_path as image_url, pi.alt_text as image_alt
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.featured = 1 AND p.status = 'active' 
             ORDER BY p.created_at DESC 
             LIMIT {$limit}
@@ -490,7 +531,7 @@ class Cart extends BaseModel {
     public function getCartItems($userId) {
         $stmt = $this->db->prepare("
             SELECT c.*, p.name, p.price, p.stock_quantity, p.sku, 
-                   pi.image_url as product_image, v.business_name as vendor_name
+                   pi.file_path as product_image, v.business_name as vendor_name
             FROM {$this->table} c 
             JOIN products p ON c.product_id = p.id 
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
@@ -511,11 +552,11 @@ class Cart extends BaseModel {
         if ($existing) {
             // Update quantity
             $newQuantity = $existing['quantity'] + $quantity;
-            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             return $stmt->execute([$newQuantity, $existing['id']]);
         } else {
             // Add new item
-            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity) VALUES (?, ?, ?)");
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
             return $stmt->execute([$userId, $productId, $quantity]);
         }
     }
@@ -525,7 +566,7 @@ class Cart extends BaseModel {
             return $this->removeItem($userId, $productId);
         }
         
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE user_id = ? AND product_id = ?");
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND product_id = ?");
         return $stmt->execute([$quantity, $userId, $productId]);
     }
     
