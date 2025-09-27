@@ -35,11 +35,6 @@ try {
 
 requireAdminAuth();
 checkPermission('shipping.view');
-    require_once __DIR__ . '/../../includes/init.php';
-    // Initialize PDO global variable for this module
-    $pdo = db();
-    requireAdminAuth();
-    checkPermission('shipments.manage');
 
 // Handle actions
 $action = $_GET['action'] ?? 'list';
@@ -154,70 +149,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $shipments = [];
 $carriers = [];
 $pending_orders = [];
-$shipping_stats = [];
+$shipping_stats = [
+    'total_shipments' => 0,
+    'pending_shipments' => 0,
+    'shipped_count' => 0,
+    'delivered_count' => 0,
+    'avg_delivery_days' => 0
+];
 
-// Initialize with graceful fallback
-require_once __DIR__ . '/../../includes/init.php';
-
-// Database graceful fallback
-$database_available = false;
-$pdo = null;
-try {
-    $pdo = db();
-    $pdo->query('SELECT 1');
-    $database_available = true;
-} catch (Exception $e) {
-    $database_available = false;
-    error_log("Database connection failed: " . $e->getMessage());
+if ($database_available) {
+    try {
+        // Get shipments with order and customer info - Fixed MariaDB compatibility
+        $stmt = $pdo->query("
+            SELECT s.*, o.id as order_number, 
+                   COALESCE(u.username, 'Guest') as customer_name, 
+                   u.email as customer_email,
+                   COALESCE(admin.username, 'System') as created_by_name
+            FROM shipments s
+            JOIN orders o ON s.order_id = o.id
+            LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN users admin ON s.created_by = admin.id
+            ORDER BY s.created_at DESC
+            LIMIT 50
+        ");
+        $shipments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Get shipping carriers - Create default carriers if none exist
+        $stmt = $pdo->query("SELECT * FROM shipping_carriers WHERE is_active = 1 ORDER BY name");
+        $carriers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // If no carriers exist, create some default ones
+        if (empty($carriers)) {
+            $default_carriers = [
+                ['name' => 'UPS', 'code' => 'ups', 'tracking_url_template' => 'https://www.ups.com/track?track=yes&trackNums={{tracking_number}}', 'api_config' => '{}'],
+                ['name' => 'FedEx', 'code' => 'fedex', 'tracking_url_template' => 'https://www.fedex.com/fedextrack/?trknbr={{tracking_number}}', 'api_config' => '{}'],
+                ['name' => 'DHL', 'code' => 'dhl', 'tracking_url_template' => 'https://www.dhl.com/track?trackingNumber={{tracking_number}}', 'api_config' => '{}'],
+                ['name' => 'USPS', 'code' => 'usps', 'tracking_url_template' => 'https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1={{tracking_number}}', 'api_config' => '{}']
+            ];
+            
+            foreach ($default_carriers as $carrier) {
+                $stmt = $pdo->prepare("
+                    INSERT INTO shipping_carriers (name, code, tracking_url_template, api_config, is_active) 
+                    VALUES (?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([$carrier['name'], $carrier['code'], $carrier['tracking_url_template'], $carrier['api_config']]);
+            }
+            
+            // Re-fetch carriers
+            $stmt = $pdo->query("SELECT * FROM shipping_carriers WHERE is_active = 1 ORDER BY name");
+            $carriers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        
+        // Get orders ready for shipping - Fixed MariaDB compatibility
+        $stmt = $pdo->query("
+            SELECT o.*, COALESCE(u.username, 'Guest') as customer_name, u.email as customer_email
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN shipments s ON o.id = s.order_id
+            WHERE o.status IN ('paid', 'processing') AND s.id IS NULL
+            ORDER BY o.created_at DESC
+            LIMIT 20
+        ");
+        $pending_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Get shipping statistics - Fixed date function for MariaDB
+        $stmt = $pdo->query("
+            SELECT 
+                COUNT(*) as total_shipments,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_shipments,
+                COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_count,
+                COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_count,
+                AVG(DATEDIFF(
+                    CASE WHEN status = 'delivered' THEN delivered_at ELSE CURDATE() END,
+                    created_at
+                )) as avg_delivery_days
+            FROM shipments
+            WHERE DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        ");
+        $shipping_stats = $stmt->fetch(PDO::FETCH_ASSOC) ?: $shipping_stats;
+        
+    } catch (Exception $e) {
+        $error = "Error loading shipping data: " . $e->getMessage();
+        error_log("Shipping data error: " . $e->getMessage());
+    }
 }
 
-requireAdminAuth();
-checkPermission('shipping.view');
-    // Get shipments with order and customer info
-    $stmt = $pdo->query("
-        SELECT s.*, o.id as order_number, (u.first_name || ' ' || u.last_name) as customer_name, u.email as customer_email,
-               (admin.first_name || ' ' || admin.last_name) as created_by_name
-        FROM shipments s
-        JOIN orders o ON s.order_id = o.id
-        LEFT JOIN users u ON o.user_id = u.id
-        LEFT JOIN users admin ON s.created_by = admin.id
-        ORDER BY s.created_at DESC
-        LIMIT 50
-    ");
-    $shipments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Get shipping carriers
-    $stmt = $pdo->query("SELECT * FROM shipping_carriers WHERE is_active = 1 ORDER BY name");
-    $carriers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Get orders ready for shipping
-    $stmt = $pdo->query("
-        SELECT o.*, (u.first_name || ' ' || u.last_name) as customer_name, u.email as customer_email
-        FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
-        LEFT JOIN shipments s ON o.id = s.order_id
-        WHERE o.status IN ('paid', 'processing') AND s.id IS NULL
-        ORDER BY o.created_at DESC
-        LIMIT 20
-    ");
-    $pending_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Get shipping statistics
-    $stmt = $pdo->query("
-        SELECT 
-            COUNT(*) as total_shipments,
-            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_shipments,
-            COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_count,
-            COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_count,
-            AVG(DATEDIFF(
-                CASE WHEN status = 'delivered' THEN delivered_at ELSE CURDATE() END,
-                created_at
-            )) as avg_delivery_days
-        FROM shipments
-        WHERE DATE(created_at) >= date('now', '-30 days')
-    ");
-    $shipping_stats = $stmt->fetch(PDO::FETCH_ASSOC);
-    
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -293,6 +309,13 @@ checkPermission('shipping.view');
                     </div>
                 <?php endif; ?>
 
+                <?php if (!$database_available): ?>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Database connection unavailable. Some features may not work properly.
+                    </div>
+                <?php endif; ?>
+
                 <!-- Shipping Statistics -->
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -300,7 +323,7 @@ checkPermission('shipping.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($shipping_stats['pending_shipments']) ?></h4>
+                                        <h4><?= number_format($shipping_stats['pending_shipments'] ?? 0) ?></h4>
                                         <p class="mb-0">Pending Shipments</p>
                                     </div>
                                     <div class="align-self-center">
@@ -315,7 +338,7 @@ checkPermission('shipping.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($shipping_stats['shipped_count']) ?></h4>
+                                        <h4><?= number_format($shipping_stats['shipped_count'] ?? 0) ?></h4>
                                         <p class="mb-0">In Transit</p>
                                     </div>
                                     <div class="align-self-center">
@@ -330,7 +353,7 @@ checkPermission('shipping.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($shipping_stats['delivered_count']) ?></h4>
+                                        <h4><?= number_format($shipping_stats['delivered_count'] ?? 0) ?></h4>
                                         <p class="mb-0">Delivered</p>
                                     </div>
                                     <div class="align-self-center">
@@ -345,7 +368,7 @@ checkPermission('shipping.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($shipping_stats['avg_delivery_days'], 1) ?></h4>
+                                        <h4><?= number_format($shipping_stats['avg_delivery_days'] ?? 0, 1) ?></h4>
                                         <p class="mb-0">Avg Delivery Days</p>
                                     </div>
                                     <div class="align-self-center">
@@ -365,6 +388,12 @@ checkPermission('shipping.view');
                                 <h5 class="mb-0">Orders Ready for Shipping</h5>
                             </div>
                             <div class="card-body">
+                                <?php if (empty($pending_orders)): ?>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No orders ready for shipping.</p>
+                                    </div>
+                                <?php else: ?>
                                 <div class="table-responsive">
                                     <table class="table table-sm">
                                         <thead>
@@ -388,7 +417,7 @@ checkPermission('shipping.view');
                                                     <?= htmlspecialchars($order['customer_name'] ?? 'Guest') ?><br>
                                                     <small class="text-muted"><?= htmlspecialchars($order['customer_email'] ?? '') ?></small>
                                                 </td>
-                                                <td>$<?= number_format($order['total'], 2) ?></td>
+                                                <td>$<?= number_format($order['total'] ?? 0, 2) ?></td>
                                                 <td><?= date('M j', strtotime($order['created_at'])) ?></td>
                                                 <td>
                                                     <button class="btn btn-sm btn-primary" onclick="createShipment(<?= $order['id'] ?>)">
@@ -400,6 +429,7 @@ checkPermission('shipping.view');
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -411,6 +441,17 @@ checkPermission('shipping.view');
                                 <h5 class="mb-0">Shipping Carriers</h5>
                             </div>
                             <div class="card-body">
+                                <?php if (empty($carriers)): ?>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-shipping-fast fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No shipping carriers configured.</p>
+                                        <?php if (hasPermission('shipping.rates')): ?>
+                                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#carrierModal">
+                                            <i class="fas fa-plus"></i> Add Carrier
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
                                 <div class="table-responsive">
                                     <table class="table table-sm">
                                         <thead>
@@ -424,11 +465,11 @@ checkPermission('shipping.view');
                                         <tbody>
                                             <?php foreach ($carriers as $carrier): ?>
                                             <tr>
-                                                <td><?= htmlspecialchars($carrier['name']) ?></td>
-                                                <td><code><?= htmlspecialchars($carrier['code']) ?></code></td>
+                                                <td><?= htmlspecialchars($carrier['name'] ?? 'Unknown') ?></td>
+                                                <td><code><?= htmlspecialchars($carrier['code'] ?? 'N/A') ?></code></td>
                                                 <td>
-                                                    <span class="badge bg-<?= $carrier['is_active'] ? 'success' : 'secondary' ?>">
-                                                        <?= $carrier['is_active'] ? 'Active' : 'Inactive' ?>
+                                                    <span class="badge bg-<?= ($carrier['is_active'] ?? 0) ? 'success' : 'secondary' ?>">
+                                                        <?= ($carrier['is_active'] ?? 0) ? 'Active' : 'Inactive' ?>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -443,6 +484,7 @@ checkPermission('shipping.view');
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -454,6 +496,12 @@ checkPermission('shipping.view');
                         <h5 class="mb-0">Recent Shipments</h5>
                     </div>
                     <div class="card-body">
+                        <?php if (empty($shipments)): ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-shipping-fast fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No shipments found.</p>
+                            </div>
+                        <?php else: ?>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
@@ -481,9 +529,9 @@ checkPermission('shipping.view');
                                             <?= htmlspecialchars($shipment['customer_name'] ?? 'Guest') ?><br>
                                             <small class="text-muted"><?= htmlspecialchars($shipment['customer_email'] ?? '') ?></small>
                                         </td>
-                                        <td><?= htmlspecialchars($shipment['carrier']) ?></td>
+                                        <td><?= htmlspecialchars($shipment['carrier'] ?? 'N/A') ?></td>
                                         <td>
-                                            <?php if ($shipment['tracking_number']): ?>
+                                            <?php if (!empty($shipment['tracking_number'])): ?>
                                             <code><?= htmlspecialchars($shipment['tracking_number']) ?></code>
                                             <?php else: ?>
                                             <span class="text-muted">N/A</span>
@@ -498,17 +546,17 @@ checkPermission('shipping.view');
                                                 'delivered' => 'success',
                                                 'exception' => 'danger'
                                             ];
-                                            $color = $status_colors[$shipment['status']] ?? 'secondary';
+                                            $color = $status_colors[$shipment['status'] ?? 'pending'] ?? 'secondary';
                                             ?>
-                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($shipment['status']) ?></span>
+                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($shipment['status'] ?? 'Pending') ?></span>
                                         </td>
                                         <td><?= date('M j, Y', strtotime($shipment['created_at'])) ?></td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="updateShipmentStatus(<?= $shipment['id'] ?>, '<?= $shipment['status'] ?>')">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="updateShipmentStatus(<?= $shipment['id'] ?>, '<?= $shipment['status'] ?? 'pending' ?>')">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <?php if ($shipment['tracking_number']): ?>
-                                            <button class="btn btn-sm btn-outline-info" onclick="trackShipment('<?= htmlspecialchars($shipment['tracking_number']) ?>', '<?= htmlspecialchars($shipment['carrier']) ?>')">
+                                            <?php if (!empty($shipment['tracking_number'])): ?>
+                                            <button class="btn btn-sm btn-outline-info" onclick="trackShipment('<?= htmlspecialchars($shipment['tracking_number']) ?>', '<?= htmlspecialchars($shipment['carrier'] ?? '') ?>')">
                                                 <i class="fas fa-search"></i>
                                             </button>
                                             <?php endif; ?>
@@ -518,6 +566,7 @@ checkPermission('shipping.view');
                                 </tbody>
                             </table>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -555,8 +604,8 @@ checkPermission('shipping.view');
                                     <select name="carrier" class="form-select" required>
                                         <option value="">Select Carrier</option>
                                         <?php foreach ($carriers as $carrier): ?>
-                                        <option value="<?= htmlspecialchars($carrier['code']) ?>">
-                                            <?= htmlspecialchars($carrier['name']) ?>
+                                        <option value="<?= htmlspecialchars($carrier['code'] ?? $carrier['name']) ?>">
+                                            <?= htmlspecialchars($carrier['name'] ?? 'Unknown Carrier') ?>
                                         </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -571,7 +620,7 @@ checkPermission('shipping.view');
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Shipping Cost</label>
-                                    <input type="number" name="shipping_cost" class="form-control" step="0.01">
+                                    <input type="number" name="shipping_cost" class="form-control" step="0.01" value="0">
                                 </div>
                                 
                                 <div class="mb-3">
@@ -619,7 +668,7 @@ checkPermission('shipping.view');
                         
                         <div class="mb-3">
                             <label class="form-label">API Configuration</label>
-                            <textarea name="api_config" class="form-control" rows="3" placeholder="JSON configuration for carrier API"></textarea>
+                            <textarea name="api_config" class="form-control" rows="3" placeholder="JSON configuration for carrier API">{}</textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

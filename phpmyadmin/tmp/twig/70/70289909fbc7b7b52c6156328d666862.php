@@ -13,8 +13,8 @@ use Twig\Sandbox\SecurityNotAllowedFunctionError;
 use Twig\Source;
 use Twig\Template;
 
-/* table/insert/get_html_for_insert_edit_form_header.twig */
-class __TwigTemplate_67658e08f2daefd5bf980359b6145ca3 extends Template
+/* display/results/empty_display.twig */
+class __TwigTemplate_b526a7fd20ff486dda28840ee31e5c96 extends Template
 {
     private $source;
     private $macros = [];
@@ -35,13 +35,10 @@ class __TwigTemplate_67658e08f2daefd5bf980359b6145ca3 extends Template
     {
         $macros = $this->macros;
         // line 1
-        yield "<form id=\"insertForm\" class=\"lock-page";
-        yield (((($context["has_blob_field"] ?? null) && ($context["is_upload"] ?? null))) ? (" disableAjax") : (""));
-        yield "\" method=\"post\" action=\"";
-        yield PhpMyAdmin\Url::getFromRoute("/table/replace");
-        yield "\" name=\"insertForm\"";
-        yield ((($context["is_upload"] ?? null)) ? (" enctype=\"multipart/form-data\"") : (""));
-        yield ">";
+        yield "<td class=\"";
+        yield $this->env->getRuntime('Twig\Runtime\EscaperRuntime')->escape(($context["classes"] ?? null), "html", null, true);
+        yield "\"></td>
+";
         return; yield '';
     }
 
@@ -50,7 +47,7 @@ class __TwigTemplate_67658e08f2daefd5bf980359b6145ca3 extends Template
      */
     public function getTemplateName()
     {
-        return "table/insert/get_html_for_insert_edit_form_header.twig";
+        return "display/results/empty_display.twig";
     }
 
     /**
@@ -71,6 +68,6 @@ class __TwigTemplate_67658e08f2daefd5bf980359b6145ca3 extends Template
 
     public function getSourceContext()
     {
-        return new Source("", "table/insert/get_html_for_insert_edit_form_header.twig", "/home/duns1/public_html/phpmyadmin/templates/table/insert/get_html_for_insert_edit_form_header.twig");
+        return new Source("", "display/results/empty_display.twig", "/home/duns1/public_html/phpmyadmin/templates/display/results/empty_display.twig");
     }
 }

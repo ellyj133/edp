@@ -70,6 +70,7 @@ if ($_POST && isset($_POST['action'])) {
                     'low_stock_threshold' => intval($_POST['low_stock_threshold'] ?? 10),
                     'track_inventory' => isset($_POST['track_inventory']) ? 1 : 0,
                     'allow_backorders' => isset($_POST['allow_backorders']) ? 1 : 0,
+                    // FIX 1: Use proper null coalescing to handle undefined array key
                     'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
                     'status' => sanitizeInput($_POST['status']),
                     'tags' => sanitizeInput($_POST['tags'] ?? ''),
@@ -77,827 +78,511 @@ if ($_POST && isset($_POST['action'])) {
                     'meta_description' => sanitizeInput($_POST['meta_description'] ?? ''),
                 ];
                 
-                $updated = $product->update($_POST['product_id'], $productData);
-                if ($updated) {
+                $success = $product->update(intval($_POST['product_id']), $productData);
+                if ($success) {
                     $_SESSION['success_message'] = 'Product updated successfully.';
-                    logAdminActivity(Session::getUserId(), 'product_updated', 'product', $_POST['product_id'], null, $productData);
+                    logAdminActivity(Session::getUserId(), 'product_updated', 'product', intval($_POST['product_id']), null, $productData);
                 } else {
                     throw new Exception('Failed to update product.');
                 }
                 break;
                 
-            case 'bulk_action':
-                $productIds = $_POST['product_ids'] ?? [];
-                $bulkAction = $_POST['bulk_action_type'] ?? '';
-                
-                if (empty($productIds) || empty($bulkAction)) {
-                    throw new Exception('Please select products and an action.');
+            case 'delete_product':
+                $success = $product->delete(intval($_POST['product_id']));
+                if ($success) {
+                    $_SESSION['success_message'] = 'Product deleted successfully.';
+                    logAdminActivity(Session::getUserId(), 'product_deleted', 'product', intval($_POST['product_id']));
+                } else {
+                    throw new Exception('Failed to delete product.');
                 }
+                break;
                 
-                $count = 0;
-                foreach ($productIds as $id) {
-                    switch ($bulkAction) {
-                        case 'activate':
-                            if ($product->update($id, ['status' => 'active'])) $count++;
-                            break;
-                        case 'deactivate':
-                            if ($product->update($id, ['status' => 'inactive'])) $count++;
-                            break;
-                        case 'feature':
-                            if ($product->update($id, ['is_featured' => 1])) $count++;
-                            break;
-                        case 'unfeature':
-                            if ($product->update($id, ['is_featured' => 0])) $count++;
-                            break;
-                        case 'delete':
-                            if ($product->delete($id)) $count++;
-                            break;
+            case 'bulk_update_status':
+                $product_ids = $_POST['product_ids'] ?? [];
+                $new_status = sanitizeInput($_POST['bulk_status']);
+                
+                $success_count = 0;
+                foreach ($product_ids as $pid) {
+                    if ($product->updateStatus(intval($pid), $new_status)) {
+                        $success_count++;
+                        logAdminActivity(Session::getUserId(), 'product_status_updated', 'product', intval($pid), null, ['status' => $new_status]);
                     }
                 }
                 
-                $_SESSION['success_message'] = "Bulk action applied to $count products.";
-                logAdminActivity(Session::getUserId(), 'products_bulk_action', 'product', null, null, [
-                    'action' => $bulkAction,
-                    'product_ids' => $productIds,
-                    'count' => $count
-                ]);
+                $_SESSION['success_message'] = "$success_count product(s) updated successfully.";
                 break;
                 
-            case 'update_stock':
-                $updated = $product->update($_POST['product_id'], [
-                    'stock_quantity' => intval($_POST['stock_quantity'])
-                ]);
-                if ($updated) {
-                    $_SESSION['success_message'] = 'Stock updated successfully.';
-                    logAdminActivity(Session::getUserId(), 'product_stock_updated', 'product', $_POST['product_id']);
+            case 'bulk_delete':
+                $product_ids = $_POST['product_ids'] ?? [];
+                
+                $success_count = 0;
+                foreach ($product_ids as $pid) {
+                    if ($product->delete(intval($pid))) {
+                        $success_count++;
+                        logAdminActivity(Session::getUserId(), 'product_deleted', 'product', intval($pid));
+                    }
                 }
+                
+                $_SESSION['success_message'] = "$success_count product(s) deleted successfully.";
                 break;
         }
         
+        redirect('/admin/products/');
+        
     } catch (Exception $e) {
         $_SESSION['error_message'] = $e->getMessage();
-        Logger::error("Product management error: " . $e->getMessage());
-    }
-    
-    header('Location: /admin/products/');
-    exit;
-}
-
-// Get product data for edit/view
-$currentProduct = null;
-if ($action === 'edit' || $action === 'view') {
-    if ($product_id) {
-        $product = new Product();
-        $currentProduct = $product->findById($product_id);
-        if (!$currentProduct) {
-            $_SESSION['error_message'] = 'Product not found.';
-            header('Location: /admin/products/');
-            exit;
-        }
+        redirect('/admin/products/');
     }
 }
 
-// Get products list with filtering and pagination
-$filter = $_GET['filter'] ?? 'all';
-$search = $_GET['search'] ?? '';
-$category = $_GET['category'] ?? '';
-$vendor = $_GET['vendor'] ?? '';
+// Get products for listing
+$product = new Product();
+$category = new Category();
+
+// Initialize vendor variable to prevent undefined errors
+$vendor = null;
+if (class_exists('Vendor')) {
+    $vendor = new Vendor();
+}
+
+// Filters
+$status_filter = $_GET['status'] ?? '';
+$category_filter = $_GET['category_id'] ?? '';
+$vendor_filter = $_GET['vendor_id'] ?? '';
+$search_query = $_GET['search'] ?? '';
+
+// Pagination
 $page = max(1, intval($_GET['page'] ?? 1));
-$limit = 25;
-$offset = ($page - 1) * $limit;
+$per_page = 20;
+$offset = ($page - 1) * $per_page;
 
-$whereConditions = [];
+// Build filter conditions
+$filters = [];
 $params = [];
 
-// Apply filters
-if ($filter !== 'all') {
-    if ($filter === 'low_stock') {
-        $whereConditions[] = "stock_quantity <= low_stock_threshold";
-    } else {
-        $whereConditions[] = "status = ?";
-        $params[] = $filter;
+if (!empty($status_filter)) {
+    $filters[] = "p.status = :status";
+    $params[':status'] = $status_filter;
+}
+
+if (!empty($category_filter)) {
+    $filters[] = "p.category_id = :category_id";
+    $params[':category_id'] = $category_filter;
+}
+
+if (!empty($vendor_filter)) {
+    $filters[] = "p.vendor_id = :vendor_id";
+    $params[':vendor_id'] = $vendor_filter;
+}
+
+if (!empty($search_query)) {
+    $filters[] = "(p.name LIKE :search OR p.sku LIKE :search OR p.description LIKE :search)";
+    $params[':search'] = '%' . $search_query . '%';
+}
+
+$where_clause = !empty($filters) ? 'WHERE ' . implode(' AND ', $filters) : '';
+
+// FIX 3: Updated SQL query to handle missing vendors table gracefully
+// Check if vendors table exists first
+$table_exists_sql = "SHOW TABLES LIKE 'vendors'";
+$table_exists_stmt = $pdo->prepare($table_exists_sql);
+$table_exists_stmt->execute();
+$vendors_table_exists = $table_exists_stmt->fetchColumn();
+
+if ($vendors_table_exists) {
+    // If vendors table exists, use the original query with JOIN
+    $sql = "SELECT p.*, c.name as category_name, v.name as vendor_name 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.category_id 
+            LEFT JOIN vendors v ON p.vendor_id = v.vendor_id 
+            $where_clause 
+            ORDER BY p.created_at DESC 
+            LIMIT :limit OFFSET :offset";
+} else {
+    // If vendors table doesn't exist, query without vendor JOIN
+    $sql = "SELECT p.*, c.name as category_name, 'No Vendor' as vendor_name 
+            FROM products p 
+            LEFT JOIN categories c ON p.category_id = c.category_id 
+            $where_clause 
+            ORDER BY p.created_at DESC 
+            LIMIT :limit OFFSET :offset";
+}
+
+$params[':limit'] = $per_page;
+$params[':offset'] = $offset;
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get total count for pagination
+$count_sql = "SELECT COUNT(*) FROM products p $where_clause";
+$count_params = array_diff_key($params, [':limit' => '', ':offset' => '']);
+$count_stmt = $pdo->prepare($count_sql);
+$count_stmt->execute($count_params);
+$total_products = $count_stmt->fetchColumn();
+$total_pages = ceil($total_products / $per_page);
+
+// Get categories and vendors for filters
+$categories = $category->getAll();
+$vendors = [];
+if ($vendor && $vendors_table_exists) {
+    $vendors = $vendor->getAll();
+}
+
+// Handle specific actions
+if ($action === 'edit' && $product_id) {
+    $current_product = $product->getById($product_id);
+    if (!$current_product) {
+        $_SESSION['error_message'] = 'Product not found.';
+        redirect('/admin/products/');
     }
 }
 
-if (!empty($search)) {
-    $whereConditions[] = "(name LIKE ? OR sku LIKE ? OR description LIKE ?)";
-    $searchTerm = "%$search%";
-    $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
-}
+include_once __DIR__ . '/../../includes/admin_header.php';
+?>
 
-if (!empty($category)) {
-    $whereConditions[] = "category_id = ?";
-    $params[] = $category;
-}
-
-if (!empty($vendor)) {
-    $whereConditions[] = "vendor_id = ?";
-    $params[] = $vendor;
-}
-
-$whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
-
-try {
-    $products = Database::query(
-        "SELECT p.*, c.name as category_name, u.username as vendor_name 
-         FROM products p 
-         LEFT JOIN categories c ON p.category_id = c.id 
-         LEFT JOIN users u ON p.vendor_id = u.id 
-         $whereClause 
-         ORDER BY p.created_at DESC 
-         LIMIT $limit OFFSET $offset",
-        $params
-    )->fetchAll();
-    
-    $totalProducts = Database::query(
-        "SELECT COUNT(*) FROM products p $whereClause",
-        $params
-    )->fetchColumn();
-    
-    $totalPages = ceil($totalProducts / $limit);
-} catch (Exception $e) {
-    $products = [];
-    $totalProducts = 0;
-    $totalPages = 0;
-    error_log("Error fetching products: " . $e->getMessage());
-}
-
-// Get categories and vendors for filters and forms
-try {
-    $categories = Database::query("SELECT id, name FROM categories ORDER BY name")->fetchAll();
-    $vendors = Database::query("SELECT id, username FROM users WHERE role = 'vendor' ORDER BY username")->fetchAll();
-} catch (Exception $e) {
-    $categories = [];
-    $vendors = [];
-}
-
-// Product statistics
-try {
-    $product = new Product();
-    $stats = [
-        'total' => $product->count(),
-        'active' => $product->count("status = 'active'"),
-        'inactive' => $product->count("status = 'inactive'"),
-        'pending' => $product->count("status = 'pending'"),
-        'featured' => $product->count("is_featured = 1"),
-        'low_stock' => Database::query("SELECT COUNT(*) FROM products WHERE stock_quantity <= low_stock_threshold")->fetchColumn(),
-        'out_of_stock' => $product->count("stock_quantity = 0")
-    ];
-} catch (Exception $e) {
-    $stats = [
-        'total' => 0, 'active' => 0, 'inactive' => 0, 'pending' => 0,
-        'featured' => 0, 'low_stock' => 0, 'out_of_stock' => 0
-    ];
-}
-?><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title; ?> - Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .admin-header {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            color: white;
-            padding: 1rem 0;
-        }
-        .stats-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-left: 4px solid #3498db;
-        }
-        .stats-card.success { border-left-color: #27ae60; }
-        .stats-card.warning { border-left-color: #f39c12; }
-        .stats-card.danger { border-left-color: #e74c3c; }
-        .stats-card.info { border-left-color: #17a2b8; }
-        .product-image {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-        }
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 0.25rem 0.5rem;
-        }
-        .stock-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-        .stock-high { background-color: #28a745; }
-        .stock-medium { background-color: #ffc107; }
-        .stock-low { background-color: #fd7e14; }
-        .stock-out { background-color: #dc3545; }
-    </style>
-</head>
-<body>
-    <!-- Admin Header -->
+<div class="admin-container">
     <div class="admin-header">
-        <div class="container-fluid">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h1 class="h3 mb-0">
-                        <i class="fas fa-box me-2"></i>
-                        <?php echo $page_title; ?>
-                    </h1>
-                    <small class="text-white-50">Manage products, inventory, and catalog</small>
-                </div>
-                <div class="col-md-6 text-end">
-                    <a href="/admin/" class="btn btn-outline-light">
-                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
-                    </a>
-                </div>
-            </div>
+        <div class="admin-header-left">
+            <h1><?php echo htmlspecialchars($page_title); ?></h1>
+            <p class="admin-subtitle">Manage your product catalog</p>
+        </div>
+        <div class="admin-header-right">
+            <?php if ($action === 'list'): ?>
+                <a href="?action=create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Product
+                </a>
+                <button type="button" class="btn btn-secondary" onclick="toggleBulkActions()">
+                    <i class="fas fa-list"></i> Bulk Actions
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 
-    <div class="container-fluid py-4">
-        <!-- Success/Error Messages -->
-        <?php if (isset($_SESSION['success_message'])): ?>
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="fas fa-check-circle me-2"></i>
-            <?php echo htmlspecialchars($_SESSION['success_message']); unset($_SESSION['success_message']); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <?php endif; ?>
+    <?php displaySessionMessages(); ?>
 
-        <?php if (isset($_SESSION['error_message'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <?php echo htmlspecialchars($_SESSION['error_message']); unset($_SESSION['error_message']); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <?php endif; ?>
-
-        <?php if ($action === 'list'): ?>
-        <!-- Product Statistics -->
-        <div class="row mb-4">
-            <div class="col-lg-2 col-md-4 mb-3">
-                <div class="stats-card">
-                    <div class="h4 mb-1"><?php echo number_format($stats['total']); ?></div>
-                    <div class="text-muted small">Total Products</div>
+    <?php if ($action === 'list'): ?>
+        <!-- Filters -->
+        <div class="filters-card">
+            <form method="GET" class="filters-form">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select name="status" class="form-control">
+                        <option value="">All Products</option>
+                        <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
+                        <option value="draft" <?php echo $status_filter === 'draft' ? 'selected' : ''; ?>>Draft</option>
+                        <option value="archived" <?php echo $status_filter === 'archived' ? 'selected' : ''; ?>>Archived</option>
+                    </select>
                 </div>
-            </div>
-            <div class="col-lg-2 col-md-4 mb-3">
-                <div class="stats-card success">
-                    <div class="h4 mb-1 text-success"><?php echo number_format($stats['active']); ?></div>
-                    <div class="text-muted small">Active</div>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 mb-3">
-                <div class="stats-card info">
-                    <div class="h4 mb-1 text-info"><?php echo number_format($stats['featured']); ?></div>
-                    <div class="text-muted small">Featured</div>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 mb-3">
-                <div class="stats-card warning">
-                    <div class="h4 mb-1 text-warning"><?php echo number_format($stats['low_stock']); ?></div>
-                    <div class="text-muted small">Low Stock</div>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 mb-3">
-                <div class="stats-card danger">
-                    <div class="h4 mb-1 text-danger"><?php echo number_format($stats['out_of_stock']); ?></div>
-                    <div class="text-muted small">Out of Stock</div>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 mb-3">
-                <div class="stats-card warning">
-                    <div class="h4 mb-1 text-warning"><?php echo number_format($stats['pending']); ?></div>
-                    <div class="text-muted small">Pending Approval</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filters and Search -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form method="GET" class="row align-items-end">
-                    <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="filter">
-                            <option value="all" <?php echo $filter === 'all' ? 'selected' : ''; ?>>All Products</option>
-                            <option value="active" <?php echo $filter === 'active' ? 'selected' : ''; ?>>Active</option>
-                            <option value="inactive" <?php echo $filter === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
-                            <option value="pending" <?php echo $filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                            <option value="low_stock" <?php echo $filter === 'low_stock' ? 'selected' : ''; ?>>Low Stock</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Category</label>
-                        <select class="form-select" name="category">
-                            <option value="">All Categories</option>
-                            <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo $cat['id']; ?>" <?php echo $category == $cat['id'] ? 'selected' : ''; ?>>
+                
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select name="category_id" class="form-control">
+                        <option value="">All Categories</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo $cat['category_id']; ?>" 
+                                    <?php echo $category_filter == $cat['category_id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($cat['name']); ?>
                             </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Vendor</label>
-                        <select class="form-select" name="vendor">
-                            <option value="">All Vendors</option>
-                            <?php foreach ($vendors as $v): ?>
-                            <option value="<?php echo $v['id']; ?>" <?php echo $vendor == $v['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($v['username']); ?>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <?php if (!empty($vendors)): ?>
+                <div class="filter-group">
+                    <label>Vendor</label>
+                    <select name="vendor_id" class="form-control">
+                        <option value="">All Vendors</option>
+                        <?php foreach ($vendors as $v): ?>
+                            <option value="<?php echo $v['vendor_id']; ?>" 
+                                    <?php echo $vendor_filter == $v['vendor_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($v['name']); ?>
                             </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Search</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="search" placeholder="Search products..." 
-                                   value="<?php echo htmlspecialchars($search); ?>">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <a href="?action=create" class="btn btn-primary w-100">
-                            <i class="fas fa-plus me-1"></i> Add Product
-                        </a>
-                    </div>
-                </form>
-            </div>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+                
+                <div class="filter-group search-group">
+                    <label>Search</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Search products..." 
+                           value="<?php echo htmlspecialchars($search_query); ?>">
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a href="?" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
         </div>
 
-        <!-- Products Table -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Products (<?php echo number_format($totalProducts); ?> total)</h5>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleBulkActions()">
-                        <i class="fas fa-tasks me-1"></i> Bulk Actions
-                    </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <form method="POST" id="bulkForm">
-                    <?php echo csrfTokenInput(); ?>
-                    <input type="hidden" name="action" value="bulk_action">
-                    
-                    <div id="bulkActionsBar" class="bg-light p-3 border-bottom" style="display: none;">
-                        <div class="row align-items-center">
-                            <div class="col-md-4">
-                                <select class="form-select" name="bulk_action_type" required>
-                                    <option value="">Select Action</option>
-                                    <option value="activate">Activate</option>
-                                    <option value="deactivate">Deactivate</option>
-                                    <option value="feature">Feature</option>
-                                    <option value="unfeature">Unfeature</option>
-                                    <option value="delete">Delete</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-warning" 
-                                        onclick="return confirm('Apply bulk action to selected products?')">
-                                    Apply to Selected
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="toggleBulkActions()">
-                                    Cancel
-                                </button>
-                            </div>
-                            <div class="col-md-4 text-end">
-                                <small class="text-muted">Select products below to apply bulk actions</small>
-                            </div>
-                        </div>
+        <!-- Bulk Actions (Hidden by default) -->
+        <div id="bulk-actions" class="bulk-actions-card" style="display: none;">
+            <form method="POST" id="bulk-form">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+                <div class="bulk-actions-content">
+                    <div class="bulk-selection">
+                        <label>
+                            <input type="checkbox" id="select-all"> Select All
+                        </label>
+                        <span class="selected-count">0 selected</span>
                     </div>
                     
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="bulk-actions-buttons">
+                        <select name="bulk_status" class="form-control">
+                            <option value="">Change Status</option>
+                            <option value="active">Active</option>
+                            <option value="draft">Draft</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                        
+                        <button type="submit" name="action" value="bulk_update_status" 
+                                class="btn btn-secondary" onclick="return confirmBulkAction('update status')">
+                            Update Status
+                        </button>
+                        
+                        <button type="submit" name="action" value="bulk_delete" 
+                                class="btn btn-danger" onclick="return confirmBulkAction('delete')">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Products List -->
+        <div class="data-table-card">
+            <div class="table-header">
+                <h3>Products (<?php echo $total_products; ?> total)</h3>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="bulk-checkbox-header" style="display: none;">
+                                <input type="checkbox" id="table-select-all">
+                            </th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Category</th>
+                            <?php if ($vendors_table_exists): ?>
+                            <th>Vendor</th>
+                            <?php endif; ?>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($products)): ?>
+                            <tr>
+                                <td colspan="<?php echo $vendors_table_exists ? '9' : '8'; ?>" class="no-data">
+                                    <div class="no-data-content">
+                                        <i class="fas fa-box-open"></i>
+                                        <h4>No products found</h4>
+                                        <p>Get started by adding your first product.</p>
+                                        <a href="?action=create" class="btn btn-primary">Add Product</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($products as $prod): ?>
                                 <tr>
-                                    <th width="30">
-                                        <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleAllProducts()">
-                                    </th>
-                                    <th>Product</th>
-                                    <th>SKU</th>
-                                    <th>Price</th>
-                                    <th>Stock</th>
-                                    <th>Category</th>
-                                    <th>Vendor</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (empty($products)): ?>
-                                <tr>
-                                    <td colspan="9" class="text-center py-4">
-                                        <i class="fas fa-box fa-3x text-muted mb-3"></i>
-                                        <div class="h5 text-muted">No products found</div>
-                                        <p class="text-muted">Try adjusting your search or filter criteria.</p>
+                                    <td class="bulk-checkbox-cell" style="display: none;">
+                                        <input type="checkbox" class="product-checkbox" 
+                                               name="product_ids[]" value="<?php echo $prod['product_id']; ?>">
                                     </td>
-                                </tr>
-                                <?php else: ?>
-                                <?php foreach ($products as $prod): ?>
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" class="form-check-input product-checkbox" 
-                                               name="product_ids[]" value="<?php echo $prod['id']; ?>">
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <?php if (!empty($prod['image_url'])): ?>
-                                            <img src="<?php echo htmlspecialchars($prod['image_url']); ?>" 
-                                                 class="product-image me-3" alt="Product">
-                                            <?php else: ?>
-                                            <div class="product-image me-3 bg-light d-flex align-items-center justify-content-center">
-                                                <i class="fas fa-image text-muted"></i>
+                                    <td class="product-cell">
+                                        <div class="product-info">
+                                            <div class="product-image">
+                                                <?php if (!empty($prod['image_url'])): ?>
+                                                    <img src="<?php echo htmlspecialchars($prod['image_url']); ?>" 
+                                                         alt="<?php echo htmlspecialchars($prod['name']); ?>">
+                                                <?php else: ?>
+                                                    <div class="no-image">
+                                                        <i class="fas fa-image"></i>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
-                                            <?php endif; ?>
-                                            <div>
-                                                <div class="fw-bold"><?php echo htmlspecialchars($prod['name']); ?></div>
-                                                <?php if ($prod['is_featured']): ?>
-                                                <span class="badge bg-warning text-dark">Featured</span>
+                                            <div class="product-details">
+                                                <h4><?php echo htmlspecialchars($prod['name']); ?></h4>
+                                                <?php if (!empty($prod['short_description'])): ?>
+                                                    <p class="product-description">
+                                                        <?php 
+                                                        // FIX 2: Proper handling of short_description to avoid null parameter
+                                                        $description = $prod['short_description'] !== null ? $prod['short_description'] : '';
+                                                        echo htmlspecialchars(substr($description, 0, 100)) . 
+                                                             (strlen($description) > 100 ? '...' : ''); 
+                                                        ?>
+                                                    </p>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="sku-cell">
                                         <code><?php echo htmlspecialchars($prod['sku']); ?></code>
                                     </td>
-                                    <td>
-                                        <div class="fw-bold">$<?php echo number_format($prod['price'], 2); ?></div>
-                                        <?php if ($prod['compare_price'] && $prod['compare_price'] > $prod['price']): ?>
-                                        <small class="text-muted text-decoration-line-through">
-                                            $<?php echo number_format($prod['compare_price'], 2); ?>
-                                        </small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <?php
-                                            $stockLevel = 'high';
-                                            if ($prod['stock_quantity'] == 0) {
-                                                $stockLevel = 'out';
-                                            } elseif ($prod['stock_quantity'] <= $prod['low_stock_threshold']) {
-                                                $stockLevel = 'low';
-                                            } elseif ($prod['stock_quantity'] <= $prod['low_stock_threshold'] * 2) {
-                                                $stockLevel = 'medium';
-                                            }
-                                            ?>
-                                            <span class="stock-indicator stock-<?php echo $stockLevel; ?>"></span>
-                                            <span><?php echo number_format($prod['stock_quantity']); ?></span>
+                                    <td class="price-cell">
+                                        <div class="price-info">
+                                            <span class="current-price">$<?php echo number_format($prod['price'], 2); ?></span>
+                                            <?php if (!empty($prod['compare_price']) && $prod['compare_price'] > $prod['price']): ?>
+                                                <span class="compare-price">$<?php echo number_format($prod['compare_price'], 2); ?></span>
+                                            <?php endif; ?>
                                         </div>
-                                        <?php if ($prod['track_inventory'] && $prod['stock_quantity'] <= $prod['low_stock_threshold']): ?>
-                                        <small class="text-warning">Low stock</small>
+                                    </td>
+                                    <td class="stock-cell">
+                                        <?php if ($prod['track_inventory']): ?>
+                                            <div class="stock-info">
+                                                <span class="stock-quantity 
+                                                    <?php echo $prod['stock_quantity'] <= ($prod['low_stock_threshold'] ?? 10) ? 'low-stock' : ''; ?>">
+                                                    <?php echo number_format($prod['stock_quantity']); ?>
+                                                </span>
+                                                <?php if ($prod['stock_quantity'] <= ($prod['low_stock_threshold'] ?? 10)): ?>
+                                                    <span class="stock-warning">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="no-tracking">Not tracked</span>
                                         <?php endif; ?>
                                     </td>
+                                    <td><?php echo htmlspecialchars($prod['category_name'] ?? 'No Category'); ?></td>
+                                    <?php if ($vendors_table_exists): ?>
+                                    <td><?php echo htmlspecialchars($prod['vendor_name'] ?? 'No Vendor'); ?></td>
+                                    <?php endif; ?>
                                     <td>
-                                        <?php echo htmlspecialchars($prod['category_name'] ?? 'Uncategorized'); ?>
-                                    </td>
-                                    <td>
-                                        <?php echo htmlspecialchars($prod['vendor_name'] ?? 'Admin'); ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $statusClass = [
-                                            'active' => 'success',
-                                            'inactive' => 'secondary',
-                                            'pending' => 'warning'
-                                        ][$prod['status']] ?? 'secondary';
-                                        ?>
-                                        <span class="badge bg-<?php echo $statusClass; ?> status-badge">
+                                        <span class="status-badge status-<?php echo $prod['status']; ?>">
                                             <?php echo ucfirst($prod['status']); ?>
                                         </span>
+                                        <?php 
+                                        // FIX 1 CONTINUED: Properly check if 'is_featured' exists and has value
+                                        if (isset($prod['is_featured']) && $prod['is_featured']): 
+                                        ?>
+                                            <span class="featured-badge">
+                                                <i class="fas fa-star"></i>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="?action=view&id=<?php echo $prod['id']; ?>" 
-                                               class="btn btn-sm btn-outline-info" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="?action=edit&id=<?php echo $prod['id']; ?>" 
-                                               class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <td class="actions-cell">
+                                        <div class="action-buttons">
+                                            <a href="?action=edit&id=<?php echo $prod['product_id']; ?>" 
+                                               class="btn btn-sm btn-secondary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-success" 
-                                                    title="Quick Stock Update" 
-                                                    onclick="updateStock(<?php echo $prod['id']; ?>, <?php echo $prod['stock_quantity']; ?>)">
-                                                <i class="fas fa-cubes"></i>
+                                            <a href="?action=view&id=<?php echo $prod['product_id']; ?>" 
+                                               class="btn btn-sm btn-info" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                    onclick="confirmDelete(<?php echo $prod['product_id']; ?>, '<?php echo htmlspecialchars($prod['name'], ENT_QUOTES); ?>')" 
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
-                                <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
             
-            <!-- Pagination -->
-            <?php if ($totalPages > 1): ?>
-            <div class="card-footer">
-                <nav aria-label="Products pagination">
-                    <ul class="pagination justify-content-center mb-0">
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $i; ?>&filter=<?php echo urlencode($filter); ?>&search=<?php echo urlencode($search); ?>&category=<?php echo urlencode($category); ?>&vendor=<?php echo urlencode($vendor); ?>">
-                                <?php echo $i; ?>
-                            </a>
-                        </li>
-                        <?php endfor; ?>
-                    </ul>
-                </nav>
-            </div>
+            <?php if ($total_pages > 1): ?>
+                <div class="pagination-wrapper">
+                    <?php echo generatePagination($page, $total_pages, $_GET); ?>
+                </div>
             <?php endif; ?>
         </div>
 
-        <?php elseif ($action === 'create' || $action === 'edit'): ?>
-        <!-- Product Form -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <?php echo $action === 'create' ? 'Add New Product' : 'Edit Product'; ?>
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="POST">
-                    <?php echo csrfTokenInput(); ?>
-                    <input type="hidden" name="action" value="<?php echo $action === 'create' ? 'create_product' : 'update_product'; ?>">
-                    <?php if ($action === 'edit'): ?>
-                    <input type="hidden" name="product_id" value="<?php echo $currentProduct['id']; ?>">
-                    <?php endif; ?>
-                    
-                    <div class="row">
-                        <div class="col-md-8">
-                            <!-- Basic Information -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Basic Information</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="name" class="form-label">Product Name *</label>
-                                        <input type="text" class="form-control" id="name" name="name" 
-                                               value="<?php echo htmlspecialchars($currentProduct['name'] ?? ''); ?>" required>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="short_description" class="form-label">Short Description</label>
-                                        <textarea class="form-control" id="short_description" name="short_description" rows="2"><?php echo htmlspecialchars($currentProduct['short_description'] ?? ''); ?></textarea>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="description" class="form-label">Full Description</label>
-                                        <textarea class="form-control" id="description" name="description" rows="6"><?php echo htmlspecialchars($currentProduct['description'] ?? ''); ?></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- SEO Settings -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6 class="mb-0">SEO Settings</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="meta_title" class="form-label">Meta Title</label>
-                                        <input type="text" class="form-control" id="meta_title" name="meta_title" 
-                                               value="<?php echo htmlspecialchars($currentProduct['meta_title'] ?? ''); ?>">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="meta_description" class="form-label">Meta Description</label>
-                                        <textarea class="form-control" id="meta_description" name="meta_description" rows="3"><?php echo htmlspecialchars($currentProduct['meta_description'] ?? ''); ?></textarea>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="tags" class="form-label">Tags (comma separated)</label>
-                                        <input type="text" class="form-control" id="tags" name="tags" 
-                                               value="<?php echo htmlspecialchars($currentProduct['tags'] ?? ''); ?>">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <!-- Product Settings -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Product Settings</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="sku" class="form-label">SKU *</label>
-                                        <input type="text" class="form-control" id="sku" name="sku" 
-                                               value="<?php echo htmlspecialchars($currentProduct['sku'] ?? ''); ?>" required>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="category_id" class="form-label">Category *</label>
-                                        <select class="form-select" id="category_id" name="category_id" required>
-                                            <option value="">Select Category</option>
-                                            <?php foreach ($categories as $cat): ?>
-                                            <option value="<?php echo $cat['id']; ?>" 
-                                                    <?php echo ($currentProduct['category_id'] ?? '') == $cat['id'] ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($cat['name']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="vendor_id" class="form-label">Vendor</label>
-                                        <select class="form-select" id="vendor_id" name="vendor_id">
-                                            <option value="">Select Vendor (Optional)</option>
-                                            <?php foreach ($vendors as $v): ?>
-                                            <option value="<?php echo $v['id']; ?>" 
-                                                    <?php echo ($currentProduct['vendor_id'] ?? '') == $v['id'] ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($v['username']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="status" class="form-label">Status *</label>
-                                        <select class="form-select" id="status" name="status" required>
-                                            <option value="active" <?php echo ($currentProduct['status'] ?? '') === 'active' ? 'selected' : ''; ?>>Active</option>
-                                            <option value="inactive" <?php echo ($currentProduct['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
-                                            <option value="pending" <?php echo ($currentProduct['status'] ?? '') === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" 
-                                               <?php echo ($currentProduct['is_featured'] ?? 0) ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="is_featured">
-                                            Featured Product
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Pricing -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Pricing</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="price" class="form-label">Price *</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="price" name="price" 
-                                                   step="0.01" min="0" 
-                                                   value="<?php echo $currentProduct['price'] ?? ''; ?>" required>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="compare_price" class="form-label">Compare Price</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="compare_price" name="compare_price" 
-                                                   step="0.01" min="0" 
-                                                   value="<?php echo $currentProduct['compare_price'] ?? ''; ?>">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="cost_price" class="form-label">Cost Price</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="cost_price" name="cost_price" 
-                                                   step="0.01" min="0" 
-                                                   value="<?php echo $currentProduct['cost_price'] ?? ''; ?>">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Inventory -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Inventory</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="track_inventory" name="track_inventory" 
-                                               <?php echo ($currentProduct['track_inventory'] ?? 1) ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="track_inventory">
-                                            Track Inventory
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="stock_quantity" class="form-label">Stock Quantity</label>
-                                        <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" 
-                                               min="0" value="<?php echo $currentProduct['stock_quantity'] ?? 0; ?>">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="low_stock_threshold" class="form-label">Low Stock Threshold</label>
-                                        <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" 
-                                               min="0" value="<?php echo $currentProduct['low_stock_threshold'] ?? 10; ?>">
-                                    </div>
-                                    
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="allow_backorders" name="allow_backorders" 
-                                               <?php echo ($currentProduct['allow_backorders'] ?? 0) ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="allow_backorders">
-                                            Allow Backorders
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="weight" class="form-label">Weight (kg)</label>
-                                        <input type="number" class="form-control" id="weight" name="weight" 
-                                               step="0.01" min="0" 
-                                               value="<?php echo $currentProduct['weight'] ?? ''; ?>">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>
-                                <?php echo $action === 'create' ? 'Create Product' : 'Update Product'; ?>
-                            </button>
-                            <a href="/admin/products/" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i> Cancel
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <?php endif; ?>
-    </div>
+    <?php endif; ?>
+</div>
 
-    <!-- Quick Stock Update Modal -->
-    <div class="modal fade" id="stockModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Update Stock Quantity</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST">
-                    <?php echo csrfTokenInput(); ?>
-                    <input type="hidden" name="action" value="update_stock">
-                    <input type="hidden" name="product_id" id="stockProductId">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="stockQuantity" class="form-label">New Stock Quantity</label>
-                            <input type="number" class="form-control" id="stockQuantity" name="stock_quantity" min="0" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Stock</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+<script>
+// Bulk actions functionality
+function toggleBulkActions() {
+    const bulkActions = document.getElementById('bulk-actions');
+    const checkboxHeaders = document.querySelectorAll('.bulk-checkbox-header');
+    const checkboxCells = document.querySelectorAll('.bulk-checkbox-cell');
+    
+    if (bulkActions.style.display === 'none') {
+        bulkActions.style.display = 'block';
+        checkboxHeaders.forEach(header => header.style.display = 'table-cell');
+        checkboxCells.forEach(cell => cell.style.display = 'table-cell');
+    } else {
+        bulkActions.style.display = 'none';
+        checkboxHeaders.forEach(header => header.style.display = 'none');
+        checkboxCells.forEach(cell => cell.style.display = 'none');
+    }
+}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function toggleBulkActions() {
-            const bar = document.getElementById('bulkActionsBar');
-            const checkboxes = document.querySelectorAll('.product-checkbox');
+// Select all functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckboxes = document.querySelectorAll('#select-all, #table-select-all');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    const selectedCount = document.querySelector('.selected-count');
+    
+    selectAllCheckboxes.forEach(selectAll => {
+        selectAll.addEventListener('change', function() {
+            productCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
             
-            if (bar.style.display === 'none') {
-                bar.style.display = 'block';
-            } else {
-                bar.style.display = 'none';
-                // Uncheck all
-                document.getElementById('selectAll').checked = false;
-                checkboxes.forEach(cb => cb.checked = false);
-            }
-        }
+            // Sync other select all checkboxes
+            selectAllCheckboxes.forEach(other => {
+                if (other !== this) other.checked = this.checked;
+            });
+        });
+    });
+    
+    productCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    function updateSelectedCount() {
+        const checkedCount = document.querySelectorAll('.product-checkbox:checked').length;
+        selectedCount.textContent = `${checkedCount} selected`;
         
-        function toggleAllProducts() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.product-checkbox');
-            
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-        }
+        // Update select all checkboxes
+        const allChecked = checkedCount === productCheckboxes.length;
+        const someChecked = checkedCount > 0;
         
-        function updateStock(productId, currentStock) {
-            document.getElementById('stockProductId').value = productId;
-            document.getElementById('stockQuantity').value = currentStock;
-            new bootstrap.Modal(document.getElementById('stockModal')).show();
-        }
-    </script>
-</body>
-</html>
+        selectAllCheckboxes.forEach(selectAll => {
+            selectAll.checked = allChecked;
+            selectAll.indeterminate = someChecked && !allChecked;
+        });
+    }
+});
+
+function confirmBulkAction(action) {
+    const checkedCount = document.querySelectorAll('.product-checkbox:checked').length;
+    if (checkedCount === 0) {
+        alert('Please select at least one product.');
+        return false;
+    }
+    return confirm(`Are you sure you want to ${action} ${checkedCount} product(s)?`);
+}
+
+function confirmDelete(productId, productName) {
+    if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+            <input type="hidden" name="action" value="delete_product">
+            <input type="hidden" name="product_id" value="${productId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+
+<?php include_once __DIR__ . '/../../includes/admin_footer.php'; ?>

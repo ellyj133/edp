@@ -93,11 +93,11 @@ class Wishlist extends BaseModel {
     
     public function getUserWishlist($userId, $limit = null) {
         $sql = "
-            SELECT w.*, p.name, p.price, p.status, pi.file_path as image_url,
-                   v.business_name as vendor_name
+            SELECT w.*, p.name, p.price, p.status, p.stock_quantity, pi.image_path as image_url,
+                   v.business_name as vendor_name, w.created_at as added_at
             FROM {$this->table} w
             JOIN products p ON w.product_id = p.id
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_thumbnail = 1
             LEFT JOIN vendors v ON p.vendor_id = v.id
             WHERE w.user_id = ? AND p.status = 'active'
             ORDER BY w.created_at DESC
@@ -135,15 +135,11 @@ class Review extends BaseModel {
     
     public function getProductReviews($productId, $limit = null, $offset = 0) {
         $sql = "
-            SELECT r.*, up.first_name, up.last_name, up.display_name,
-                   CASE 
-                       WHEN up.display_name IS NOT NULL AND up.display_name != '' THEN up.display_name
-                       WHEN up.first_name IS NOT NULL THEN up.first_name || ' ' || COALESCE(up.last_name, '')
-                       ELSE 'Anonymous'
-                   END as reviewer_name
+            SELECT r.*, u.username,
+                   COALESCE(u.username, 'Anonymous') as reviewer_name
             FROM {$this->table} r
-            LEFT JOIN user_profiles up ON r.user_id = up.user_id
-            WHERE r.product_id = ? AND r.status = 'active' AND r.is_approved = 1
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.product_id = ? AND r.status = 'approved'
             ORDER BY r.created_at DESC
         ";
         
@@ -182,7 +178,7 @@ class Review extends BaseModel {
                 SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
                 SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
             FROM {$this->table} 
-            WHERE product_id = ? AND status = 'active' AND is_approved = 1
+            WHERE product_id = ? AND status = 'approved'
         ");
         $stmt->execute([$productId]);
         return $stmt->fetch();
@@ -220,10 +216,10 @@ class Review extends BaseModel {
     
     public function getPending() {
         $stmt = $this->db->prepare("
-            SELECT r.*, p.name as product_name, up.first_name, up.last_name 
+            SELECT r.*, p.name as product_name, u.username
             FROM {$this->table} r 
             JOIN products p ON r.product_id = p.id 
-            LEFT JOIN user_profiles up ON r.user_id = up.user_id
+            LEFT JOIN users u ON r.user_id = u.id
             WHERE r.status = 'pending' 
             ORDER BY r.created_at ASC
         ");
@@ -575,11 +571,11 @@ class Order extends BaseModel {
     
     public function getVendorOrders($vendorId, $limit = null, $offset = 0) {
         $sql = "
-            SELECT DISTINCT o.*, up.first_name, up.last_name, u.email 
+            SELECT DISTINCT o.*, u.username, u.email,
+                   COALESCE(u.username, 'Customer') as customer_name
             FROM {$this->table} o 
             JOIN order_items oi ON o.id = oi.order_id 
             JOIN users u ON o.user_id = u.id 
-            LEFT JOIN user_profiles up ON u.id = up.user_id
             WHERE oi.vendor_id = ? 
             ORDER BY o.created_at DESC
         ";
@@ -638,10 +634,9 @@ class Vendor extends BaseModel {
     
     public function getApproved($limit = null, $offset = 0) {
         $sql = "
-            SELECT v.*, u.username, u.email, up.first_name, up.last_name 
+            SELECT v.*, u.username, u.email
             FROM {$this->table} v 
             JOIN users u ON v.user_id = u.id 
-            LEFT JOIN user_profiles up ON u.id = up.user_id
             WHERE v.status = 'approved'
             ORDER BY v.created_at DESC
         ";
@@ -661,10 +656,9 @@ class Vendor extends BaseModel {
     
     public function getPending() {
         $stmt = $this->db->prepare("
-            SELECT v.*, u.username, u.email, up.first_name, up.last_name 
+            SELECT v.*, u.username, u.email
             FROM {$this->table} v 
             JOIN users u ON v.user_id = u.id 
-            LEFT JOIN user_profiles up ON u.id = up.user_id
             WHERE v.status = 'pending'
             ORDER BY v.created_at ASC
         ");
@@ -736,9 +730,9 @@ class SupportTicket extends BaseModel {
         if ($ticket) {
             // Get messages
             $stmt = $this->db->prepare("
-                SELECT sm.*, up.display_name, up.first_name, up.last_name
+                SELECT sm.*, u.username
                 FROM support_messages sm
-                LEFT JOIN user_profiles up ON sm.user_id = up.user_id
+                LEFT JOIN users u ON sm.user_id = u.id
                 WHERE sm.ticket_id = ?
                 ORDER BY sm.created_at ASC
             ");
@@ -777,7 +771,7 @@ class Setting extends BaseModel {
     protected $table = 'settings';
     
     public function getSetting($key, $default = null) {
-        $stmt = $this->db->prepare("SELECT value, type FROM {$this->table} WHERE key = ?");
+        $stmt = $this->db->prepare("SELECT value, type FROM {$this->table} WHERE `key` = ?");
         $stmt->execute([$key]);
         $result = $stmt->fetch();
         
@@ -828,7 +822,7 @@ class Setting extends BaseModel {
     }
     
     public function getPublicSettings() {
-        $stmt = $this->db->prepare("SELECT key, value, type FROM {$this->table} WHERE is_public = 1");
+        $stmt = $this->db->prepare("SELECT `key`, value, type FROM {$this->table} WHERE is_public = 1");
         $stmt->execute();
         $results = $stmt->fetchAll();
         
@@ -904,14 +898,14 @@ class Recommendation extends BaseModel {
     
     public function getViewedTogether($productId, $limit = 6) {
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(*) as view_count, pi.file_path as image_url
+            SELECT p.*, COUNT(*) as view_count, pi.image_path as image_url
             FROM {$this->table} ua1 
             JOIN {$this->table} ua2 ON ua1.user_id = ua2.user_id 
                 AND JSON_EXTRACT(ua1.activity_data, '$.product_id') != JSON_EXTRACT(ua2.activity_data, '$.product_id')
                 AND ua1.activity_type = 'view_product'
                 AND ua2.activity_type = 'view_product'
             JOIN products p ON CAST(JSON_EXTRACT(ua2.activity_data, '$.product_id') AS INTEGER) = p.id
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_thumbnail = 1
             WHERE JSON_EXTRACT(ua1.activity_data, '$.product_id') = ? AND p.status = 'active'
             GROUP BY p.id 
             ORDER BY view_count DESC, p.created_at DESC 
@@ -923,12 +917,12 @@ class Recommendation extends BaseModel {
     
     public function getPurchasedTogether($productId, $limit = 6) {
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(*) as purchase_count, pi.file_path as image_url
+            SELECT p.*, COUNT(*) as purchase_count, pi.image_path as image_url
             FROM order_items oi1 
             JOIN order_items oi2 ON oi1.order_id = oi2.order_id 
                 AND oi1.product_id != oi2.product_id 
             JOIN products p ON oi2.product_id = p.id 
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_thumbnail = 1
             WHERE oi1.product_id = ? AND p.status = 'active'
             GROUP BY p.id 
             ORDER BY purchase_count DESC, p.created_at DESC 
@@ -942,15 +936,15 @@ class Recommendation extends BaseModel {
         $sql = "
             SELECT p.id, p.name AS title, p.price,
                    COALESCE(SUM(oi.quantity), 0) AS sold,
-                   pi.file_path AS image_url
+                   pi.image_path AS image_url
             FROM products p 
             LEFT JOIN order_items oi ON oi.product_id = p.id
             LEFT JOIN orders o ON o.id = oi.order_id 
               AND o.created_at >= date('now', '-7 days')
               AND o.status IN ('paid','shipped','delivered')
-            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_thumbnail = 1
             WHERE p.status = 'active'
-            GROUP BY p.id, p.name, p.price, pi.file_path
+            GROUP BY p.id, p.name, p.price, pi.image_path
             ORDER BY sold DESC, p.created_at DESC 
             LIMIT ?
         ";
@@ -965,12 +959,12 @@ class Recommendation extends BaseModel {
             SELECT p.*, 
                    COUNT(DISTINCT ua.id) as user_interest_score,
                    AVG(r.rating) as avg_rating,
-                   pi.file_path as image_url
+                   pi.image_path as image_url
             FROM products p 
             LEFT JOIN {$this->table} ua ON JSON_EXTRACT(ua.activity_data, '$.product_id') = p.id
                 AND ua.user_id = ?
-            LEFT JOIN reviews r ON p.id = r.product_id AND r.status = 'active'
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            LEFT JOIN reviews r ON p.id = r.product_id AND r.status = 'approved'
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_thumbnail = 1
             WHERE p.status = 'active'
                 AND p.id NOT IN (
                     SELECT oi.product_id 

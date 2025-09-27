@@ -33,13 +33,12 @@ try {
     error_log("Database connection failed: " . $e->getMessage());
 }
 
+if (!$database_available) {
+    die('Database connection failed. Please check your configuration.');
+}
+
 requireAdminAuth();
 checkPermission('payments.view');
-    require_once __DIR__ . '/../../includes/init.php';
-    // Initialize PDO global variable for this module
-    $pdo = db();
-    requireAdminAuth();
-    checkPermission('payments.view');
 
 // Handle actions
 $action = $_GET['action'] ?? 'list';
@@ -148,23 +147,7 @@ $filters = [
     'date_to' => $_GET['date_to'] ?? ''
 ];
 
-// Initialize with graceful fallback
-require_once __DIR__ . '/../../includes/init.php';
-
-// Database graceful fallback
-$database_available = false;
-$pdo = null;
 try {
-    $pdo = db();
-    $pdo->query('SELECT 1');
-    $database_available = true;
-} catch (Exception $e) {
-    $database_available = false;
-    error_log("Database connection failed: " . $e->getMessage());
-}
-
-requireAdminAuth();
-checkPermission('payments.view');
     // Build WHERE clause for filters
     $where_conditions = [];
     $params = [];
@@ -197,7 +180,9 @@ checkPermission('payments.view');
     $offset = ($page - 1) * $per_page;
     
     $stmt = $pdo->prepare("
-        SELECT p.*, o.id as order_number, (u.first_name || ' ' || u.last_name) as customer_name, u.email as customer_email
+        SELECT p.*, o.order_number, 
+               COALESCE(CONCAT(u.username), 'Guest') as customer_name, 
+               u.email as customer_email
         FROM payments p
         LEFT JOIN orders o ON p.order_id = o.id
         LEFT JOIN users u ON o.user_id = u.id
@@ -219,7 +204,7 @@ checkPermission('payments.view');
     $total_payments = $stmt->fetchColumn();
     $total_pages = ceil($total_payments / $per_page);
     
-    // Get payment statistics
+    // Get payment statistics - Fixed MariaDB compatibility
     $stmt = $pdo->query("
         SELECT 
             COUNT(*) as total_transactions,
@@ -231,13 +216,13 @@ checkPermission('payments.view');
             COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
             COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_count
         FROM payments
-        WHERE DATE(created_at) >= date('now', '-30 days')
+        WHERE DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     ");
     $payment_stats = $stmt->fetch(PDO::FETCH_ASSOC);
     
     // Get recent reconciliations
     $stmt = $pdo->query("
-        SELECT pr.*, u.name as reconciled_by_name
+        SELECT pr.*, u.username as reconciled_by_name
         FROM payment_reconciliations pr
         LEFT JOIN users u ON pr.reconciled_by = u.id
         ORDER BY pr.created_at DESC
@@ -246,9 +231,26 @@ checkPermission('payments.view');
     $reconciliations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get available gateways
-    $stmt = $pdo->query("SELECT DISTINCT gateway FROM payments ORDER BY gateway");
+    $stmt = $pdo->query("SELECT DISTINCT gateway FROM payments WHERE gateway IS NOT NULL ORDER BY gateway");
     $gateways = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
+
+} catch (Exception $e) {
+    $error = "Error loading payment data: " . $e->getMessage();
+    $payments = [];
+    $reconciliations = [];
+    $payment_stats = [
+        'total_transactions' => 0,
+        'captured_amount' => 0,
+        'pending_amount' => 0,
+        'failed_amount' => 0,
+        'refunded_amount' => 0,
+        'captured_count' => 0,
+        'pending_count' => 0,
+        'failed_count' => 0
+    ];
+    $gateways = [];
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -337,14 +339,14 @@ checkPermission('payments.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4>$<?= number_format($payment_stats['captured_amount'], 2) ?></h4>
+                                        <h4>$<?= number_format($payment_stats['captured_amount'] ?? 0, 2) ?></h4>
                                         <p class="mb-0">Captured (30d)</p>
                                     </div>
                                     <div class="align-self-center">
                                         <i class="fas fa-check-circle fa-2x"></i>
                                     </div>
                                 </div>
-                                <small><?= number_format($payment_stats['captured_count']) ?> transactions</small>
+                                <small><?= number_format($payment_stats['captured_count'] ?? 0) ?> transactions</small>
                             </div>
                         </div>
                     </div>
@@ -353,14 +355,14 @@ checkPermission('payments.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4>$<?= number_format($payment_stats['pending_amount'], 2) ?></h4>
+                                        <h4>$<?= number_format($payment_stats['pending_amount'] ?? 0, 2) ?></h4>
                                         <p class="mb-0">Pending (30d)</p>
                                     </div>
                                     <div class="align-self-center">
                                         <i class="fas fa-clock fa-2x"></i>
                                     </div>
                                 </div>
-                                <small><?= number_format($payment_stats['pending_count']) ?> transactions</small>
+                                <small><?= number_format($payment_stats['pending_count'] ?? 0) ?> transactions</small>
                             </div>
                         </div>
                     </div>
@@ -369,14 +371,14 @@ checkPermission('payments.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4>$<?= number_format($payment_stats['failed_amount'], 2) ?></h4>
+                                        <h4>$<?= number_format($payment_stats['failed_amount'] ?? 0, 2) ?></h4>
                                         <p class="mb-0">Failed (30d)</p>
                                     </div>
                                     <div class="align-self-center">
                                         <i class="fas fa-times-circle fa-2x"></i>
                                     </div>
                                 </div>
-                                <small><?= number_format($payment_stats['failed_count']) ?> transactions</small>
+                                <small><?= number_format($payment_stats['failed_count'] ?? 0) ?> transactions</small>
                             </div>
                         </div>
                     </div>
@@ -385,7 +387,7 @@ checkPermission('payments.view');
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4>$<?= number_format($payment_stats['refunded_amount'], 2) ?></h4>
+                                        <h4>$<?= number_format($payment_stats['refunded_amount'] ?? 0, 2) ?></h4>
                                         <p class="mb-0">Refunded (30d)</p>
                                     </div>
                                     <div class="align-self-center">
@@ -448,6 +450,7 @@ checkPermission('payments.view');
                         <h5 class="mb-0">Payment Transactions</h5>
                     </div>
                     <div class="card-body">
+                        <?php if (!empty($payments)): ?>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
@@ -465,26 +468,26 @@ checkPermission('payments.view');
                                 <tbody>
                                     <?php foreach ($payments as $payment): ?>
                                     <tr>
-                                        <td><code><?= htmlspecialchars($payment['transaction_id']) ?></code></td>
+                                        <td><code><?= htmlspecialchars($payment['transaction_id'] ?? 'N/A') ?></code></td>
                                         <td>
-                                            <?php if ($payment['order_number']): ?>
+                                            <?php if (!empty($payment['order_number'])): ?>
                                             <a href="../orders/index.php?action=view&id=<?= $payment['order_id'] ?>">
-                                                #<?= $payment['order_number'] ?>
+                                                #<?= htmlspecialchars($payment['order_number']) ?>
                                             </a>
                                             <?php else: ?>
                                             <span class="text-muted">N/A</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php if ($payment['customer_name']): ?>
+                                            <?php if (!empty($payment['customer_name']) && $payment['customer_name'] !== 'Guest'): ?>
                                             <?= htmlspecialchars($payment['customer_name']) ?><br>
-                                            <small class="text-muted"><?= htmlspecialchars($payment['customer_email']) ?></small>
+                                            <small class="text-muted"><?= htmlspecialchars($payment['customer_email'] ?? '') ?></small>
                                             <?php else: ?>
                                             <span class="text-muted">Guest</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= htmlspecialchars(ucfirst($payment['gateway'])) ?></td>
-                                        <td>$<?= number_format($payment['amount'], 2) ?> <?= htmlspecialchars($payment['currency']) ?></td>
+                                        <td><?= htmlspecialchars(ucfirst($payment['gateway'] ?? 'Unknown')) ?></td>
+                                        <td>$<?= number_format($payment['amount'] ?? 0, 2) ?> <?= htmlspecialchars($payment['currency'] ?? 'USD') ?></td>
                                         <td>
                                             <?php
                                             $status_colors = [
@@ -496,7 +499,7 @@ checkPermission('payments.view');
                                             ];
                                             $color = $status_colors[$payment['status']] ?? 'secondary';
                                             ?>
-                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($payment['status']) ?></span>
+                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($payment['status'] ?? 'Unknown') ?></span>
                                         </td>
                                         <td><?= date('M j, Y g:i A', strtotime($payment['created_at'])) ?></td>
                                         <td>
@@ -516,7 +519,7 @@ checkPermission('payments.view');
                         </div>
                         
                         <!-- Pagination -->
-                        <?php if ($total_pages > 1): ?>
+                        <?php if (isset($total_pages) && $total_pages > 1): ?>
                         <nav aria-label="Payment pagination">
                             <ul class="pagination justify-content-center">
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
@@ -527,6 +530,13 @@ checkPermission('payments.view');
                             </ul>
                         </nav>
                         <?php endif; ?>
+                        <?php else: ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                            <h5>No Payments Found</h5>
+                            <p class="text-muted">No payment records match your current filters.</p>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -536,6 +546,7 @@ checkPermission('payments.view');
                         <h5 class="mb-0">Recent Reconciliations</h5>
                     </div>
                     <div class="card-body">
+                        <?php if (!empty($reconciliations)): ?>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
@@ -553,11 +564,11 @@ checkPermission('payments.view');
                                 <tbody>
                                     <?php foreach ($reconciliations as $recon): ?>
                                     <tr class="<?= $recon['status'] === 'discrepancy' ? 'discrepancy' : '' ?>">
-                                        <td><?= htmlspecialchars(ucfirst($recon['gateway'])) ?></td>
-                                        <td><code><?= htmlspecialchars($recon['batch_id']) ?></code></td>
+                                        <td><?= htmlspecialchars(ucfirst($recon['gateway'] ?? 'Unknown')) ?></td>
+                                        <td><code><?= htmlspecialchars($recon['batch_id'] ?? 'N/A') ?></code></td>
                                         <td><?= date('M j, Y', strtotime($recon['settlement_date'])) ?></td>
-                                        <td>$<?= number_format($recon['expected_amount'], 2) ?></td>
-                                        <td>$<?= number_format($recon['actual_amount'], 2) ?></td>
+                                        <td>$<?= number_format($recon['expected_amount'] ?? 0, 2) ?></td>
+                                        <td>$<?= number_format($recon['actual_amount'] ?? 0, 2) ?></td>
                                         <td>
                                             <?php
                                             $status_colors = [
@@ -568,7 +579,7 @@ checkPermission('payments.view');
                                             ];
                                             $color = $status_colors[$recon['status']] ?? 'secondary';
                                             ?>
-                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($recon['status']) ?></span>
+                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($recon['status'] ?? 'Unknown') ?></span>
                                         </td>
                                         <td><?= htmlspecialchars($recon['reconciled_by_name'] ?? 'System') ?></td>
                                         <td>
@@ -583,6 +594,13 @@ checkPermission('payments.view');
                                 </tbody>
                             </table>
                         </div>
+                        <?php else: ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-balance-scale fa-3x text-muted mb-3"></i>
+                            <h5>No Reconciliations</h5>
+                            <p class="text-muted">No reconciliation records found.</p>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -625,7 +643,7 @@ checkPermission('payments.view');
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Transaction Count</label>
-                                    <input type="number" name="transaction_count" class="form-control" min="0">
+                                    <input type="number" name="transaction_count" class="form-control" min="0" value="0">
                                 </div>
                             </div>
                             
@@ -642,7 +660,7 @@ checkPermission('payments.view');
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Fee Amount</label>
-                                    <input type="number" name="fee_amount" class="form-control" step="0.01">
+                                    <input type="number" name="fee_amount" class="form-control" step="0.01" value="0">
                                 </div>
                                 
                                 <div class="mb-3">

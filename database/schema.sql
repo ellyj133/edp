@@ -1,405 +1,21 @@
--- E-Commerce Platform Database Schema
--- MariaDB/MySQL Complete Schema with 240+ Tables  
--- Converted from SQLite to MariaDB/MySQL
--- Updated: 2025-09-27
+-- phpMyAdmin SQL Dump
+-- version 5.2.2
+-- https://www.phpmyadmin.net/
+--
+-- Host: localhost
+-- Generation Time: Sep 27, 2025 at 01:33 PM
+-- Server version: 10.11.13-MariaDB-0ubuntu0.24.04.1
+-- PHP Version: 8.3.6
 
-SET foreign_key_checks = 0;
-SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO';
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
--- Core Platform Configuration
--- This schema includes 240+ tables for a complete e-commerce platform
 
--- E-Commerce Platform Database Schema
--- MariaDB/MySQL Compatible Version
--- Updated: 2025-09-27
-
-SET foreign_key_checks = 1;
-
--- Core Tables (existing)
--- users, products, orders, cart, categories, vendors, product_images, product_variants
--- These are maintained as they already exist
-
--- Extended Tables for Full E-Commerce Functionality
-
--- User Profiles Table
-CREATE TABLE IF NOT EXISTS user_profiles (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL UNIQUE,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    display_name VARCHAR(100),
-    bio TEXT,
-    avatar_url VARCHAR(500),
-    phone VARCHAR(20),
-    date_of_birth DATE,
-    gender VARCHAR(20),
-    language VARCHAR(5) DEFAULT 'en',
-    timezone VARCHAR(50) DEFAULT 'UTC',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- User Addresses Table
-CREATE TABLE IF NOT EXISTS addresses (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    type VARCHAR(20) DEFAULT 'both', -- billing, shipping, both
-    label VARCHAR(50),
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    company VARCHAR(100),
-    address_line1 VARCHAR(255) NOT NULL,
-    address_line2 VARCHAR(255),
-    city VARCHAR(100) NOT NULL,
-    state VARCHAR(100) NOT NULL,
-    postal_code VARCHAR(20) NOT NULL,
-    country VARCHAR(2) DEFAULT 'US',
-    phone VARCHAR(20),
-    is_default TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Order Items Table
-CREATE TABLE IF NOT EXISTS order_items (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    order_id INT(11) NOT NULL,
-    product_id INT(11) NOT NULL,
-    vendor_id INT(11),
-    quantity INT(11) NOT NULL DEFAULT 1,
-    unit_price DECIMAL(10,2) NOT NULL,
-    total_price DECIMAL(10,2) NOT NULL,
-    product_name VARCHAR(255) NOT NULL,
-    product_sku VARCHAR(100),
-    product_image VARCHAR(500),
-    status VARCHAR(50) DEFAULT 'pending',
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_order_id (order_id),
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    INDEX idx_product_id (product_id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    INDEX idx_vendor_id (vendor_id),
-    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
-);
-
--- Wishlists Table
-CREATE TABLE IF NOT EXISTS wishlists (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    product_id INT(11) NOT NULL,
-    variant_info TEXT, -- JSON for product variants
-    notes TEXT,
-    priority VARCHAR(20) DEFAULT 'medium', -- low, medium, high
-    is_public TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_product_id (product_id),
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    UNIQUE(user_id, product_id)
-);
-
--- Product Reviews Table
-CREATE TABLE IF NOT EXISTS reviews (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    product_id INT(11) NOT NULL,
-    user_id INT(11) NOT NULL,
-    order_id INT(11),
-    rating INT(11) NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    title VARCHAR(255),
-    review_text TEXT,
-    pros TEXT,
-    cons TEXT,
-    is_verified_purchase TINYINT(1) DEFAULT 0,
-    is_approved TINYINT(1) DEFAULT 1,
-    approved_by INT(11),
-    helpful_votes INT(11) DEFAULT 0,
-    total_votes INT(11) DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'active', -- active, hidden, spam
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_product_id (product_id),
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_order_id (order_id),
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
-    INDEX idx_approved_by (approved_by),
-    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Notifications Table
-CREATE TABLE IF NOT EXISTS notifications (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    type VARCHAR(50) NOT NULL, -- order, product, system, promotion
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    data TEXT, -- JSON data
-    is_read TINYINT(1) DEFAULT 0,
-    read_at TIMESTAMP,
-    action_url VARCHAR(500),
-    expires_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Transactions Table
-CREATE TABLE IF NOT EXISTS transactions (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    order_id INT(11),
-    type VARCHAR(50) NOT NULL, -- payment, refund, payout, fee
-    amount DECIMAL(15,2) NOT NULL,
-    currency VARCHAR(3) DEFAULT 'USD',
-    status VARCHAR(50) DEFAULT 'pending', -- pending, completed, failed, cancelled
-    payment_method VARCHAR(50),
-    gateway VARCHAR(50),
-    gateway_transaction_id VARCHAR(255),
-    gateway_fee DECIMAL(10,2) DEFAULT 0,
-    platform_fee DECIMAL(10,2) DEFAULT 0,
-    net_amount DECIMAL(15,2),
-    description TEXT,
-    metadata TEXT, -- JSON
-    processed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    INDEX idx_order_id (order_id),
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
-);
-
--- Payment Methods Table
-CREATE TABLE IF NOT EXISTS payment_methods (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11) NOT NULL,
-    type VARCHAR(50) NOT NULL, -- card, paypal, bank, crypto
-    provider VARCHAR(50) NOT NULL,
-    token VARCHAR(255) NOT NULL,
-    last_four VARCHAR(4),
-    brand VARCHAR(50),
-    exp_month INT(11),
-    exp_year INT(11),
-    is_default TINYINT(1) DEFAULT 0,
-    is_active TINYINT(1) DEFAULT 1,
-    metadata TEXT, -- JSON
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Coupons Table
-CREATE TABLE IF NOT EXISTS coupons (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    type VARCHAR(20) NOT NULL, -- percentage, fixed_amount, free_shipping
-    value DECIMAL(10,2) NOT NULL,
-    minimum_amount DECIMAL(10,2) DEFAULT 0,
-    maximum_discount DECIMAL(10,2),
-    usage_limit INT(11),
-    usage_count INT(11) DEFAULT 0,
-    user_limit INT(11) DEFAULT 1,
-    is_active TINYINT(1) DEFAULT 1,
-    starts_at TIMESTAMP,
-    expires_at TIMESTAMP,
-    applicable_products TEXT, -- JSON array of product IDs
-    applicable_categories TEXT, -- JSON array of category IDs
-    created_by INT(11),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_created_by (created_by),
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Coupon Usage Table
-CREATE TABLE IF NOT EXISTS coupon_usage (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    coupon_id INT(11) NOT NULL,
-    user_id INT(11) NOT NULL,
-    order_id INT(11) NOT NULL,
-    discount_amount DECIMAL(10,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_coupon_id (coupon_id),
-    FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_order_id (order_id),
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-);
-
--- User Activities Table
-CREATE TABLE IF NOT EXISTS user_activities (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11),
-    activity_type VARCHAR(100) NOT NULL,
-    activity_data TEXT, -- JSON
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Admin Activity Logs Table
-CREATE TABLE IF NOT EXISTS admin_activity_logs (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    admin_id INT(11) NOT NULL,
-    action VARCHAR(100) NOT NULL,
-    target_type VARCHAR(50),
-    target_id INT(11),
-    old_values TEXT, -- JSON
-    new_values TEXT, -- JSON
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_admin_id (admin_id),
-    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Audit Log Table
-CREATE TABLE IF NOT EXISTS audit_log (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11),
-    action VARCHAR(100) NOT NULL,
-    resource_type VARCHAR(100),
-    resource_id VARCHAR(100),
-    ip_address VARCHAR(45),
-    user_agent VARCHAR(255),
-    new_values TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Refunds Table
-CREATE TABLE IF NOT EXISTS refunds (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    order_id INT(11) NOT NULL,
-    order_item_id INT(11),
-    transaction_id INT(11),
-    amount DECIMAL(15,2) NOT NULL,
-    reason VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'pending', -- pending, approved, processed, rejected
-    processed_by INT(11),
-    processed_at TIMESTAMP,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_order_id (order_id),
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    INDEX idx_order_item_id (order_item_id),
-    FOREIGN KEY (order_item_id) REFERENCES order_items(id),
-    INDEX idx_transaction_id (transaction_id),
-    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
-    INDEX idx_processed_by (processed_by),
-    FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Support Tickets Table
-CREATE TABLE IF NOT EXISTS support_tickets (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    user_id INT(11),
-    subject VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    priority VARCHAR(20) DEFAULT 'normal', -- low, normal, high, urgent
-    status VARCHAR(20) DEFAULT 'open', -- open, in_progress, resolved, closed
-    category VARCHAR(50),
-    assigned_to INT(11),
-    related_order_id INT(11),
-    related_product_id INT(11),
-    attachments TEXT, -- JSON
-    first_response_at TIMESTAMP,
-    resolved_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_assigned_to (assigned_to),
-    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_related_order_id (related_order_id),
-    FOREIGN KEY (related_order_id) REFERENCES orders(id) ON DELETE SET NULL,
-    INDEX idx_related_product_id (related_product_id),
-    FOREIGN KEY (related_product_id) REFERENCES products(id) ON DELETE SET NULL
-);
-
--- Support Messages Table
-CREATE TABLE IF NOT EXISTS support_messages (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    ticket_id INT(11) NOT NULL,
-    user_id INT(11),
-    message TEXT NOT NULL,
-    is_internal TINYINT(1) DEFAULT 0,
-    attachments TEXT, -- JSON
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_ticket_id (ticket_id),
-    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Settings Table
-CREATE TABLE IF NOT EXISTS settings (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    key VARCHAR(255) NOT NULL UNIQUE,
-    value TEXT,
-    type VARCHAR(50) DEFAULT 'string', -- string, integer, boolean, json
-    description TEXT,
-    is_public TINYINT(1) DEFAULT 0,
-    updated_by INT(11),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_updated_by (updated_by),
-    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Performance Indexes
-CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
-CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
-CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
-CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions(order_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
-CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
-CREATE INDEX IF NOT EXISTS idx_coupons_active ON coupons(is_active);
-CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon_id ON coupon_usage(coupon_id);
-CREATE INDEX IF NOT EXISTS idx_coupon_usage_user_id ON coupon_usage(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_activities_user_id ON user_activities(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_activities_type ON user_activities(activity_type);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
-CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
-
--- Default Settings
-INSERT IGNORE INTO settings (key, value, type, description, is_public) VALUES
-('site_name', 'E-Commerce Platform', 'string', 'Site name', 1),
-('site_description', 'Modern E-Commerce Platform', 'string', 'Site description', 1),
-('currency', 'USD', 'string', 'Default currency', 1),
-('tax_rate', '8.25', 'string', 'Default tax rate percentage', 0),
-('shipping_cost', '9.99', 'string', 'Default shipping cost', 1),
-('free_shipping_threshold', '50.00', 'string', 'Free shipping threshold', 1),
-('items_per_page', '20', 'integer', 'Items per page for listings', 1),
-('allow_guest_checkout', 'false', 'boolean', 'Allow guest checkout', 1),
-('require_email_verification', 'true', 'boolean', 'Require email verification', 0),
-('maintenance_mode', 'false', 'boolean', 'Maintenance mode', 0);
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
 --
 -- Database: `ecommerce_platform`
@@ -454,7 +70,7 @@ CREATE TABLE `activity_feed` (
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -479,7 +95,7 @@ CREATE TABLE `addresses` (
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -498,14 +114,14 @@ CREATE TABLE `admin_actions` (
   `notes` text DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `admin_actions`
 --
 
 INSERT INTO `admin_actions` (`id`, `user_id`, `action`, `target_type`, `target_id`, `old_data`, `new_data`, `notes`, `ip_address`, `created_at`) VALUES
-(1, 1, 'update', 'category', 1, NULL, '{\"name\":\"Electronics\",\"parent_id\":null,\"slug\":\"electronics\",\"is_active\":1}', '', NULL, '2025-09-14 22:04:01');
+(1, 1, 'update', 'category', 1, NULL, '{\"name\":\"Electronics\",\"parent_id\":null,\"slug\":\"electronics\",\"is_active\":1}', '', NULL, '2025-09-14 20:04:01');
 
 -- --------------------------------------------------------
 
@@ -525,7 +141,7 @@ CREATE TABLE `admin_activity_logs` (
   `user_agent` text DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -542,7 +158,7 @@ CREATE TABLE `admin_analytics` (
   `date_recorded` date NOT NULL,
   `additional_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`additional_data`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -562,7 +178,7 @@ CREATE TABLE `admin_dashboards` (
   `refresh_interval` int(11) NOT NULL DEFAULT 300,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -581,7 +197,7 @@ CREATE TABLE `admin_roles` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -604,7 +220,7 @@ CREATE TABLE `admin_widgets` (
   `is_visible` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -626,7 +242,7 @@ CREATE TABLE `ai_recommendations` (
   `purchased_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -650,7 +266,7 @@ CREATE TABLE `api_endpoints` (
   `documentation_url` varchar(500) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -672,7 +288,7 @@ CREATE TABLE `api_keys` (
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -695,7 +311,7 @@ CREATE TABLE `api_logs` (
   `user_agent` text DEFAULT NULL,
   `error_message` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -713,7 +329,7 @@ CREATE TABLE `audit_log` (
   `user_agent` varchar(255) DEFAULT NULL,
   `new_values` longtext DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `audit_log`
@@ -757,7 +373,9 @@ INSERT INTO `audit_log` (`id`, `user_id`, `action`, `resource_type`, `resource_i
 (35, 4, 'login_success', 'user', '4', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 02:31:22'),
 (36, NULL, 'login_failed', 'user', NULL, '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '{\"email\":\"ellyj164@gmail.com\"}', '2025-09-21 10:56:56'),
 (37, 4, 'login_success', 'user', '4', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 10:57:04'),
-(38, 4, 'login_success', 'user', '4', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 13:07:53');
+(38, 4, 'login_success', 'user', '4', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 13:07:53'),
+(39, 4, 'login_success', 'user', '4', '105.178.104.165', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 11:29:06'),
+(40, 4, 'login_success', 'user', '4', '105.178.32.38', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 14:29:31');
 
 -- --------------------------------------------------------
 
@@ -779,7 +397,7 @@ CREATE TABLE `audit_logs` (
   `method` varchar(10) DEFAULT NULL,
   `details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`details`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -803,7 +421,7 @@ CREATE TABLE `backups` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `completed_at` timestamp NULL DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -820,7 +438,7 @@ CREATE TABLE `bounces` (
   `email_address` varchar(255) DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
   `gateway_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`gateway_data`))
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -838,16 +456,16 @@ CREATE TABLE `brands` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `brands`
 --
 
 INSERT INTO `brands` (`id`, `name`, `slug`, `description`, `logo_path`, `website_url`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'Generic Brand', 'generic-brand', 'Default brand placeholder', NULL, NULL, 1, '2025-09-15 17:25:42', '2025-09-15 17:25:42'),
-(2, 'Acme', 'acme', 'Acme demonstration brand', NULL, NULL, 1, '2025-09-15 17:25:42', '2025-09-15 17:25:42'),
-(3, 'Private Label', 'private-label', NULL, NULL, NULL, 1, '2025-09-21 00:11:14', '2025-09-21 00:11:14');
+(1, 'Generic Brand', 'generic-brand', 'Default brand placeholder', NULL, NULL, 1, '2025-09-15 15:25:42', '2025-09-15 15:25:42'),
+(2, 'Acme', 'acme', 'Acme demonstration brand', NULL, NULL, 1, '2025-09-15 15:25:42', '2025-09-15 15:25:42'),
+(3, 'Private Label', 'private-label', NULL, NULL, NULL, 1, '2025-09-20 22:11:14', '2025-09-20 22:11:14');
 
 -- --------------------------------------------------------
 
@@ -869,7 +487,7 @@ CREATE TABLE `buyers` (
   `last_activity` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -897,7 +515,7 @@ CREATE TABLE `buyer_addresses` (
   `access_code` varchar(50) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -918,7 +536,7 @@ CREATE TABLE `buyer_consents` (
   `withdrawn_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -944,7 +562,7 @@ CREATE TABLE `buyer_disputes` (
   `deadline` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -960,7 +578,7 @@ CREATE TABLE `buyer_dispute_evidence` (
   `file_path` varchar(500) DEFAULT NULL,
   `description` text NOT NULL,
   `submission_date` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -978,7 +596,7 @@ CREATE TABLE `buyer_dispute_messages` (
   `is_internal` tinyint(1) NOT NULL DEFAULT 0,
   `read_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1003,7 +621,7 @@ CREATE TABLE `buyer_dsr_requests` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1022,7 +640,7 @@ CREATE TABLE `buyer_kpis` (
   `loyalty_points_earned` int(11) NOT NULL DEFAULT 0,
   `loyalty_points_spent` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1043,7 +661,7 @@ CREATE TABLE `buyer_loyalty_accounts` (
   `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1062,7 +680,7 @@ CREATE TABLE `buyer_loyalty_ledger` (
   `description` varchar(500) NOT NULL,
   `expiry_date` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1081,7 +699,7 @@ CREATE TABLE `buyer_messages` (
   `attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`attachments`)),
   `read_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1100,7 +718,7 @@ CREATE TABLE `buyer_notifications` (
   `action_url` varchar(500) DEFAULT NULL,
   `priority` enum('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1124,7 +742,7 @@ CREATE TABLE `buyer_orders` (
   `return_deadline` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1148,7 +766,7 @@ CREATE TABLE `buyer_payment_methods` (
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1164,7 +782,7 @@ CREATE TABLE `buyer_preferences` (
   `preference_value` text NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1187,7 +805,7 @@ CREATE TABLE `buyer_profiles` (
   `notification_preferences` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notification_preferences`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1215,7 +833,7 @@ CREATE TABLE `buyer_rmas` (
   `refunded_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1232,7 +850,7 @@ CREATE TABLE `buyer_rma_messages` (
   `attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`attachments`)),
   `read_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1250,7 +868,7 @@ CREATE TABLE `buyer_subscriptions` (
   `preferences` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`preferences`)),
   `subscribed_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1277,7 +895,7 @@ CREATE TABLE `buyer_tickets` (
   `satisfaction_comment` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1294,7 +912,7 @@ CREATE TABLE `buyer_ticket_replies` (
   `attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`attachments`)),
   `is_internal` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1313,7 +931,7 @@ CREATE TABLE `buyer_tracking` (
   `delivered_at` timestamp NULL DEFAULT NULL,
   `tracking_events` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tracking_events`)),
   `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1329,7 +947,7 @@ CREATE TABLE `buyer_wallets` (
   `status` enum('active','suspended','frozen') NOT NULL DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1348,7 +966,7 @@ CREATE TABLE `buyer_wallet_entries` (
   `description` varchar(500) NOT NULL,
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1369,7 +987,7 @@ CREATE TABLE `buyer_wishlist` (
   `target_price` decimal(10,2) DEFAULT NULL,
   `stock_alert_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `added_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1386,7 +1004,7 @@ CREATE TABLE `buyer_wishlist_alerts` (
   `new_value` varchar(255) DEFAULT NULL,
   `notification_sent` tinyint(1) NOT NULL DEFAULT 0,
   `notification_sent_at` timestamp NULL DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1410,7 +1028,7 @@ CREATE TABLE `campaigns` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1431,7 +1049,7 @@ CREATE TABLE `campaign_assets` (
   `a_b_test_variant` varchar(50) DEFAULT NULL,
   `performance_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`performance_data`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1446,7 +1064,7 @@ CREATE TABLE `campaign_messages` (
   `send_time` timestamp NULL DEFAULT NULL,
   `status` enum('scheduled','sent','failed','cancelled') NOT NULL DEFAULT 'scheduled',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1461,7 +1079,7 @@ CREATE TABLE `campaign_products` (
   `vendor_id` int(11) NOT NULL,
   `joined_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1484,7 +1102,7 @@ CREATE TABLE `campaign_stats` (
   `conversion_rate` decimal(5,4) NOT NULL DEFAULT 0.0000,
   `return_on_ad_spend` decimal(8,4) NOT NULL DEFAULT 0.0000,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1500,7 +1118,7 @@ CREATE TABLE `campaign_targets` (
   `estimated_reach` int(11) DEFAULT NULL,
   `actual_reach` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1518,7 +1136,7 @@ CREATE TABLE `cart` (
   `session_id` varchar(128) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1540,94 +1158,94 @@ CREATE TABLE `categories` (
   `meta_description` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `categories`
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `parent_id`, `slug`, `image_url`, `sort_order`, `is_active`, `status`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
-(1, 'Electronics', 'Electronic devices and accessories', NULL, 'electronics', NULL, 1, 1, 'active', '', '', '2025-09-14 21:54:24', '2025-09-14 22:04:01'),
-(2, 'Clothing & Fashion', 'Apparel and fashion accessories', NULL, 'clothing-fashion', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(3, 'Home & Garden', 'Home improvement and garden supplies', NULL, 'home-garden', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(4, 'Sports & Outdoors', 'Sports equipment and outdoor gear', NULL, 'sports-outdoors', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(5, 'Books & Media', 'Books, movies, music and digital media', NULL, 'books-media', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(6, 'Health & Beauty', 'Health products and beauty supplies', NULL, 'health-beauty', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(7, 'Toys & Games', 'Toys, games and hobby supplies', NULL, 'toys-games', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(8, 'Automotive', 'Car parts and automotive accessories', NULL, 'automotive', NULL, 8, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(9, 'Food & Beverages', 'Food items and beverages', NULL, 'food-beverages', NULL, 9, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(10, 'Baby & Kids', 'Baby products and children supplies', NULL, 'baby-kids', NULL, 10, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(11, 'Office & Business', 'Office supplies and business equipment', NULL, 'office-business', NULL, 11, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(12, 'Pet Supplies', 'Pet food, toys and accessories', NULL, 'pet-supplies', NULL, 12, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(13, 'Arts & Crafts', 'Art supplies and crafting materials', NULL, 'arts-crafts', NULL, 13, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(14, 'Travel & Luggage', 'Travel accessories and luggage', NULL, 'travel-luggage', NULL, 14, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(15, 'Music & Instruments', 'Musical instruments and equipment', NULL, 'music-instruments', NULL, 15, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(101, 'Smartphones', 'Mobile phones and smartphones', 1, 'smartphones', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(102, 'Laptops & Computers', 'Laptops, desktops and computer parts', 1, 'laptops-computers', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(103, 'Tablets', 'Tablet computers and e-readers', 1, 'tablets', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(104, 'TV & Audio', 'Televisions and audio equipment', 1, 'tv-audio', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(105, 'Cameras', 'Digital cameras and photography equipment', 1, 'cameras', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(106, 'Gaming', 'Video game consoles and accessories', 1, 'gaming', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(107, 'Wearable Tech', 'Smartwatches and fitness trackers', 1, 'wearable-tech', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(108, 'Home Electronics', 'Small appliances and home tech', 1, 'home-electronics', NULL, 8, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(201, 'Men\'s Clothing', 'Clothing for men', 2, 'mens-clothing', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(202, 'Women\'s Clothing', 'Clothing for women', 2, 'womens-clothing', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(203, 'Shoes', 'Footwear for all occasions', 2, 'shoes', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(204, 'Accessories', 'Fashion accessories and jewelry', 2, 'accessories', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(205, 'Bags & Luggage', 'Handbags, backpacks and travel bags', 2, 'bags-luggage', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(206, 'Watches', 'Wristwatches and timepieces', 2, 'watches', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(207, 'Sunglasses', 'Sunglasses and eyewear', 2, 'sunglasses', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(301, 'Furniture', 'Home and office furniture', 3, 'furniture', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(302, 'Kitchen & Dining', 'Kitchen appliances and dining ware', 3, 'kitchen-dining', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(303, 'Bedding & Bath', 'Bedding, towels and bathroom accessories', 3, 'bedding-bath', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(304, 'Home Decor', 'Decorative items and artwork', 3, 'home-decor', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(305, 'Garden & Outdoor', 'Gardening tools and outdoor furniture', 3, 'garden-outdoor', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(306, 'Lighting', 'Lamps and lighting fixtures', 3, 'lighting', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(307, 'Storage & Organization', 'Storage solutions and organizers', 3, 'storage-organization', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(401, 'Fitness Equipment', 'Exercise and fitness gear', 4, 'fitness-equipment', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(402, 'Team Sports', 'Equipment for team sports', 4, 'team-sports', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(403, 'Outdoor Recreation', 'Camping, hiking and outdoor gear', 4, 'outdoor-recreation', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(404, 'Water Sports', 'Swimming and water activity gear', 4, 'water-sports', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(405, 'Winter Sports', 'Skiing, snowboarding and winter gear', 4, 'winter-sports', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(406, 'Athletic Wear', 'Sports clothing and footwear', 4, 'athletic-wear', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(501, 'Books', 'Physical and digital books', 5, 'books', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(502, 'Movies & TV', 'DVDs, Blu-rays and digital movies', 5, 'movies-tv', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(503, 'Music', 'CDs, vinyl and digital music', 5, 'music', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(504, 'Magazines', 'Magazine subscriptions and back issues', 5, 'magazines', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(505, 'Video Games', 'Game software and digital downloads', 5, 'video-games', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(601, 'Skincare', 'Facial care and skin treatments', 6, 'skincare', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(602, 'Makeup', 'Cosmetics and beauty products', 6, 'makeup', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(603, 'Hair Care', 'Shampoo, conditioner and styling products', 6, 'hair-care', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(604, 'Personal Care', 'Personal hygiene and grooming products', 6, 'personal-care', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(605, 'Vitamins & Supplements', 'Health supplements and vitamins', 6, 'vitamins-supplements', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(606, 'Fragrances', 'Perfumes and colognes', 6, 'fragrances', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(701, 'Action Figures', 'Action figures and collectibles', 7, 'action-figures', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(702, 'Board Games', 'Board games and card games', 7, 'board-games', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(703, 'Building Sets', 'LEGO and construction toys', 7, 'building-sets', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(704, 'Dolls & Accessories', 'Dolls and doll accessories', 7, 'dolls-accessories', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(705, 'Educational Toys', 'Learning and educational toys', 7, 'educational-toys', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(706, 'Outdoor Toys', 'Outdoor play equipment', 7, 'outdoor-toys', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(801, 'Car Parts', 'Replacement parts and accessories', 8, 'car-parts', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(802, 'Car Electronics', 'GPS, stereos and car electronics', 8, 'car-electronics', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(803, 'Motorcycles', 'Motorcycle parts and accessories', 8, 'motorcycles', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(901, 'Snacks', 'Snack foods and treats', 9, 'snacks', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(902, 'Beverages', 'Drinks and beverages', 9, 'beverages', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(903, 'Gourmet Foods', 'Specialty and gourmet food items', 9, 'gourmet-foods', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1001, 'Baby Clothing', 'Clothing for babies and toddlers', 10, 'baby-clothing', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1002, 'Baby Gear', 'Strollers, car seats and baby equipment', 10, 'baby-gear', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1003, 'Baby Feeding', 'Bottles, high chairs and feeding supplies', 10, 'baby-feeding', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1101, 'Office Supplies', 'Pens, paper and office essentials', 11, 'office-supplies', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1102, 'Office Furniture', 'Desks, chairs and office furniture', 11, 'office-furniture', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1201, 'Dog Supplies', 'Food, toys and accessories for dogs', 12, 'dog-supplies', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1202, 'Cat Supplies', 'Food, toys and accessories for cats', 12, 'cat-supplies', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1203, 'Small Pet Supplies', 'Supplies for birds, fish and small pets', 12, 'small-pet-supplies', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1301, 'Painting Supplies', 'Paints, brushes and canvases', 13, 'painting-supplies', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1302, 'Crafting Materials', 'Fabric, yarn and crafting supplies', 13, 'crafting-materials', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1401, 'Suitcases', 'Travel suitcases and carry-ons', 14, 'suitcases', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1402, 'Travel Accessories', 'Travel pillows, adapters and accessories', 14, 'travel-accessories', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1501, 'Guitars', 'Acoustic and electric guitars', 15, 'guitars', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1502, 'Keyboards & Pianos', 'Digital pianos and keyboards', 15, 'keyboards-pianos', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24'),
-(1503, 'Drums', 'Drum sets and percussion', 15, 'drums', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24');
+(1, 'Electronics', 'Electronic devices and accessories', NULL, 'electronics', NULL, 1, 1, 'active', '', '', '2025-09-14 19:54:24', '2025-09-14 20:04:01'),
+(2, 'Clothing & Fashion', 'Apparel and fashion accessories', NULL, 'clothing-fashion', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(3, 'Home & Garden', 'Home improvement and garden supplies', NULL, 'home-garden', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(4, 'Sports & Outdoors', 'Sports equipment and outdoor gear', NULL, 'sports-outdoors', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(5, 'Books & Media', 'Books, movies, music and digital media', NULL, 'books-media', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(6, 'Health & Beauty', 'Health products and beauty supplies', NULL, 'health-beauty', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(7, 'Toys & Games', 'Toys, games and hobby supplies', NULL, 'toys-games', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(8, 'Automotive', 'Car parts and automotive accessories', NULL, 'automotive', NULL, 8, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(9, 'Food & Beverages', 'Food items and beverages', NULL, 'food-beverages', NULL, 9, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(10, 'Baby & Kids', 'Baby products and children supplies', NULL, 'baby-kids', NULL, 10, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(11, 'Office & Business', 'Office supplies and business equipment', NULL, 'office-business', NULL, 11, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(12, 'Pet Supplies', 'Pet food, toys and accessories', NULL, 'pet-supplies', NULL, 12, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(13, 'Arts & Crafts', 'Art supplies and crafting materials', NULL, 'arts-crafts', NULL, 13, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(14, 'Travel & Luggage', 'Travel accessories and luggage', NULL, 'travel-luggage', NULL, 14, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(15, 'Music & Instruments', 'Musical instruments and equipment', NULL, 'music-instruments', NULL, 15, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(101, 'Smartphones', 'Mobile phones and smartphones', 1, 'smartphones', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(102, 'Laptops & Computers', 'Laptops, desktops and computer parts', 1, 'laptops-computers', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(103, 'Tablets', 'Tablet computers and e-readers', 1, 'tablets', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(104, 'TV & Audio', 'Televisions and audio equipment', 1, 'tv-audio', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(105, 'Cameras', 'Digital cameras and photography equipment', 1, 'cameras', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(106, 'Gaming', 'Video game consoles and accessories', 1, 'gaming', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(107, 'Wearable Tech', 'Smartwatches and fitness trackers', 1, 'wearable-tech', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(108, 'Home Electronics', 'Small appliances and home tech', 1, 'home-electronics', NULL, 8, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(201, 'Men\'s Clothing', 'Clothing for men', 2, 'mens-clothing', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(202, 'Women\'s Clothing', 'Clothing for women', 2, 'womens-clothing', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(203, 'Shoes', 'Footwear for all occasions', 2, 'shoes', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(204, 'Accessories', 'Fashion accessories and jewelry', 2, 'accessories', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(205, 'Bags & Luggage', 'Handbags, backpacks and travel bags', 2, 'bags-luggage', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(206, 'Watches', 'Wristwatches and timepieces', 2, 'watches', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(207, 'Sunglasses', 'Sunglasses and eyewear', 2, 'sunglasses', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(301, 'Furniture', 'Home and office furniture', 3, 'furniture', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(302, 'Kitchen & Dining', 'Kitchen appliances and dining ware', 3, 'kitchen-dining', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(303, 'Bedding & Bath', 'Bedding, towels and bathroom accessories', 3, 'bedding-bath', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(304, 'Home Decor', 'Decorative items and artwork', 3, 'home-decor', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(305, 'Garden & Outdoor', 'Gardening tools and outdoor furniture', 3, 'garden-outdoor', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(306, 'Lighting', 'Lamps and lighting fixtures', 3, 'lighting', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(307, 'Storage & Organization', 'Storage solutions and organizers', 3, 'storage-organization', NULL, 7, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(401, 'Fitness Equipment', 'Exercise and fitness gear', 4, 'fitness-equipment', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(402, 'Team Sports', 'Equipment for team sports', 4, 'team-sports', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(403, 'Outdoor Recreation', 'Camping, hiking and outdoor gear', 4, 'outdoor-recreation', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(404, 'Water Sports', 'Swimming and water activity gear', 4, 'water-sports', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(405, 'Winter Sports', 'Skiing, snowboarding and winter gear', 4, 'winter-sports', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(406, 'Athletic Wear', 'Sports clothing and footwear', 4, 'athletic-wear', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(501, 'Books', 'Physical and digital books', 5, 'books', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(502, 'Movies & TV', 'DVDs, Blu-rays and digital movies', 5, 'movies-tv', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(503, 'Music', 'CDs, vinyl and digital music', 5, 'music', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(504, 'Magazines', 'Magazine subscriptions and back issues', 5, 'magazines', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(505, 'Video Games', 'Game software and digital downloads', 5, 'video-games', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(601, 'Skincare', 'Facial care and skin treatments', 6, 'skincare', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(602, 'Makeup', 'Cosmetics and beauty products', 6, 'makeup', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(603, 'Hair Care', 'Shampoo, conditioner and styling products', 6, 'hair-care', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(604, 'Personal Care', 'Personal hygiene and grooming products', 6, 'personal-care', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(605, 'Vitamins & Supplements', 'Health supplements and vitamins', 6, 'vitamins-supplements', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(606, 'Fragrances', 'Perfumes and colognes', 6, 'fragrances', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(701, 'Action Figures', 'Action figures and collectibles', 7, 'action-figures', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(702, 'Board Games', 'Board games and card games', 7, 'board-games', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(703, 'Building Sets', 'LEGO and construction toys', 7, 'building-sets', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(704, 'Dolls & Accessories', 'Dolls and doll accessories', 7, 'dolls-accessories', NULL, 4, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(705, 'Educational Toys', 'Learning and educational toys', 7, 'educational-toys', NULL, 5, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(706, 'Outdoor Toys', 'Outdoor play equipment', 7, 'outdoor-toys', NULL, 6, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(801, 'Car Parts', 'Replacement parts and accessories', 8, 'car-parts', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(802, 'Car Electronics', 'GPS, stereos and car electronics', 8, 'car-electronics', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(803, 'Motorcycles', 'Motorcycle parts and accessories', 8, 'motorcycles', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(901, 'Snacks', 'Snack foods and treats', 9, 'snacks', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(902, 'Beverages', 'Drinks and beverages', 9, 'beverages', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(903, 'Gourmet Foods', 'Specialty and gourmet food items', 9, 'gourmet-foods', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1001, 'Baby Clothing', 'Clothing for babies and toddlers', 10, 'baby-clothing', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1002, 'Baby Gear', 'Strollers, car seats and baby equipment', 10, 'baby-gear', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1003, 'Baby Feeding', 'Bottles, high chairs and feeding supplies', 10, 'baby-feeding', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1101, 'Office Supplies', 'Pens, paper and office essentials', 11, 'office-supplies', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1102, 'Office Furniture', 'Desks, chairs and office furniture', 11, 'office-furniture', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1201, 'Dog Supplies', 'Food, toys and accessories for dogs', 12, 'dog-supplies', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1202, 'Cat Supplies', 'Food, toys and accessories for cats', 12, 'cat-supplies', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1203, 'Small Pet Supplies', 'Supplies for birds, fish and small pets', 12, 'small-pet-supplies', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1301, 'Painting Supplies', 'Paints, brushes and canvases', 13, 'painting-supplies', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1302, 'Crafting Materials', 'Fabric, yarn and crafting supplies', 13, 'crafting-materials', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1401, 'Suitcases', 'Travel suitcases and carry-ons', 14, 'suitcases', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1402, 'Travel Accessories', 'Travel pillows, adapters and accessories', 14, 'travel-accessories', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1501, 'Guitars', 'Acoustic and electric guitars', 15, 'guitars', NULL, 1, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1502, 'Keyboards & Pianos', 'Digital pianos and keyboards', 15, 'keyboards-pianos', NULL, 2, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24'),
+(1503, 'Drums', 'Drum sets and percussion', 15, 'drums', NULL, 3, 1, 'active', NULL, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24');
 
 -- --------------------------------------------------------
 
@@ -1646,7 +1264,7 @@ CREATE TABLE `category_attributes` (
   `is_searchable` tinyint(1) NOT NULL DEFAULT 0,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1667,7 +1285,7 @@ CREATE TABLE `chat_messages` (
   `deleted_reason` varchar(255) DEFAULT NULL,
   `parent_message_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1693,7 +1311,7 @@ CREATE TABLE `cms_media` (
   `uploaded_by` int(11) NOT NULL,
   `is_public` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1724,7 +1342,7 @@ CREATE TABLE `cms_pages` (
   `published_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1752,7 +1370,7 @@ CREATE TABLE `cms_posts` (
   `scheduled_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1777,7 +1395,7 @@ CREATE TABLE `comm_messages` (
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1804,7 +1422,7 @@ CREATE TABLE `coupons` (
   `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1821,7 +1439,7 @@ CREATE TABLE `coupon_redemptions` (
   `original_order_amount` decimal(10,2) NOT NULL,
   `final_order_amount` decimal(10,2) NOT NULL,
   `redeemed_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1836,7 +1454,7 @@ CREATE TABLE `coupon_rules` (
   `rule_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`rule_data`)),
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1851,7 +1469,7 @@ CREATE TABLE `coupon_usage` (
   `order_id` int(11) NOT NULL,
   `discount_amount` decimal(10,2) NOT NULL,
   `used_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1870,19 +1488,19 @@ CREATE TABLE `currencies` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `currencies`
 --
 
 INSERT INTO `currencies` (`id`, `code`, `name`, `symbol`, `decimal_places`, `exchange_rate`, `is_base_currency`, `is_active`, `updated_at`, `created_at`) VALUES
-(1, 'USD', 'US Dollar', '$', 2, 1.000000, 1, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(2, 'EUR', 'Euro', '€', 2, 0.850000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(3, 'GBP', 'British Pound', '£', 2, 0.750000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(4, 'JPY', 'Japanese Yen', '¥', 0, 110.000000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(5, 'CAD', 'Canadian Dollar', 'C$', 2, 1.250000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(6, 'AUD', 'Australian Dollar', 'A$', 2, 1.350000, 0, 1, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
+(1, 'USD', 'US Dollar', '$', 2, 1.000000, 1, 1, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(2, 'EUR', 'Euro', 'â‚¬', 2, 0.850000, 0, 1, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(3, 'GBP', 'British Pound', 'Â£', 2, 0.750000, 0, 1, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(4, 'JPY', 'Japanese Yen', 'Â¥', 0, 110.000000, 0, 1, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(5, 'CAD', 'Canadian Dollar', 'C$', 2, 1.250000, 0, 1, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(6, 'AUD', 'Australian Dollar', 'A$', 2, 1.350000, 0, 1, '2025-09-14 19:54:26', '2025-09-14 19:54:26');
 
 -- --------------------------------------------------------
 
@@ -1907,7 +1525,7 @@ CREATE TABLE `customer_order_feedback` (
   `helpful_count` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1933,14 +1551,14 @@ CREATE TABLE `customer_profiles` (
   `favorite_categories` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`favorite_categories`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `customer_profiles`
 --
 
 INSERT INTO `customer_profiles` (`id`, `user_id`, `date_of_birth`, `gender`, `interests`, `preferred_language`, `preferred_currency`, `marketing_consent`, `data_processing_consent`, `newsletter_subscription`, `sms_notifications`, `loyalty_points`, `total_spent`, `total_orders`, `favorite_categories`, `created_at`, `updated_at`) VALUES
-(1, 4, NULL, NULL, NULL, 'en', 'USD', 0, 1, 0, 0, 0, 0.00, 0, NULL, '2025-09-14 21:54:24', '2025-09-14 21:54:24');
+(1, 4, NULL, NULL, NULL, 'en', 'USD', 0, 1, 0, 0, 0, 0.00, 0, NULL, '2025-09-14 19:54:24', '2025-09-14 19:54:24');
 
 -- --------------------------------------------------------
 
@@ -1962,7 +1580,7 @@ CREATE TABLE `customer_support_conversations` (
   `read_by_vendor` tinyint(1) NOT NULL DEFAULT 0,
   `read_by_admin` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1984,7 +1602,7 @@ CREATE TABLE `dashboard_widgets` (
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2016,7 +1634,7 @@ CREATE TABLE `disputes` (
   `closed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2035,7 +1653,7 @@ CREATE TABLE `dispute_decisions` (
   `follow_up_required` tinyint(1) NOT NULL DEFAULT 0,
   `follow_up_date` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2055,7 +1673,7 @@ CREATE TABLE `dispute_evidence` (
   `description` text DEFAULT NULL,
   `is_public` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2074,7 +1692,7 @@ CREATE TABLE `dispute_messages` (
   `read_by_vendor` tinyint(1) NOT NULL DEFAULT 0,
   `read_by_admin` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2092,7 +1710,7 @@ CREATE TABLE `email_logs` (
   `error_message` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2117,7 +1735,7 @@ CREATE TABLE `email_queue` (
   `sent_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2135,14 +1753,14 @@ CREATE TABLE `email_tokens` (
   `used_at` timestamp NULL DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `email_tokens`
 --
 
 INSERT INTO `email_tokens` (`id`, `user_id`, `token`, `type`, `email`, `expires_at`, `used_at`, `ip_address`, `created_at`) VALUES
-(1, 5, '7ab495d655a50fd0e2f4317d4a2af14cdea18c06caccbc25010954ee7bbcc194', 'email_verification', 'niyogushimwaj967@gmail.com', '2025-09-20 22:38:57', NULL, '172.68.42.184', '2025-09-20 22:23:57');
+(1, 5, '7ab495d655a50fd0e2f4317d4a2af14cdea18c06caccbc25010954ee7bbcc194', 'email_verification', 'niyogushimwaj967@gmail.com', '2025-09-20 20:38:57', NULL, '172.68.42.184', '2025-09-20 20:23:57');
 
 -- --------------------------------------------------------
 
@@ -2160,7 +1778,7 @@ CREATE TABLE `fact_campaigns` (
   `revenue` decimal(10,2) NOT NULL DEFAULT 0.00,
   `cost` decimal(10,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2188,7 +1806,7 @@ CREATE TABLE `fact_sales` (
   `payment_method` varchar(50) DEFAULT NULL,
   `order_status` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2209,7 +1827,7 @@ CREATE TABLE `fact_users` (
   `user_segment` varchar(50) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2232,7 +1850,7 @@ CREATE TABLE `file_uploads` (
   `is_public` tinyint(1) NOT NULL DEFAULT 0,
   `download_count` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2262,7 +1880,7 @@ CREATE TABLE `homepage_banners` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2276,7 +1894,7 @@ CREATE TABLE `homepage_sections` (
   `section_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`section_data`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2296,7 +1914,7 @@ CREATE TABLE `inventory_alerts` (
   `acknowledged_at` timestamp NULL DEFAULT NULL,
   `resolved_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2323,7 +1941,7 @@ CREATE TABLE `invoices` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2352,7 +1970,7 @@ CREATE TABLE `jobs` (
   `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2374,7 +1992,7 @@ CREATE TABLE `kpi_daily` (
   `conversion_rate` decimal(5,4) NOT NULL DEFAULT 0.0000,
   `average_order_value` decimal(10,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2392,7 +2010,7 @@ CREATE TABLE `kyc_decisions` (
   `follow_up_required` tinyint(1) NOT NULL DEFAULT 0,
   `follow_up_date` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2412,7 +2030,7 @@ CREATE TABLE `kyc_documents` (
   `verification_status` enum('pending','processing','verified','failed') NOT NULL DEFAULT 'pending',
   `verification_notes` text DEFAULT NULL,
   `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2431,7 +2049,7 @@ CREATE TABLE `kyc_flags` (
   `resolved_by` int(11) DEFAULT NULL,
   `resolved_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2455,7 +2073,7 @@ CREATE TABLE `kyc_requests` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2475,7 +2093,7 @@ CREATE TABLE `live_chat_messages` (
   `moderated_by` int(11) DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2500,7 +2118,7 @@ CREATE TABLE `live_streams` (
   `ended_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2520,7 +2138,7 @@ CREATE TABLE `live_stream_products` (
   `featured_at` timestamp NULL DEFAULT NULL,
   `active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2535,45 +2153,47 @@ CREATE TABLE `login_attempts` (
   `success` tinyint(1) NOT NULL DEFAULT 0,
   `user_agent` text DEFAULT NULL,
   `attempted_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `login_attempts`
 --
 
 INSERT INTO `login_attempts` (`id`, `identifier`, `ip_address`, `success`, `user_agent`, `attempted_at`) VALUES
-(3, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:11:33'),
-(4, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:27:53'),
-(5, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:33:28'),
-(6, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:36:42'),
-(7, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-11 17:39:47'),
-(8, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:41:07'),
-(9, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:41:10'),
-(10, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-11 19:46:44'),
-(11, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-11 19:50:31'),
-(14, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-14 22:45:42'),
-(15, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-15 17:09:28'),
-(16, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-15 19:22:52'),
-(17, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-15 19:29:35'),
-(18, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-15 20:00:11'),
-(19, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-15 20:08:43'),
-(20, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-15 21:11:16'),
-(21, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-15 21:14:55'),
-(22, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-15 22:19:58'),
-(23, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-15 23:21:19'),
-(24, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-16 00:58:23'),
-(25, 'ellyj164@gmail.com', '172.69.254.163', 1, NULL, '2025-09-16 07:50:29'),
-(26, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-16 09:35:24'),
-(27, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-16 10:10:19'),
-(28, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-16 13:25:14'),
-(29, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-16 18:10:15'),
-(30, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-16 18:51:50'),
-(31, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-21 00:20:08'),
-(32, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-21 00:21:19'),
-(34, 'niyogushimwaj967@gmail.com', '197.234.242.180', 1, NULL, '2025-09-21 00:27:04'),
-(35, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-21 00:31:22'),
-(37, 'ellyj164@gmail.com', '197.234.242.154', 1, NULL, '2025-09-21 08:57:04'),
-(38, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-21 11:07:53');
+(3, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 15:11:33'),
+(4, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 15:27:53'),
+(5, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 15:33:28'),
+(6, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 15:36:42'),
+(7, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-11 15:39:47'),
+(8, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 15:41:07'),
+(9, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 15:41:10'),
+(10, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-11 17:46:44'),
+(11, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-11 17:50:31'),
+(14, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-14 20:45:42'),
+(15, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-15 15:09:28'),
+(16, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-15 17:22:52'),
+(17, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-15 17:29:35'),
+(18, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-15 18:00:11'),
+(19, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-15 18:08:43'),
+(20, 'ellyj164@gmail.com', '197.234.242.180', 1, NULL, '2025-09-15 19:11:16'),
+(21, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-15 19:14:55'),
+(22, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-15 20:19:58'),
+(23, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-15 21:21:19'),
+(24, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-15 22:58:23'),
+(25, 'ellyj164@gmail.com', '172.69.254.163', 1, NULL, '2025-09-16 05:50:29'),
+(26, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-16 07:35:24'),
+(27, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-16 08:10:19'),
+(28, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-16 11:25:14'),
+(29, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-16 16:10:15'),
+(30, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-16 16:51:50'),
+(31, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-20 22:20:08'),
+(32, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-20 22:21:19'),
+(34, 'niyogushimwaj967@gmail.com', '197.234.242.180', 1, NULL, '2025-09-20 22:27:04'),
+(35, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-20 22:31:22'),
+(37, 'ellyj164@gmail.com', '197.234.242.154', 1, NULL, '2025-09-21 06:57:04'),
+(38, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-21 09:07:53'),
+(39, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 09:29:06'),
+(40, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 12:29:31');
 
 -- --------------------------------------------------------
 
@@ -2594,17 +2214,17 @@ CREATE TABLE `loyalty_tiers` (
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `loyalty_tiers`
 --
 
 INSERT INTO `loyalty_tiers` (`id`, `name`, `description`, `min_points`, `max_points`, `benefits`, `point_multiplier`, `icon`, `color`, `sort_order`, `is_active`, `created_at`) VALUES
-(1, 'Bronze', 'Entry level tier', 0, 999, '{\"free_shipping_threshold\": 100, \"birthday_bonus\": 50}', 1.00, NULL, NULL, 1, 1, '2025-09-14 21:54:26'),
-(2, 'Silver', 'Intermediate tier', 1000, 4999, '{\"free_shipping_threshold\": 75, \"birthday_bonus\": 100, \"early_access\": true}', 1.25, NULL, NULL, 2, 1, '2025-09-14 21:54:26'),
-(3, 'Gold', 'Premium tier', 5000, 14999, '{\"free_shipping\": true, \"birthday_bonus\": 200, \"early_access\": true, \"priority_support\": true}', 1.50, NULL, NULL, 3, 1, '2025-09-14 21:54:26'),
-(4, 'Platinum', 'Elite tier', 15000, NULL, '{\"free_shipping\": true, \"birthday_bonus\": 500, \"early_access\": true, \"priority_support\": true, \"exclusive_offers\": true}', 2.00, NULL, NULL, 4, 1, '2025-09-14 21:54:26');
+(1, 'Bronze', 'Entry level tier', 0, 999, '{\"free_shipping_threshold\": 100, \"birthday_bonus\": 50}', 1.00, NULL, NULL, 1, 1, '2025-09-14 19:54:26'),
+(2, 'Silver', 'Intermediate tier', 1000, 4999, '{\"free_shipping_threshold\": 75, \"birthday_bonus\": 100, \"early_access\": true}', 1.25, NULL, NULL, 2, 1, '2025-09-14 19:54:26'),
+(3, 'Gold', 'Premium tier', 5000, 14999, '{\"free_shipping\": true, \"birthday_bonus\": 200, \"early_access\": true, \"priority_support\": true}', 1.50, NULL, NULL, 3, 1, '2025-09-14 19:54:26'),
+(4, 'Platinum', 'Elite tier', 15000, NULL, '{\"free_shipping\": true, \"birthday_bonus\": 500, \"early_access\": true, \"priority_support\": true, \"exclusive_offers\": true}', 2.00, NULL, NULL, 4, 1, '2025-09-14 19:54:26');
 
 -- --------------------------------------------------------
 
@@ -2635,7 +2255,7 @@ CREATE TABLE `marketing_campaigns` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2651,7 +2271,7 @@ CREATE TABLE `menus` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2672,7 +2292,7 @@ CREATE TABLE `messages` (
   `is_system` tinyint(1) NOT NULL DEFAULT 0,
   `parent_message_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2689,7 +2309,7 @@ CREATE TABLE `message_delivery_logs` (
   `user_agent` text DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `additional_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`additional_data`))
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2712,7 +2332,7 @@ CREATE TABLE `message_templates` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2725,7 +2345,7 @@ CREATE TABLE `migrations` (
   `filename` varchar(255) NOT NULL,
   `batch` int(11) NOT NULL DEFAULT 1,
   `executed_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2744,7 +2364,7 @@ CREATE TABLE `multi_language_content` (
   `translator_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2768,7 +2388,7 @@ CREATE TABLE `notifications` (
   `sent_via_email` tinyint(1) NOT NULL DEFAULT 0,
   `sent_via_push` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2789,7 +2409,7 @@ CREATE TABLE `notification_preferences` (
   `quiet_hours_end` time DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2823,7 +2443,7 @@ CREATE TABLE `orders` (
   `refunded_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2851,7 +2471,7 @@ CREATE TABLE `order_disputes` (
   `escalated_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2878,7 +2498,7 @@ CREATE TABLE `order_items` (
   `delivered_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2896,7 +2516,7 @@ CREATE TABLE `order_status_history` (
   `notes` text DEFAULT NULL,
   `notify_customer` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2912,14 +2532,14 @@ CREATE TABLE `otp_attempts` (
   `attempted_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `success` tinyint(1) NOT NULL DEFAULT 0,
   `token_type` enum('email_verification','password_reset','email_change','two_fa_backup') NOT NULL DEFAULT 'email_verification'
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `otp_attempts`
 --
 
 INSERT INTO `otp_attempts` (`id`, `user_id`, `email`, `ip_address`, `attempted_at`, `success`, `token_type`) VALUES
-(1, 5, 'niyogushimwaj967@gmail.com', '172.68.42.185', '2025-09-21 00:24:28', 0, 'email_verification');
+(1, 5, 'niyogushimwaj967@gmail.com', '172.68.42.185', '2025-09-20 22:24:28', 0, 'email_verification');
 
 -- --------------------------------------------------------
 
@@ -2948,7 +2568,7 @@ CREATE TABLE `payments` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2965,7 +2585,7 @@ CREATE TABLE `payment_events` (
   `webhook_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`webhook_data`)),
   `processed` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2991,7 +2611,7 @@ CREATE TABLE `payment_gateways` (
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3015,7 +2635,7 @@ CREATE TABLE `payment_methods` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3026,8 +2646,9 @@ CREATE TABLE `payment_methods` (
 CREATE TABLE `payment_reconciliations` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `created_at` datetime DEFAULT NULL,
-  `updated_at` datetime DEFAULT NULL
-);
+  `updated_at` datetime DEFAULT NULL,
+  `reconciled_by` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3050,7 +2671,7 @@ CREATE TABLE `payouts` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3077,7 +2698,7 @@ CREATE TABLE `payout_requests` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3107,7 +2728,7 @@ CREATE TABLE `platform_notifications` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3122,7 +2743,7 @@ CREATE TABLE `platform_notification_reads` (
   `read_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `clicked_at` timestamp NULL DEFAULT NULL,
   `dismissed_at` timestamp NULL DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3153,6 +2774,7 @@ CREATE TABLE `products` (
   `weight` decimal(8,2) DEFAULT NULL,
   `dimensions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dimensions`)),
   `status` enum('active','inactive','draft','archived') NOT NULL DEFAULT 'draft',
+  `is_featured` tinyint(1) NOT NULL DEFAULT 0,
   `visibility` enum('public','private','hidden') NOT NULL DEFAULT 'public',
   `track_inventory` tinyint(1) NOT NULL DEFAULT 1,
   `allow_backorder` tinyint(1) NOT NULL DEFAULT 0,
@@ -3198,15 +2820,15 @@ CREATE TABLE `products` (
   `review_count` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `seller_id`, `vendor_id`, `category_id`, `brand_id`, `name`, `slug`, `description`, `short_description`, `sku`, `barcode`, `price`, `compare_price`, `sale_price`, `cost_price`, `currency_code`, `stock_quantity`, `min_stock_level`, `max_stock_level`, `weight`, `dimensions`, `status`, `visibility`, `track_inventory`, `allow_backorder`, `stock_qty`, `low_stock_threshold`, `featured`, `digital`, `downloadable`, `virtual`, `tags`, `attributes`, `variations`, `shipping_class`, `weight_kg`, `length_cm`, `width_cm`, `height_cm`, `seo_title`, `seo_description`, `seo_keywords`, `published_at`, `scheduled_at`, `return_policy_text`, `warranty_text`, `compliance_notes`, `age_restriction`, `digital_is`, `digital_url`, `digital_file_path`, `thumbnail_path`, `custom_barcode`, `mpn`, `gtin`, `condition`, `brand`, `tax_status`, `tax_class`, `meta_title`, `meta_description`, `view_count`, `purchase_count`, `average_rating`, `review_count`, `created_at`, `updated_at`) VALUES
-(1, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 21:00:47', '2025-09-14 21:00:47'),
-(2, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 21:17:44', '2025-09-14 21:17:44');
+INSERT INTO `products` (`id`, `seller_id`, `vendor_id`, `category_id`, `brand_id`, `name`, `slug`, `description`, `short_description`, `sku`, `barcode`, `price`, `compare_price`, `sale_price`, `cost_price`, `currency_code`, `stock_quantity`, `min_stock_level`, `max_stock_level`, `weight`, `dimensions`, `status`, `is_featured`, `visibility`, `track_inventory`, `allow_backorder`, `stock_qty`, `low_stock_threshold`, `featured`, `digital`, `downloadable`, `virtual`, `tags`, `attributes`, `variations`, `shipping_class`, `weight_kg`, `length_cm`, `width_cm`, `height_cm`, `seo_title`, `seo_description`, `seo_keywords`, `published_at`, `scheduled_at`, `return_policy_text`, `warranty_text`, `compliance_notes`, `age_restriction`, `digital_is`, `digital_url`, `digital_file_path`, `thumbnail_path`, `custom_barcode`, `mpn`, `gtin`, `condition`, `brand`, `tax_status`, `tax_class`, `meta_title`, `meta_description`, `view_count`, `purchase_count`, `average_rating`, `review_count`, `created_at`, `updated_at`) VALUES
+(1, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 19:00:47', '2025-09-14 19:00:47'),
+(2, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 19:17:44', '2025-09-14 19:17:44');
 
 -- --------------------------------------------------------
 
@@ -3226,7 +2848,7 @@ CREATE TABLE `product_analytics` (
   `competitor_price` decimal(10,2) DEFAULT NULL,
   `search_ranking` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3246,7 +2868,7 @@ CREATE TABLE `product_approvals` (
   `rejected_at` timestamp NULL DEFAULT NULL,
   `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3262,7 +2884,7 @@ CREATE TABLE `product_attributes` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `attr_key` varchar(100) DEFAULT NULL,
   `attr_value` varchar(255) DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3280,7 +2902,7 @@ CREATE TABLE `product_audit_logs` (
   `reason` text DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3316,7 +2938,7 @@ CREATE TABLE `product_autosaves` (
   `seo_keywords` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3337,7 +2959,7 @@ CREATE TABLE `product_bulk_operations` (
   `started_at` timestamp NULL DEFAULT NULL,
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3359,7 +2981,7 @@ CREATE TABLE `product_bulk_uploads` (
   `processing_started_at` timestamp NULL DEFAULT NULL,
   `processing_completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3371,7 +2993,7 @@ CREATE TABLE `product_categories` (
   `product_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3391,7 +3013,7 @@ CREATE TABLE `product_certificates` (
   `certificate_number` varchar(100) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3407,7 +3029,7 @@ CREATE TABLE `product_drafts` (
   `auto_save` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3425,7 +3047,7 @@ CREATE TABLE `product_images` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `file_path` varchar(500) DEFAULT NULL,
   `sort` int(11) NOT NULL DEFAULT 0
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3446,7 +3068,7 @@ CREATE TABLE `product_inventory` (
   `reorder_quantity` int(11) DEFAULT NULL,
   `location` varchar(100) DEFAULT NULL,
   `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3470,7 +3092,7 @@ CREATE TABLE `product_media` (
   `file_size` int(11) DEFAULT NULL,
   `mime_type` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3491,7 +3113,7 @@ CREATE TABLE `product_pricing` (
   `margin_percentage` decimal(5,2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3512,7 +3134,7 @@ CREATE TABLE `product_recommendations` (
   `purchased` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `expires_at` timestamp NULL DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3527,7 +3149,7 @@ CREATE TABLE `product_relations` (
   `relation_type` varchar(20) NOT NULL COMMENT 'cross_sell | upsell | related | bundle',
   `priority` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3553,7 +3175,7 @@ CREATE TABLE `product_reviews` (
   `verified_purchase` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3577,7 +3199,7 @@ CREATE TABLE `product_seo` (
   `schema_markup` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`schema_markup`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3600,7 +3222,7 @@ CREATE TABLE `product_shipping` (
   `country_of_origin` char(2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3612,7 +3234,7 @@ CREATE TABLE `product_tag` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3636,7 +3258,7 @@ CREATE TABLE `product_variants` (
   `price_delta` decimal(10,2) DEFAULT NULL,
   `stock` int(11) DEFAULT NULL,
   `active` tinyint(1) NOT NULL DEFAULT 1
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3654,7 +3276,7 @@ CREATE TABLE `product_views` (
   `referrer` varchar(500) DEFAULT NULL,
   `view_duration` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3672,7 +3294,7 @@ CREATE TABLE `push_subscriptions` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `last_used` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3695,7 +3317,7 @@ CREATE TABLE `reconciliations` (
   `reconciled_at` timestamp NULL DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3714,7 +3336,7 @@ CREATE TABLE `redirects` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3739,7 +3361,7 @@ CREATE TABLE `refunds` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3763,7 +3385,7 @@ CREATE TABLE `report_jobs` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3793,7 +3415,7 @@ CREATE TABLE `reviews` (
   `approved_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3807,7 +3429,7 @@ CREATE TABLE `review_helpfulness` (
   `user_id` int(11) NOT NULL,
   `is_helpful` tinyint(1) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3826,7 +3448,7 @@ CREATE TABLE `search_queries` (
   `filters_used` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`filters_used`)),
   `sort_order` varchar(50) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3850,7 +3472,7 @@ CREATE TABLE `security_logs` (
   `resolved_by` int(11) DEFAULT NULL,
   `resolved_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3873,7 +3495,7 @@ CREATE TABLE `seller_analytics` (
   `traffic_sources` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`traffic_sources`)),
   `top_products` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`top_products`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3898,7 +3520,7 @@ CREATE TABLE `seller_bank_details` (
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3920,7 +3542,7 @@ CREATE TABLE `seller_campaigns` (
   `end_date` timestamp NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3940,7 +3562,7 @@ CREATE TABLE `seller_campaign_assets` (
   `mime_type` varchar(100) DEFAULT NULL,
   `status` enum('active','inactive','pending_approval') NOT NULL DEFAULT 'pending_approval',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3958,7 +3580,7 @@ CREATE TABLE `seller_campaign_stats` (
   `spend` decimal(15,2) NOT NULL DEFAULT 0.00,
   `revenue` decimal(15,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -3978,7 +3600,7 @@ CREATE TABLE `seller_chat_messages` (
   `is_highlighted` tinyint(1) NOT NULL DEFAULT 0,
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4004,7 +3626,7 @@ CREATE TABLE `seller_commissions` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4031,7 +3653,7 @@ CREATE TABLE `seller_coupons` (
   `excluded_products` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`excluded_products`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4046,7 +3668,7 @@ CREATE TABLE `seller_coupon_redemptions` (
   `customer_id` int(11) NOT NULL,
   `discount_amount` decimal(10,2) NOT NULL,
   `redeemed_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4060,7 +3682,7 @@ CREATE TABLE `seller_coupon_rules` (
   `rule_type` enum('customer_group','first_time_buyer','geographic','time_based','purchase_history') NOT NULL,
   `rule_condition` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`rule_condition`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4085,7 +3707,7 @@ CREATE TABLE `seller_disputes` (
   `deadline` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4101,7 +3723,7 @@ CREATE TABLE `seller_dispute_evidence` (
   `file_path` varchar(500) DEFAULT NULL,
   `description` text NOT NULL,
   `submission_date` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4119,7 +3741,7 @@ CREATE TABLE `seller_dispute_messages` (
   `is_internal` tinyint(1) NOT NULL DEFAULT 0,
   `read_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4145,7 +3767,7 @@ CREATE TABLE `seller_documents` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4164,7 +3786,7 @@ CREATE TABLE `seller_inventory` (
   `quantity_damaged` int(11) NOT NULL DEFAULT 0,
   `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `updated_by` int(11) DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4184,7 +3806,7 @@ CREATE TABLE `seller_kpis` (
   `return_rate` decimal(5,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4210,7 +3832,7 @@ CREATE TABLE `seller_kyc` (
   `expires_at` timestamp NULL DEFAULT NULL,
   `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4239,7 +3861,7 @@ CREATE TABLE `seller_live_streams` (
   `stream_analytics` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`stream_analytics`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4260,7 +3882,7 @@ CREATE TABLE `seller_messages` (
   `order_id` int(11) DEFAULT NULL,
   `read_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4280,7 +3902,7 @@ CREATE TABLE `seller_message_templates` (
   `usage_count` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4299,7 +3921,7 @@ CREATE TABLE `seller_notifications` (
   `action_url` varchar(500) DEFAULT NULL,
   `priority` enum('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4323,7 +3945,7 @@ CREATE TABLE `seller_orders` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4345,7 +3967,7 @@ CREATE TABLE `seller_order_items` (
   `status` enum('pending','fulfilled','cancelled','refunded') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4372,7 +3994,7 @@ CREATE TABLE `seller_payouts` (
   `processed_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4396,7 +4018,7 @@ CREATE TABLE `seller_payout_requests` (
   `rejection_reason` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4417,7 +4039,7 @@ CREATE TABLE `seller_performance_metrics` (
   `product_quality_score` decimal(3,2) DEFAULT NULL,
   `communication_score` decimal(3,2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4442,7 +4064,7 @@ CREATE TABLE `seller_products` (
   `rejection_reason` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4463,7 +4085,7 @@ CREATE TABLE `seller_product_media` (
   `is_primary` tinyint(1) NOT NULL DEFAULT 0,
   `approval_status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4483,7 +4105,7 @@ CREATE TABLE `seller_product_variants` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4509,7 +4131,7 @@ CREATE TABLE `seller_profiles` (
   `verification_date` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4531,7 +4153,7 @@ CREATE TABLE `seller_reports_jobs` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4558,7 +4180,7 @@ CREATE TABLE `seller_rmas` (
   `images` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`images`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4575,7 +4197,7 @@ CREATE TABLE `seller_rma_notes` (
   `is_internal` tinyint(1) NOT NULL DEFAULT 0,
   `attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`attachments`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4598,7 +4220,7 @@ CREATE TABLE `seller_sales_reports` (
   `payment_methods` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payment_methods`)),
   `report_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`report_data`)),
   `generated_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4621,7 +4243,7 @@ CREATE TABLE `seller_shipping_rates` (
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4640,7 +4262,7 @@ CREATE TABLE `seller_shipping_zones` (
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4662,7 +4284,7 @@ CREATE TABLE `seller_staff` (
   `last_active_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4681,7 +4303,7 @@ CREATE TABLE `seller_stock_logs` (
   `performed_by` int(11) NOT NULL,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4700,7 +4322,7 @@ CREATE TABLE `seller_stream_products` (
   `quantity_sold` int(11) NOT NULL DEFAULT 0,
   `clicks` int(11) NOT NULL DEFAULT 0,
   `conversions` int(11) NOT NULL DEFAULT 0
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4720,7 +4342,7 @@ CREATE TABLE `seo_meta` (
   `robots` varchar(50) DEFAULT 'index,follow',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4746,7 +4368,7 @@ CREATE TABLE `seo_metadata` (
   `robots_directive` varchar(255) DEFAULT 'index,follow',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4767,37 +4389,74 @@ CREATE TABLE `settings` (
   `updated_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `settings`
 --
 
 INSERT INTO `settings` (`id`, `setting_group`, `setting_key`, `setting_value`, `setting_type`, `is_public`, `is_encrypted`, `description`, `validation_rules`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'general', 'site_name', 'E-Commerce Platform', 'string', 1, 0, 'Site name displayed in header and emails', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(2, 'general', 'site_description', 'Professional E-Commerce Platform', 'string', 1, 0, 'Site description for SEO', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(3, 'general', 'admin_email', 'admin@example.com', 'string', 0, 0, 'Administrator email address', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(4, 'general', 'timezone', 'UTC', 'string', 1, 0, 'Default timezone', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(5, 'general', 'currency', 'USD', 'string', 1, 0, 'Default currency', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(6, 'general', 'maintenance_mode', 'false', 'boolean', 0, 0, 'Enable maintenance mode', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(7, 'email', 'smtp_host', 'localhost', 'string', 0, 0, 'SMTP server hostname', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(8, 'email', 'smtp_port', '587', 'integer', 0, 0, 'SMTP server port', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(9, 'email', 'smtp_username', '', 'string', 0, 0, 'SMTP username', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(10, 'email', 'smtp_password', '', 'password', 0, 0, 'SMTP password', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(11, 'email', 'smtp_encryption', 'tls', 'string', 0, 0, 'SMTP encryption method', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(12, 'payments', 'default_gateway', 'stripe', 'string', 0, 0, 'Default payment gateway', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(13, 'payments', 'stripe_publishable_key', '', 'string', 0, 0, 'Stripe publishable key', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(14, 'payments', 'stripe_secret_key', '', 'password', 0, 0, 'Stripe secret key', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(15, 'payments', 'paypal_client_id', '', 'string', 0, 0, 'PayPal client ID', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(16, 'payments', 'paypal_client_secret', '', 'password', 0, 0, 'PayPal client secret', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(17, 'security', 'session_timeout', '3600', 'integer', 0, 0, 'Session timeout in seconds', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(18, 'security', 'max_login_attempts', '5', 'integer', 0, 0, 'Maximum login attempts before lockout', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(19, 'security', 'lockout_duration', '900', 'integer', 0, 0, 'Account lockout duration in seconds', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(20, 'security', 'require_2fa', 'false', 'boolean', 0, 0, 'Require two-factor authentication', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(21, 'features', 'enable_reviews', 'true', 'boolean', 1, 0, 'Enable product reviews', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(22, 'features', 'enable_wishlist', 'true', 'boolean', 1, 0, 'Enable wishlist functionality', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(23, 'features', 'enable_loyalty', 'true', 'boolean', 1, 0, 'Enable loyalty program', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(24, 'features', 'enable_live_streaming', 'true', 'boolean', 1, 0, 'Enable live streaming features', NULL, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
+(1, 'general', 'site_name', 'E-Commerce Platform', 'string', 1, 0, 'Site name displayed in header and emails', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(2, 'general', 'site_description', 'Professional E-Commerce Platform', 'string', 1, 0, 'Site description for SEO', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(3, 'general', 'admin_email', 'admin@example.com', 'string', 0, 0, 'Administrator email address', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(4, 'general', 'timezone', 'UTC', 'string', 1, 0, 'Default timezone', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(5, 'general', 'currency', 'USD', 'string', 1, 0, 'Default currency', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(6, 'general', 'maintenance_mode', 'false', 'boolean', 0, 0, 'Enable maintenance mode', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(7, 'email', 'smtp_host', 'localhost', 'string', 0, 0, 'SMTP server hostname', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(8, 'email', 'smtp_port', '587', 'integer', 0, 0, 'SMTP server port', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(9, 'email', 'smtp_username', '', 'string', 0, 0, 'SMTP username', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(10, 'email', 'smtp_password', '', 'password', 0, 0, 'SMTP password', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(11, 'email', 'smtp_encryption', 'tls', 'string', 0, 0, 'SMTP encryption method', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(12, 'payments', 'default_gateway', 'stripe', 'string', 0, 0, 'Default payment gateway', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(13, 'payments', 'stripe_publishable_key', '', 'string', 0, 0, 'Stripe publishable key', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(14, 'payments', 'stripe_secret_key', '', 'password', 0, 0, 'Stripe secret key', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(15, 'payments', 'paypal_client_id', '', 'string', 0, 0, 'PayPal client ID', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(16, 'payments', 'paypal_client_secret', '', 'password', 0, 0, 'PayPal client secret', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(17, 'security', 'session_timeout', '3600', 'integer', 0, 0, 'Session timeout in seconds', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(18, 'security', 'max_login_attempts', '5', 'integer', 0, 0, 'Maximum login attempts before lockout', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(19, 'security', 'lockout_duration', '900', 'integer', 0, 0, 'Account lockout duration in seconds', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(20, 'security', 'require_2fa', 'false', 'boolean', 0, 0, 'Require two-factor authentication', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(21, 'features', 'enable_reviews', 'true', 'boolean', 1, 0, 'Enable product reviews', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(22, 'features', 'enable_wishlist', 'true', 'boolean', 1, 0, 'Enable wishlist functionality', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(23, 'features', 'enable_loyalty', 'true', 'boolean', 1, 0, 'Enable loyalty program', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(24, 'features', 'enable_live_streaming', 'true', 'boolean', 1, 0, 'Enable live streaming features', NULL, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shipments`
+--
+
+CREATE TABLE `shipments` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `vendor_id` int(11) DEFAULT NULL,
+  `tracking_number` varchar(255) DEFAULT NULL,
+  `carrier` varchar(100) DEFAULT NULL,
+  `shipping_method` varchar(100) DEFAULT NULL,
+  `shipping_cost` decimal(10,2) DEFAULT 0.00,
+  `status` varchar(50) NOT NULL DEFAULT 'pending',
+  `notes` text DEFAULT NULL,
+  `shipped_at` datetime DEFAULT NULL,
+  `delivered_at` datetime DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shipment_items`
+--
+
+CREATE TABLE `shipment_items` (
+  `id` int(11) NOT NULL,
+  `shipment_id` int(11) NOT NULL,
+  `order_item_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4806,10 +4465,23 @@ INSERT INTO `settings` (`id`, `setting_group`, `setting_key`, `setting_value`, `
 --
 
 CREATE TABLE `shipping_carriers` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `created_at` datetime DEFAULT NULL,
-  `updated_at` datetime DEFAULT NULL
-);
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `tracking_url` varchar(255) DEFAULT NULL COMMENT 'URL template for tracking, e.g., https://www.fedex.com/apps/fedextrack/?tracknumbers={tracking_number}',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `shipping_carriers`
+--
+
+INSERT INTO `shipping_carriers` (`id`, `name`, `tracking_url`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'FedEx', 'https://www.fedex.com/apps/fedextrack/?tracknumbers=', 1, '2025-09-27 10:19:25', '2025-09-27 10:19:25'),
+(2, 'UPS', 'https://www.ups.com/track?loc=en_US&tracknum=', 1, '2025-09-27 10:19:25', '2025-09-27 10:19:25'),
+(3, 'USPS', 'https://tools.usps.com/go/TrackConfirmAction_input?qtc_tLabels1=', 1, '2025-09-27 10:19:25', '2025-09-27 10:19:25'),
+(4, 'DHL', 'https://www.dhl.com/en/express/tracking.html?AWB=', 1, '2025-09-27 10:19:25', '2025-09-27 10:19:25');
 
 -- --------------------------------------------------------
 
@@ -4824,7 +4496,7 @@ CREATE TABLE `stream_events` (
   `event_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`event_data`)),
   `user_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4843,7 +4515,7 @@ CREATE TABLE `stream_products` (
   `revenue_generated` decimal(10,2) NOT NULL DEFAULT 0.00,
   `is_currently_featured` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4862,7 +4534,7 @@ CREATE TABLE `stream_viewers` (
   `left_at` timestamp NULL DEFAULT NULL,
   `watch_duration` int(11) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4881,14 +4553,14 @@ CREATE TABLE `subscriptions` (
   `opted_out_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `subscriptions`
 --
 
 INSERT INTO `subscriptions` (`subscription_id`, `user_id`, `channel`, `opt_in_status`, `subscription_type`, `source`, `opted_in_at`, `opted_out_at`, `updated_at`, `created_at`) VALUES
-(1, 4, 'email', 1, 'all', NULL, '2025-09-11 17:56:21', NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
+(1, 4, 'email', 1, 'all', NULL, '2025-09-11 15:56:21', NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26');
 
 -- --------------------------------------------------------
 
@@ -4900,7 +4572,7 @@ CREATE TABLE `support_messages` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4932,7 +4604,7 @@ CREATE TABLE `support_tickets` (
   `closed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4951,7 +4623,7 @@ CREATE TABLE `support_ticket_replies` (
   `is_internal` tinyint(1) NOT NULL DEFAULT 0,
   `is_solution` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4970,7 +4642,7 @@ CREATE TABLE `system_alerts` (
   `resolved_by` int(11) DEFAULT NULL,
   `resolved_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -4990,7 +4662,7 @@ CREATE TABLE `system_events` (
   `resolved_by` int(11) DEFAULT NULL,
   `resolved_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5010,7 +4682,7 @@ CREATE TABLE `system_settings` (
   `updated_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5022,7 +4694,7 @@ CREATE TABLE `tags` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5044,7 +4716,7 @@ CREATE TABLE `tax_rules` (
   `effective_from` date NOT NULL,
   `effective_to` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5064,7 +4736,7 @@ CREATE TABLE `templates` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5089,7 +4761,7 @@ CREATE TABLE `transactions` (
   `notes` text DEFAULT NULL,
   `processed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5108,7 +4780,7 @@ CREATE TABLE `unsubscribe_links` (
   `used_at` timestamp NULL DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5141,15 +4813,15 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `last_login` datetime DEFAULT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `pass_hash`, `first_name`, `last_name`, `phone`, `role`, `status`, `verified_at`, `avatar`, `bio`, `preferences`, `two_factor_enabled`, `two_fa_secret`, `login_email_alerts`, `login_sms_alerts`, `new_device_alerts`, `suspicious_activity_alerts`, `last_login_at`, `last_login_ip`, `created_at`, `updated_at`, `last_login`) VALUES
-(4, 'Joseph', 'ellyj164@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$Yjg2Y2dNN0wzdFZZOUEuUA$XCK6vnbTtHx4S8EJvZP0qHf3xXNl0UQKNxa9fIcTHWs', 'xxxx', 'Mark bb', '+250 789 721 783', 'admin', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-11 17:56:21', '2025-09-21 00:28:43', NULL),
-(5, 'niyo', 'niyogushimwaj967@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$RW9vWGRWVHNRY0xrTVpKRg$4NdBl5tNh3vcmVSxIt5ROsXzYLH8z1YFnd8HLkxxZAY', 'NIYogu', 'Joseph', '+250 785 241 817', 'customer', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-20 22:23:57', '2025-09-21 00:32:20', NULL);
+(4, 'Joseph', 'ellyj164@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$Yjg2Y2dNN0wzdFZZOUEuUA$XCK6vnbTtHx4S8EJvZP0qHf3xXNl0UQKNxa9fIcTHWs', 'xxxx', 'Mark bb', '+250 789 721 783', 'admin', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-11 15:56:21', '2025-09-20 22:28:43', NULL),
+(5, 'niyo', 'niyogushimwaj967@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$RW9vWGRWVHNRY0xrTVpKRg$4NdBl5tNh3vcmVSxIt5ROsXzYLH8z1YFnd8HLkxxZAY', 'NIYogu', 'Joseph', '+250 785 241 817', 'customer', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-20 20:23:57', '2025-09-20 22:32:20', NULL);
 
 -- --------------------------------------------------------
 
@@ -5167,7 +4839,7 @@ CREATE TABLE `user_activities` (
   `ip_address` varchar(45) DEFAULT NULL,
   `user_agent` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5185,7 +4857,7 @@ CREATE TABLE `user_audit_logs` (
   `new_values` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`new_values`)),
   `ip_address` varchar(45) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5207,7 +4879,7 @@ CREATE TABLE `user_documents` (
   `rejection_reason` text DEFAULT NULL,
   `expires_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5222,7 +4894,7 @@ CREATE TABLE `user_follows` (
   `type` enum('user','vendor') NOT NULL DEFAULT 'user',
   `notifications_enabled` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5242,7 +4914,7 @@ CREATE TABLE `user_logins` (
   `failure_reason` varchar(255) DEFAULT NULL,
   `session_duration` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5265,7 +4937,7 @@ CREATE TABLE `user_profiles` (
   `currency` varchar(3) DEFAULT 'USD',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5283,7 +4955,7 @@ CREATE TABLE `user_roles` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5299,7 +4971,7 @@ CREATE TABLE `user_role_assignments` (
   `assigned_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `expires_at` timestamp NULL DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5325,30 +4997,32 @@ CREATE TABLE `user_sessions` (
 --
 
 INSERT INTO `user_sessions` (`id`, `user_id`, `session_token`, `ip_address`, `user_agent`, `created_at`, `expires_at`, `is_active`, `csrf_token`, `updated_at`) VALUES
-(1, 1, 'e1654d2204296d2e9e2e580616a9744bdde20c55f326981c90dd58e01e1e2d0dacc37f6992964a9a4ae3f1f1f0fa3653656d90cc1e5ee1448442b4522e62a81b', '197.157.155.163', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-09-11 19:50:31', '2025-09-11 20:50:31', 1, '09331009433d0babe15f2a59f0705954d359e6951cc10c6ea8ab261b6ea72854', '2025-09-11 21:50:31'),
-(2, 4, 'fe8d72ba1cd07e56ac312d78f08701d3257c0af5481f2f6bd5fdd52367a685926b027db24ebbbca2d681e48e7af61e64b715419eeb098986a55291dd7293cf3d', '197.157.145.25', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-14 22:45:42', '2025-09-14 23:45:42', 1, '6b923c8a66d1674bbcd17ebbfe977793eef8d2670de119389104dcef2051357e', '2025-09-15 00:45:42'),
-(3, 4, 'ff880e6fb3c6ab3bababc31e633d5be0324ffe4dc0688e39dbc01bbaf2042d1c18f54d56e5c6aa58708de36db0ad462f1476754091065d0ad269c27c1c14be1b', '105.178.32.82', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 17:09:28', '2025-09-15 18:09:28', 1, 'b3233fde0d2673231819456355f082f470cbbec8a69eed9bb4a0969a6f0a5ad7', '2025-09-15 19:09:28'),
-(4, 4, '5b25d47ee859b5b6f6c515e7f0acf4e56e285a3f59a6451c8a5a166d5f9e5fea98fefd67eafdabd08744908fe239959353006e8e120e05367381a321c6e116c2', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 19:22:52', '2025-09-15 20:22:52', 1, 'ce3b39495005f73048a5cf91e3c8deaf684defae8fcb70517dc774a680847239', '2025-09-15 21:22:52'),
-(5, 4, '0d1dcfbfbd356513bb531a18627a96114d1d5321d9ffae9d79d08332a8004ced3fa0dd42b86316050fc3c0da471ca54ca2cf5ac03a2eadc47d22b96e0cc54e0e', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 19:29:35', '2025-09-15 20:29:35', 1, '474d6a4b6a916600337f2f9f0aa39697f668b22105ce44cc6c84d8593649c6c1', '2025-09-15 21:29:35'),
-(6, 4, '9ecce897b923b4f8461cbfc308be28634ed4d7a8c6b520e5fe37658b59b29986b6c2acca0233957a2d1c1ace4795526c2d51aedea55b06cbd7ef70bb1a1f6ff8', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 20:00:11', '2025-09-15 21:00:11', 1, '9a684e5a7360e8cfc8fa9eba31b8107f22996e38fdd881c7aeb8478fe14baecb', '2025-09-15 22:00:11'),
-(7, 4, '6a209fb3fa928c9818f50d945d86e1b2eef1c0bb6387f44c00cb0285f982ffed747f545da5e5e91b21c589374a5dec86a3d9161487ad7884de7e9dc42be3a9df', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 20:08:43', '2025-09-15 21:08:43', 1, '5aae8c8ec3ef68809ed03865471b93ee6e7ded6b35506ec03c60eb77326956e4', '2025-09-15 22:08:43'),
-(8, 4, '31eff7e649fbef5b5009df6c69c11a883a1f8aaaa74cb7be40d7ad2d8d177f0decc7c499b3781f717869a3de951f968b57bbc1f5e413c991210a1c83db28945d', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 21:11:16', '2025-09-15 22:11:16', 1, '7e6e0c0e65090089112602c2405d0a5a523ab011b9b1c4ba46e81f8fc57dadb1', '2025-09-15 23:11:16'),
-(9, 4, '2a41df3d0661b91a1a3c3f4089f1f1e602e9a1afa129dd904dfe747044f75d5206e35c7dac8045a07be13b65167f64225341973552f69c68bd093c2ec1e35d98', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 21:14:55', '2025-09-15 22:14:55', 1, '99d79fcbccc6cc24421caa733efeb49cbff537bb6d1d6b1ec1f2e56ca47e1d05', '2025-09-15 23:14:55'),
-(10, 4, 'ad96b5bd247d2f2a75a101e99f1ba83f02ee6790a857e72e9bc1ba4147b222983125f860f1bb4a573851e2d96ae40368ed3066f67dcf9988986592f1473b3767', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 22:19:58', '2025-09-15 23:19:58', 1, 'bf6b85fd9531318f8aab8e140b249491786b3de80ca7cf9d0c3c23ea0acc2e8d', '2025-09-16 00:19:58'),
-(11, 4, '9bbd26db276e02923b827a2e4d94460319d17e8a0d95dba916caad1ab9659956a456edd147faeffe2d0ffb28d22edc27d4e0918c145512e3c766e247c6ac7425', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 23:21:19', '2025-09-16 00:21:19', 1, 'd1b5078286463a664178429896c413e9a762421e49970e2c69c3e808631955a0', '2025-09-16 01:21:19'),
-(12, 4, 'e71ea2be86bd51b48d108666fe1d058379f4010c8230dd88a421040a18e70fa36f68a43518d39464f88a5822ae3a63260753ce130db87cad50fc682f1032355d', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 00:58:23', '2025-09-16 01:58:23', 1, '3184ab76216f6b2b23019d7748fa9de084abaf302c91cb18447f45b3458f7fd4', '2025-09-16 02:58:23'),
-(13, 4, 'ad51fa8ca9f6dbfd513aceb12e16b84f4f82fc424383d7e40e9e1796cfed94356a2dc84eb074596fc386fb89658135105f213a748b0e6b46f8844c7274713b66', '105.178.32.56', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 07:50:29', '2025-09-16 08:50:29', 1, '8a0c4fbb69399122a88237ef943c1a71287e9123d409255e5e1b8ec0b92c1be5', '2025-09-16 09:50:29'),
-(14, 4, 'ab820e967e2a60803ae8ad708caa94ddaf76397c8cdb2e2c859b9c0e4750ccf07f5e6011674a823fe71ffe7f29b7f903acbd13ce6af9d686538eff0136b37b57', '105.178.32.56', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 09:35:24', '2025-09-16 10:35:24', 1, '00c8ab0dc8f51bdae66fbf4287379f0c696e3850ebdf2b474b82d9a0cf74ebda', '2025-09-16 11:35:24'),
-(15, 4, '43566b07beb8b96eec9c5093b266f8e19e5036cca2a3188e4e969ededbae37e04ec7395b77605ab954418b2683c95126fe0c44d9694b22cfa0dec634db29745e', '105.178.104.56', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 10:10:19', '2025-09-16 11:10:19', 1, '07060d5c4c96784bfdcca697fb0faf2a9a61d4306f5aafce65ba84bd14071fb4', '2025-09-16 12:10:19'),
-(16, 4, '17a70883d6dc922f23b79cf26e86398643777262ca39e562414b838c44dc6b59f9645c6798d60a6a6d9c97d5bb8aaad5771c9bd42d817af3d621186fea3b5a09', '105.178.104.129', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 13:25:14', '2025-09-16 14:25:14', 1, '5d8a570eaa0df9911f432762c89a302623ef14bf76b78dbf293330f2b2dc992d', '2025-09-16 15:25:14'),
-(17, 4, '5f06dba291252182a8b2f0a42d27e664370dcbf24b6acad465640eec09158de832e4e0e24a493bac638a1fb4074e521506340b26d15ddd67dd59202f61f78fe4', '105.178.32.65', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 18:10:15', '2025-09-16 19:10:15', 1, '643bfd2f1d062cb8ddc92397773c92c179773243fc704f9d6f1686a6ed260814', '2025-09-16 20:10:15'),
-(18, 4, 'd48785759ea8b4e32517219ae0e188a3392d11b7b691de768621d869fb45173486bd0c35aac6fa275c5dbe7705fa03e9059f92c66cabf920ff077f40c707a8c8', '105.178.104.65', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 18:51:50', '2025-09-16 19:51:50', 1, 'e008343dc0e36d559227eb129dd83f0d31b5795065360d0c8996e0b6ae0084b3', '2025-09-16 20:51:50'),
-(19, 4, '8245a00989a6f128a028c5a0d28e56e1028ec4420468ef05ffd0fd3a2ccefe6744f93188b8051d4cb49a0085635d6b2532f20468313343d638278281bfc0afad', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 00:20:08', '2025-09-21 01:20:08', 1, '647ccf73e5fd4d974e8f051eeef2ed60e7214a523ebe8e62949dc51b631ba9c0', '2025-09-21 02:20:08'),
-(20, 4, '592af2f528d10a25a9e3f81d5d50208360ca6e8858f21c97dbbdb033fe501ddc6acc37150bce90284ac0749a35859ccd2978a0214f1a9237b56326b16335f9db', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 00:21:19', '2025-09-21 01:21:19', 1, '390744a4592115ab2ddd1c07ceb1de1ca3fd481a6f70a56ab39de4801df1e51b', '2025-09-21 02:21:19'),
-(21, 5, '6704b4de660ddc6e8d9164f3766f4fb51fa2e69d426914839dce67aa088fdf31040980c2da4814c55e0f7d394452d8cf65344ddcbd811f75ca1dc3e5a165847f', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 00:27:04', '2025-09-21 01:27:04', 1, 'b378b0d439c6140bcfe6e651ae07d6238c17825ceaeb2c8c07b7b144d21f85b3', '2025-09-21 02:27:04'),
-(22, 4, 'f5e9dfdcd300c36413a2b387bc9b43f7c61bdab1a18a57cad62a41a4b1bb9e5e80902e3241ddb9b3baa402172811d0cdb074cf6e90021dae3bed8021f7cc2d45', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 00:31:22', '2025-09-21 01:31:22', 1, 'e35af7b71dc7111e95584e52ddc69eead7715ee96484874670ec1f9c8c7e0696', '2025-09-21 02:31:22'),
-(23, 4, '17f2c2a513cb00ea106ded0edfdc8465cf5ce7e94ee7a904eca94cb214fd4cfbe0e1ccd24a246831a472ec1bec15e64ec6586fb864076bf5d199da7b254e8c3f', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 08:57:04', '2025-09-21 09:57:04', 1, '6d761f39b7a07245e02f186554c44ddaf4b1ba0620d0a5f2900adf5c7abb030b', '2025-09-21 10:57:04'),
-(24, 4, '4fb2f4a6be0ff7e4ce7a37455d4270094b7180ddeb15c0443817ce56b31c0fb34202f7cfd13e2c0a9f4502a3209fa9095c5be8ca6c4c9dd6850ca263115ec952', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 11:07:53', '2025-09-21 12:07:53', 1, 'cd24a266e6ba806401e754034eaa260adebdec513f755fc4a276e7be12591015', '2025-09-21 13:07:53');
+(1, 1, 'e1654d2204296d2e9e2e580616a9744bdde20c55f326981c90dd58e01e1e2d0dacc37f6992964a9a4ae3f1f1f0fa3653656d90cc1e5ee1448442b4522e62a81b', '197.157.155.163', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-09-11 17:50:31', '2025-09-11 18:50:31', 1, '09331009433d0babe15f2a59f0705954d359e6951cc10c6ea8ab261b6ea72854', '2025-09-11 21:50:31'),
+(2, 4, 'fe8d72ba1cd07e56ac312d78f08701d3257c0af5481f2f6bd5fdd52367a685926b027db24ebbbca2d681e48e7af61e64b715419eeb098986a55291dd7293cf3d', '197.157.145.25', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-14 20:45:42', '2025-09-14 21:45:42', 1, '6b923c8a66d1674bbcd17ebbfe977793eef8d2670de119389104dcef2051357e', '2025-09-15 00:45:42'),
+(3, 4, 'ff880e6fb3c6ab3bababc31e633d5be0324ffe4dc0688e39dbc01bbaf2042d1c18f54d56e5c6aa58708de36db0ad462f1476754091065d0ad269c27c1c14be1b', '105.178.32.82', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 15:09:28', '2025-09-15 16:09:28', 1, 'b3233fde0d2673231819456355f082f470cbbec8a69eed9bb4a0969a6f0a5ad7', '2025-09-15 19:09:28'),
+(4, 4, '5b25d47ee859b5b6f6c515e7f0acf4e56e285a3f59a6451c8a5a166d5f9e5fea98fefd67eafdabd08744908fe239959353006e8e120e05367381a321c6e116c2', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 17:22:52', '2025-09-15 18:22:52', 1, 'ce3b39495005f73048a5cf91e3c8deaf684defae8fcb70517dc774a680847239', '2025-09-15 21:22:52'),
+(5, 4, '0d1dcfbfbd356513bb531a18627a96114d1d5321d9ffae9d79d08332a8004ced3fa0dd42b86316050fc3c0da471ca54ca2cf5ac03a2eadc47d22b96e0cc54e0e', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 17:29:35', '2025-09-15 18:29:35', 1, '474d6a4b6a916600337f2f9f0aa39697f668b22105ce44cc6c84d8593649c6c1', '2025-09-15 21:29:35'),
+(6, 4, '9ecce897b923b4f8461cbfc308be28634ed4d7a8c6b520e5fe37658b59b29986b6c2acca0233957a2d1c1ace4795526c2d51aedea55b06cbd7ef70bb1a1f6ff8', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 18:00:11', '2025-09-15 19:00:11', 1, '9a684e5a7360e8cfc8fa9eba31b8107f22996e38fdd881c7aeb8478fe14baecb', '2025-09-15 22:00:11'),
+(7, 4, '6a209fb3fa928c9818f50d945d86e1b2eef1c0bb6387f44c00cb0285f982ffed747f545da5e5e91b21c589374a5dec86a3d9161487ad7884de7e9dc42be3a9df', '197.157.155.6', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 18:08:43', '2025-09-15 19:08:43', 1, '5aae8c8ec3ef68809ed03865471b93ee6e7ded6b35506ec03c60eb77326956e4', '2025-09-15 22:08:43'),
+(8, 4, '31eff7e649fbef5b5009df6c69c11a883a1f8aaaa74cb7be40d7ad2d8d177f0decc7c499b3781f717869a3de951f968b57bbc1f5e413c991210a1c83db28945d', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 19:11:16', '2025-09-15 20:11:16', 1, '7e6e0c0e65090089112602c2405d0a5a523ab011b9b1c4ba46e81f8fc57dadb1', '2025-09-15 23:11:16'),
+(9, 4, '2a41df3d0661b91a1a3c3f4089f1f1e602e9a1afa129dd904dfe747044f75d5206e35c7dac8045a07be13b65167f64225341973552f69c68bd093c2ec1e35d98', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 19:14:55', '2025-09-15 20:14:55', 1, '99d79fcbccc6cc24421caa733efeb49cbff537bb6d1d6b1ec1f2e56ca47e1d05', '2025-09-15 23:14:55'),
+(10, 4, 'ad96b5bd247d2f2a75a101e99f1ba83f02ee6790a857e72e9bc1ba4147b222983125f860f1bb4a573851e2d96ae40368ed3066f67dcf9988986592f1473b3767', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 20:19:58', '2025-09-15 21:19:58', 1, 'bf6b85fd9531318f8aab8e140b249491786b3de80ca7cf9d0c3c23ea0acc2e8d', '2025-09-16 00:19:58'),
+(11, 4, '9bbd26db276e02923b827a2e4d94460319d17e8a0d95dba916caad1ab9659956a456edd147faeffe2d0ffb28d22edc27d4e0918c145512e3c766e247c6ac7425', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 21:21:19', '2025-09-15 22:21:19', 1, 'd1b5078286463a664178429896c413e9a762421e49970e2c69c3e808631955a0', '2025-09-16 01:21:19'),
+(12, 4, 'e71ea2be86bd51b48d108666fe1d058379f4010c8230dd88a421040a18e70fa36f68a43518d39464f88a5822ae3a63260753ce130db87cad50fc682f1032355d', '197.157.155.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-15 22:58:23', '2025-09-15 23:58:23', 1, '3184ab76216f6b2b23019d7748fa9de084abaf302c91cb18447f45b3458f7fd4', '2025-09-16 02:58:23'),
+(13, 4, 'ad51fa8ca9f6dbfd513aceb12e16b84f4f82fc424383d7e40e9e1796cfed94356a2dc84eb074596fc386fb89658135105f213a748b0e6b46f8844c7274713b66', '105.178.32.56', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 05:50:29', '2025-09-16 06:50:29', 1, '8a0c4fbb69399122a88237ef943c1a71287e9123d409255e5e1b8ec0b92c1be5', '2025-09-16 09:50:29'),
+(14, 4, 'ab820e967e2a60803ae8ad708caa94ddaf76397c8cdb2e2c859b9c0e4750ccf07f5e6011674a823fe71ffe7f29b7f903acbd13ce6af9d686538eff0136b37b57', '105.178.32.56', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 07:35:24', '2025-09-16 08:35:24', 1, '00c8ab0dc8f51bdae66fbf4287379f0c696e3850ebdf2b474b82d9a0cf74ebda', '2025-09-16 11:35:24'),
+(15, 4, '43566b07beb8b96eec9c5093b266f8e19e5036cca2a3188e4e969ededbae37e04ec7395b77605ab954418b2683c95126fe0c44d9694b22cfa0dec634db29745e', '105.178.104.56', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 08:10:19', '2025-09-16 09:10:19', 1, '07060d5c4c96784bfdcca697fb0faf2a9a61d4306f5aafce65ba84bd14071fb4', '2025-09-16 12:10:19'),
+(16, 4, '17a70883d6dc922f23b79cf26e86398643777262ca39e562414b838c44dc6b59f9645c6798d60a6a6d9c97d5bb8aaad5771c9bd42d817af3d621186fea3b5a09', '105.178.104.129', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 11:25:14', '2025-09-16 12:25:14', 1, '5d8a570eaa0df9911f432762c89a302623ef14bf76b78dbf293330f2b2dc992d', '2025-09-16 15:25:14'),
+(17, 4, '5f06dba291252182a8b2f0a42d27e664370dcbf24b6acad465640eec09158de832e4e0e24a493bac638a1fb4074e521506340b26d15ddd67dd59202f61f78fe4', '105.178.32.65', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 16:10:15', '2025-09-16 17:10:15', 1, '643bfd2f1d062cb8ddc92397773c92c179773243fc704f9d6f1686a6ed260814', '2025-09-16 20:10:15'),
+(18, 4, 'd48785759ea8b4e32517219ae0e188a3392d11b7b691de768621d869fb45173486bd0c35aac6fa275c5dbe7705fa03e9059f92c66cabf920ff077f40c707a8c8', '105.178.104.65', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-16 16:51:50', '2025-09-16 17:51:50', 1, 'e008343dc0e36d559227eb129dd83f0d31b5795065360d0c8996e0b6ae0084b3', '2025-09-16 20:51:50'),
+(19, 4, '8245a00989a6f128a028c5a0d28e56e1028ec4420468ef05ffd0fd3a2ccefe6744f93188b8051d4cb49a0085635d6b2532f20468313343d638278281bfc0afad', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-20 22:20:08', '2025-09-20 23:20:08', 1, '647ccf73e5fd4d974e8f051eeef2ed60e7214a523ebe8e62949dc51b631ba9c0', '2025-09-21 02:20:08'),
+(20, 4, '592af2f528d10a25a9e3f81d5d50208360ca6e8858f21c97dbbdb033fe501ddc6acc37150bce90284ac0749a35859ccd2978a0214f1a9237b56326b16335f9db', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-20 22:21:19', '2025-09-20 23:21:19', 1, '390744a4592115ab2ddd1c07ceb1de1ca3fd481a6f70a56ab39de4801df1e51b', '2025-09-21 02:21:19'),
+(21, 5, '6704b4de660ddc6e8d9164f3766f4fb51fa2e69d426914839dce67aa088fdf31040980c2da4814c55e0f7d394452d8cf65344ddcbd811f75ca1dc3e5a165847f', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-20 22:27:04', '2025-09-20 23:27:04', 1, 'b378b0d439c6140bcfe6e651ae07d6238c17825ceaeb2c8c07b7b144d21f85b3', '2025-09-21 02:27:04'),
+(22, 4, 'f5e9dfdcd300c36413a2b387bc9b43f7c61bdab1a18a57cad62a41a4b1bb9e5e80902e3241ddb9b3baa402172811d0cdb074cf6e90021dae3bed8021f7cc2d45', '197.157.135.133', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-20 22:31:22', '2025-09-20 23:31:22', 1, 'e35af7b71dc7111e95584e52ddc69eead7715ee96484874670ec1f9c8c7e0696', '2025-09-21 02:31:22'),
+(23, 4, '17f2c2a513cb00ea106ded0edfdc8465cf5ce7e94ee7a904eca94cb214fd4cfbe0e1ccd24a246831a472ec1bec15e64ec6586fb864076bf5d199da7b254e8c3f', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 06:57:04', '2025-09-21 07:57:04', 1, '6d761f39b7a07245e02f186554c44ddaf4b1ba0620d0a5f2900adf5c7abb030b', '2025-09-21 10:57:04'),
+(24, 4, '4fb2f4a6be0ff7e4ce7a37455d4270094b7180ddeb15c0443817ce56b31c0fb34202f7cfd13e2c0a9f4502a3209fa9095c5be8ca6c4c9dd6850ca263115ec952', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 09:07:53', '2025-09-21 10:07:53', 1, 'cd24a266e6ba806401e754034eaa260adebdec513f755fc4a276e7be12591015', '2025-09-21 13:07:53'),
+(25, 4, '031730c9413b2bc112a1b8079542234cdf516ae67b41e63b744956aa8cfe70ed668bf0997479062aee68405c8214a86a281bc735b4f0331801249c30e7fb11c6', '105.178.104.165', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 09:29:06', '2025-09-27 10:29:06', 1, '57becd5acda28d9ba6494d5229b87015d662c43dba50e78a7ab900c080caadb0', '2025-09-27 11:29:06'),
+(26, 4, '2c270d1f3db48df927fd814152fe264f2193cec550c15a52d928835f2147a0e99112d7db0e4d52af6a75184e74c0cccb5b7f6b63b9f4671062c98453508bdc44', '105.178.32.38', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 12:29:31', '2025-09-27 13:29:31', 1, '8c1ae6be54d60be95aec8f9de52bc07903ee90fb2acb62a0ddf3b6aeb084c972', '2025-09-27 14:29:31');
 
 -- --------------------------------------------------------
 
@@ -5370,7 +5044,7 @@ CREATE TABLE `user_two_factor_auth` (
   `enabled_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5399,16 +5073,17 @@ CREATE TABLE `vendors` (
   `approved_at` timestamp NULL DEFAULT NULL,
   `approved_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `name` varchar(255) NOT NULL DEFAULT ''
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `vendors`
 --
 
-INSERT INTO `vendors` (`id`, `user_id`, `business_name`, `business_description`, `business_type`, `tax_id`, `business_address`, `business_phone`, `business_email`, `website`, `description`, `logo_url`, `banner_url`, `status`, `commission_rate`, `payment_details`, `business_documents`, `approved_at`, `approved_by`, `created_at`, `updated_at`) VALUES
-(3, 4, 'ffffeza', 'ffffff', 'individual', '', 'fffffffffffffff', NULL, NULL, NULL, NULL, NULL, NULL, 'approved', 10.00, NULL, NULL, NULL, NULL, '2025-09-14 22:46:17', '2025-09-14 22:48:37'),
-(4, 5, 'Joseph store', 'Businesss managenebt', 'individual', '', 'BUsiness tools to manage my account', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', 10.00, NULL, NULL, NULL, NULL, '2025-09-21 00:27:33', '2025-09-20 22:31:07');
+INSERT INTO `vendors` (`id`, `user_id`, `business_name`, `business_description`, `business_type`, `tax_id`, `business_address`, `business_phone`, `business_email`, `website`, `description`, `logo_url`, `banner_url`, `status`, `commission_rate`, `payment_details`, `business_documents`, `approved_at`, `approved_by`, `created_at`, `updated_at`, `name`) VALUES
+(3, 4, 'ffffeza', 'ffffff', 'individual', '', 'fffffffffffffff', NULL, NULL, NULL, NULL, NULL, NULL, 'approved', 10.00, NULL, NULL, NULL, NULL, '2025-09-14 20:46:17', '2025-09-14 20:48:37', ''),
+(4, 5, 'Joseph store', 'Businesss managenebt', 'individual', '', 'BUsiness tools to manage my account', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', 10.00, NULL, NULL, NULL, NULL, '2025-09-20 22:27:33', '2025-09-20 20:31:07', '');
 
 -- --------------------------------------------------------
 
@@ -5430,7 +5105,7 @@ CREATE TABLE `vendor_commissions` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5457,7 +5132,7 @@ CREATE TABLE `vendor_payouts` (
   `processed_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5480,7 +5155,7 @@ CREATE TABLE `wallets` (
   `auto_payout_threshold` decimal(10,2) NOT NULL DEFAULT 100.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5502,7 +5177,7 @@ CREATE TABLE `wallet_entries` (
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5527,15 +5202,15 @@ CREATE TABLE `warehouses` (
   `operating_hours` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`operating_hours`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `warehouses`
 --
 
 INSERT INTO `warehouses` (`id`, `name`, `code`, `address`, `city`, `state`, `postal_code`, `country`, `phone`, `email`, `manager_id`, `capacity`, `is_active`, `operating_hours`, `created_at`, `updated_at`) VALUES
-(1, 'Main Warehouse', 'MAIN', '123 Warehouse St', 'Los Angeles', 'CA', '90210', 'US', '+1-555-0123', 'warehouse@example.com', NULL, NULL, 1, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26'),
-(2, 'East Coast Facility', 'EAST', '456 Shipping Ave', 'New York', 'NY', '10001', 'US', '+1-555-0124', 'east@example.com', NULL, NULL, 1, NULL, '2025-09-14 21:54:26', '2025-09-14 21:54:26');
+(1, 'Main Warehouse', 'MAIN', '123 Warehouse St', 'Los Angeles', 'CA', '90210', 'US', '+1-555-0123', 'warehouse@example.com', NULL, NULL, 1, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26'),
+(2, 'East Coast Facility', 'EAST', '456 Shipping Ave', 'New York', 'NY', '10001', 'US', '+1-555-0124', 'east@example.com', NULL, NULL, 1, NULL, '2025-09-14 19:54:26', '2025-09-14 19:54:26');
 
 -- --------------------------------------------------------
 
@@ -5557,7 +5232,7 @@ CREATE TABLE `webhook_subscriptions` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -5576,7 +5251,7 @@ CREATE TABLE `wishlists` (
   `notify_on_restock` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indexes for dumped tables
@@ -6729,7 +6404,8 @@ ALTER TABLE `payment_methods`
 -- Indexes for table `payment_reconciliations`
 --
 ALTER TABLE `payment_reconciliations`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_reconciled_by_user` (`reconciled_by`);
 
 --
 -- Indexes for table `payouts`
@@ -7472,10 +7148,29 @@ ALTER TABLE `settings`
   ADD KEY `idx_settings_group_public` (`setting_group`,`is_public`);
 
 --
+-- Indexes for table `shipments`
+--
+ALTER TABLE `shipments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `order_id` (`order_id`),
+  ADD KEY `vendor_id` (`vendor_id`),
+  ADD KEY `tracking_number` (`tracking_number`),
+  ADD KEY `fk_shipments_created_by` (`created_by`);
+
+--
+-- Indexes for table `shipment_items`
+--
+ALTER TABLE `shipment_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `shipment_id` (`shipment_id`),
+  ADD KEY `order_item_id` (`order_item_id`);
+
+--
 -- Indexes for table `shipping_carriers`
 --
 ALTER TABLE `shipping_carriers`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
 
 --
 -- Indexes for table `stream_events`
@@ -7908,7 +7603,7 @@ ALTER TABLE `api_logs`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
@@ -8376,7 +8071,7 @@ ALTER TABLE `live_stream_products`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `loyalty_tiers`
@@ -8955,10 +8650,22 @@ ALTER TABLE `settings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
+-- AUTO_INCREMENT for table `shipments`
+--
+ALTER TABLE `shipments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `shipment_items`
+--
+ALTER TABLE `shipment_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `shipping_carriers`
 --
 ALTER TABLE `shipping_carriers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `stream_events`
@@ -9108,7 +8815,7 @@ ALTER TABLE `user_role_assignments`
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `user_two_factor_auth`
@@ -9784,6 +9491,12 @@ ALTER TABLE `payment_methods`
   ADD CONSTRAINT `fk_payment_methods_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `payment_reconciliations`
+--
+ALTER TABLE `payment_reconciliations`
+  ADD CONSTRAINT `fk_reconciled_by_user` FOREIGN KEY (`reconciled_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
 -- Constraints for table `payouts`
 --
 ALTER TABLE `payouts`
@@ -10286,6 +9999,21 @@ ALTER TABLE `settings`
   ADD CONSTRAINT `fk_settings_updater` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
+-- Constraints for table `shipments`
+--
+ALTER TABLE `shipments`
+  ADD CONSTRAINT `fk_shipments_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_shipments_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_shipments_vendor` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `shipment_items`
+--
+ALTER TABLE `shipment_items`
+  ADD CONSTRAINT `fk_shipment_items_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_shipment_items_shipment` FOREIGN KEY (`shipment_id`) REFERENCES `shipments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `stream_events`
 --
 ALTER TABLE `stream_events`
@@ -10475,11 +10203,3 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-
--- Enable foreign key checks
-SET foreign_key_checks = 1;
-
--- Schema conversion completed
--- Total tables: 240+
--- All tables optimized for MariaDB/MySQL with InnoDB storage engine
--- UTF8MB4 charset for full Unicode support including emojis
