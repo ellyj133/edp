@@ -42,26 +42,14 @@ if (!function_exists('env')) {
     }
 }
 
-// Database connection settings - with SQLite support for development
-// Use SQLite for development since test_ecommerce.db already exists
-if (env('APP_ENV', 'development') === 'development' || file_exists(__DIR__ . '/../test_ecommerce.db')) {
-    // Development with SQLite
-    define('DB_HOST', 'localhost');
-    define('DB_NAME', 'sqlite');
-    define('DB_USER', '');
-    define('DB_PASS', '');
-    define('DB_CHARSET', 'utf8mb4');
-    define('USE_SQLITE', true);
-    define('SQLITE_PATH', __DIR__ . '/../test_ecommerce.db');
-} else {
-    // Production configuration for duns1.fezalogistics.com
-    define('DB_HOST', env('DB_HOST', 'localhost'));
-    define('DB_NAME', env('DB_NAME', 'ecommerce_platform'));
-    define('DB_USER', env('DB_USER', 'duns1'));
-    define('DB_PASS', env('DB_PASS', 'Tumukunde'));
-    define('DB_CHARSET', env('DB_CHARSET', 'utf8mb4'));
-    define('USE_SQLITE', false);
-}
+// Database connection settings - MariaDB/MySQL only
+// Updated to use MariaDB exclusively as requested
+define('DB_HOST', env('DB_HOST', 'localhost'));
+define('DB_NAME', env('DB_NAME', 'ecommerce_platform'));
+define('DB_USER', env('DB_USER', 'duns1'));
+define('DB_PASS', env('DB_PASS', 'Tumukunde'));
+define('DB_CHARSET', env('DB_CHARSET', 'utf8mb4'));
+define('USE_SQLITE', false); // SQLite disabled - MariaDB only
 
 // Application settings
 define('APP_NAME', env('APP_NAME', 'E-Commerce Platform'));

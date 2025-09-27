@@ -113,7 +113,7 @@ class Wishlist extends BaseModel {
     }
     
     public function addToWishlist($userId, $productId, $notes = null) {
-        $stmt = $this->db->prepare("INSERT OR IGNORE INTO {$this->table} (user_id, product_id, notes) VALUES (?, ?, ?)");
+        $stmt = $this->db->prepare("INSERT IGNORE INTO {$this->table} (user_id, product_id, notes) VALUES (?, ?, ?)");
         return $stmt->execute([$userId, $productId, $notes]);
     }
     
@@ -812,9 +812,16 @@ class Setting extends BaseModel {
         }
         
         $stmt = $this->db->prepare("
-            INSERT OR REPLACE INTO {$this->table} 
-            (key, value, type, description, is_public, updated_by, updated_at) 
+            INSERT INTO {$this->table} 
+            (`key`, `value`, type, description, is_public, updated_by, updated_at) 
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+            `value` = VALUES(`value`),
+            type = VALUES(type),
+            description = VALUES(description),
+            is_public = VALUES(is_public),
+            updated_by = VALUES(updated_by),
+            updated_at = CURRENT_TIMESTAMP
         ");
         
         return $stmt->execute([$key, $value, $type, $description, $isPublic ? 1 : 0, $updatedBy]);

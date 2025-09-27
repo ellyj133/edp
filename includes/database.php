@@ -82,6 +82,7 @@ if (!class_exists('BaseModel')) {
 
         protected function getTableColumns(): array {
             if (!isset($this->columnCache[$this->table])) {
+                // Use MySQL/MariaDB DESCRIBE instead of SQLite PRAGMA
                 $stmt = $this->db->query("DESCRIBE {$this->table}");
                 $cols = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
                 $this->columnCache[$this->table] = array_flip($cols);
