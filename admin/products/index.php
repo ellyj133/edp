@@ -191,18 +191,20 @@ $vendors_table_exists = $table_exists_stmt->fetchColumn();
 
 if ($vendors_table_exists) {
     // If vendors table exists, use the original query with JOIN
-    $sql = "SELECT p.*, c.name as category_name, v.name as vendor_name 
+    // FIX: Corrected JOIN conditions - categories.id and vendors.id are the primary keys
+    $sql = "SELECT p.*, c.name as category_name, v.business_name as vendor_name 
             FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.category_id 
-            LEFT JOIN vendors v ON p.vendor_id = v.vendor_id 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
             $where_clause 
             ORDER BY p.created_at DESC 
             LIMIT :limit OFFSET :offset";
 } else {
     // If vendors table doesn't exist, query without vendor JOIN
+    // FIX: Corrected JOIN condition for categories table
     $sql = "SELECT p.*, c.name as category_name, 'No Vendor' as vendor_name 
             FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.category_id 
+            LEFT JOIN categories c ON p.category_id = c.id 
             $where_clause 
             ORDER BY p.created_at DESC 
             LIMIT :limit OFFSET :offset";
@@ -281,8 +283,8 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                     <select name="category_id" class="form-control">
                         <option value="">All Categories</option>
                         <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo $cat['category_id']; ?>" 
-                                    <?php echo $category_filter == $cat['category_id'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo $cat['id']; ?>" 
+                                    <?php echo $category_filter == $cat['id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($cat['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -295,9 +297,9 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                     <select name="vendor_id" class="form-control">
                         <option value="">All Vendors</option>
                         <?php foreach ($vendors as $v): ?>
-                            <option value="<?php echo $v['vendor_id']; ?>" 
-                                    <?php echo $vendor_filter == $v['vendor_id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($v['name']); ?>
+                            <option value="<?php echo $v['id']; ?>" 
+                                    <?php echo $vendor_filter == $v['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($v['business_name'] ?? $v['name'] ?? 'Unknown Vendor'); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -396,7 +398,7 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                 <tr>
                                     <td class="bulk-checkbox-cell" style="display: none;">
                                         <input type="checkbox" class="product-checkbox" 
-                                               name="product_ids[]" value="<?php echo $prod['product_id']; ?>">
+                                               name="product_ids[]" value="<?php echo $prod['id']; ?>">
                                     </td>
                                     <td class="product-cell">
                                         <div class="product-info">
@@ -472,16 +474,16 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                     </td>
                                     <td class="actions-cell">
                                         <div class="action-buttons">
-                                            <a href="?action=edit&id=<?php echo $prod['product_id']; ?>" 
+                                            <a href="?action=edit&id=<?php echo $prod['id']; ?>" 
                                                class="btn btn-sm btn-secondary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="?action=view&id=<?php echo $prod['product_id']; ?>" 
+                                            <a href="?action=view&id=<?php echo $prod['id']; ?>" 
                                                class="btn btn-sm btn-info" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <button type="button" class="btn btn-sm btn-danger" 
-                                                    onclick="confirmDelete(<?php echo $prod['product_id']; ?>, '<?php echo htmlspecialchars($prod['name'], ENT_QUOTES); ?>')" 
+                                                    onclick="confirmDelete(<?php echo $prod['id']; ?>, '<?php echo htmlspecialchars($prod['name'], ENT_QUOTES); ?>')" 
                                                     title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
