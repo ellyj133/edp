@@ -2190,4 +2190,36 @@ function scrollProducts(trackId, direction) {
         // Reset to start if at the end
         if (track.scrollLeft >= track.scrollWidth - track.offsetWidth) {
             setTimeout(() => {
-                track.
+                track.scrollLeft = 0;
+            }, 100);
+        }
+    } else {
+        track.scrollLeft -= scrollAmount;
+    }
+}
+
+function scrollCategories(direction) {
+    const track = document.querySelector('.categories-track');
+    const scrollAmount = 200;
+    
+    if (direction === 'right') {
+        track.scrollLeft += scrollAmount;
+        
+        // Reset to start if at the end
+        if (track.scrollLeft >= track.scrollWidth - track.offsetWidth) {
+            setTimeout(() => {
+                track.scrollLeft = 0;
+            }, 100);
+        }
+    } else {
+        track.scrollLeft -= scrollAmount;
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Homepage with admin editing and add to cart functionality loaded');
+});
+</script>
+
+<?php includeFooter(); ?>
