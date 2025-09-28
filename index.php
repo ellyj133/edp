@@ -7,6 +7,13 @@
 require_once __DIR__ . '/includes/init.php';
 require_once __DIR__ . '/includes/template-helpers.php';
 
+/* ---------- Admin Authorization Check ---------- */
+$is_admin_logged_in = false;
+if (Session::isLoggedIn()) {
+    $user_role = Session::getUserRole();
+    $is_admin_logged_in = ($user_role === 'admin');
+}
+
 /* ---------- Safe Helpers ---------- */
 if (!function_exists('h')) {
     function h($v): string { 
@@ -50,65 +57,147 @@ if (!function_exists('safeNormalizeProduct')) {
     }
 }
 
-$page_title = 'FezaMarket - Save Money. Live Better.';
-
-// Safely fetch dynamic content with fallbacks
-try {
-    $platform_stats = get_platform_stats();
-    if (!is_array($platform_stats)) {
-        $platform_stats = ['stores' => 15, 'products' => 150, 'users' => 500, 'orders' => 75];
+/* ---------- Real Product Fetcher from Database ---------- */
+if (!function_exists('fetchRealProducts')) {
+    function fetchRealProducts($limit = 12, $category_id = null): array {
+        try {
+            $pdo = db();
+            
+            // Build query to fetch real products
+            $sql = "SELECT p.id, p.name as title, p.price, p.compare_price as original_price, 
+                           p.image_url as image, p.slug, p.description, 
+                           p.stock_quantity,
+                           CASE 
+                               WHEN p.compare_price IS NOT NULL AND p.compare_price > p.price 
+                               THEN ROUND(((p.compare_price - p.price) / p.compare_price) * 100)
+                               ELSE NULL
+                           END as discount_percent
+                    FROM products p 
+                    WHERE p.status = 'active' AND p.stock_quantity > 0";
+            
+            if ($category_id) {
+                $sql .= " AND p.category_id = :category_id";
+            }
+            
+            $sql .= " ORDER BY p.created_at DESC LIMIT :limit";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            if ($category_id) {
+                $stmt->bindValue(':category_id', $category_id, PDO::PARAM_INT);
+            }
+            
+            $stmt->execute();
+            $products = $stmt->fetchAll();
+            
+            // Normalize product data for template use
+            $normalized = [];
+            foreach ($products as $product) {
+                $normalized[] = [
+                    'id' => (int)$product['id'],
+                    'title' => (string)$product['title'],
+                    'price' => '$' . number_format((float)$product['price'], 2),
+                    'original_price' => $product['original_price'] ? '$' . number_format((float)$product['original_price'], 2) : null,
+                    'discount_percent' => $product['discount_percent'] ? (int)$product['discount_percent'] : null,
+                    'image' => $product['image'] ?: 'https://picsum.photos/400/400?random=' . $product['id'],
+                    'url' => '/product/' . ($product['slug'] ?: $product['id']),
+                    'store_name' => 'FezaMarket',
+                    'seller_name' => 'FezaMarket',
+                    'rating' => 4.5,
+                    'reviews_count' => rand(10, 200),
+                    'featured' => true
+                ];
+            }
+            
+            return $normalized;
+            
+        } catch (Exception $e) {
+            error_log("Error fetching real products: " . $e->getMessage());
+            return []; // Return empty array on database error
+        }
     }
-} catch (Exception $e) {
-    $platform_stats = ['stores' => 15, 'products' => 150, 'users' => 500, 'orders' => 75];
 }
 
+/* ---------- Banner Management Functions ---------- */
+if (!function_exists('fetchBanners')) {
+    function fetchBanners($position = 'hero'): array {
+        try {
+            $pdo = db();
+            
+            $sql = "SELECT id, title, subtitle, description, image_url, link_url, button_text,
+                           background_color, text_color, sort_order
+                    FROM homepage_banners 
+                    WHERE status = 'active' 
+                    AND position = :position
+                    AND (start_date IS NULL OR start_date <= NOW())
+                    AND (end_date IS NULL OR end_date >= NOW())
+                    ORDER BY sort_order ASC";
+                    
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':position', $position);
+            $stmt->execute();
+            
+            return $stmt->fetchAll();
+            
+        } catch (Exception $e) {
+            error_log("Error fetching banners: " . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+$page_title = 'FezaMarket - Save Money. Live Better.';
+
+// Fetch real products from database instead of mock data
 try {
-    $featured_products = get_featured_products(20);
-    if (!is_array($featured_products)) $featured_products = [];
+    $featured_products = fetchRealProducts(20);
 } catch (Exception $e) {
     $featured_products = [];
 }
 
 try {
-    $deals = get_deals_section(12);
-    if (!is_array($deals)) $deals = [];
+    $deals = fetchRealProducts(12); // Get deals products
 } catch (Exception $e) {
     $deals = [];
 }
 
 try {
-    $electronics = get_content_for_section('electronics', 12);
-    if (!is_array($electronics)) $electronics = [];
+    $electronics = fetchRealProducts(12, 1); // Category ID 1 for electronics
 } catch (Exception $e) {
     $electronics = [];
 }
 
 try {
-    $fashion = get_content_for_section('fashion', 15);
-    if (!is_array($fashion)) $fashion = [];
+    $fashion = fetchRealProducts(15, 2); // Category ID 2 for fashion
 } catch (Exception $e) {
     $fashion = [];
 }
 
 try {
-    $home_garden = get_content_for_section('home-garden', 12);
-    if (!is_array($home_garden)) $home_garden = [];
+    $home_garden = fetchRealProducts(12, 3); // Category ID 3 for home & garden
 } catch (Exception $e) {
     $home_garden = [];
 }
 
 try {
-    $furniture = get_content_for_section('furniture', 10);
-    if (!is_array($furniture)) $furniture = [];
+    $furniture = fetchRealProducts(10, 4); // Category ID 4 for furniture
 } catch (Exception $e) {
     $furniture = [];
 }
 
 try {
-    $trending_products = get_trending_products(10);
-    if (!is_array($trending_products)) $trending_products = [];
+    $trending_products = fetchRealProducts(10);
 } catch (Exception $e) {
     $trending_products = [];
+}
+
+// Fetch banners from database
+try {
+    $hero_banners = fetchBanners('hero');
+    $grid_banners = fetchBanners('top');
+} catch (Exception $e) {
+    $hero_banners = [];
+    $grid_banners = [];
 }
 
 includeHeader($page_title);
@@ -123,13 +212,24 @@ includeHeader($page_title);
             <div class="walmart-grid">
                 
                 <!-- Fall Shoe Edit - Large Left -->
-                <div class="grid-card card-1-1" style="grid-area: 1 / 1 / 3 / 3;">
-                    <div class="card-bg" style="background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%);">
+                <div class="grid-card card-1-1 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 1 / 1 / 3 / 3;" 
+                     data-banner-type="grid" data-banner-id="shoes-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('shoes-banner', 'grid')" title="Edit Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <div class="card-bg" style="background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%); background-size: cover;">
                         <div class="card-content-wrapper">
                             <div class="text-content">
                                 <span class="small-tag">The fall shoe edit</span>
                                 <div class="card-image-small">
-                                    <img src="https://picsum.photos/200/150?random=shoes1" alt="Fall Shoes">
+                                    <img src="https://picsum.photos/200/150?random=shoes1" alt="Fall Shoes" style="object-fit: cover;">
                                 </div>
                                 <a href="/category/shoes" class="shop-now-link">Shop now</a>
                             </div>
@@ -138,8 +238,19 @@ includeHeader($page_title);
                 </div>
 
                 <!-- FezaMarket Cash Back - Medium Center -->
-                <div class="grid-card card-1-2" style="grid-area: 1 / 3 / 3 / 5;">
-                    <div class="card-bg" style="background: linear-gradient(135deg, #004c91 0%, #0071ce 100%);">
+                <div class="grid-card card-1-2 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 1 / 3 / 3 / 5;"
+                     data-banner-type="grid" data-banner-id="cashback-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('cashback-banner', 'grid')" title="Edit Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <div class="card-bg" style="background: linear-gradient(135deg, #004c91 0%, #0071ce 100%); background-size: cover;">
                         <div class="cashback-content">
                             <div class="cashback-text">
                                 <span class="cashback-small">FezaMarket members earn</span>
@@ -397,17 +508,25 @@ includeHeader($page_title);
                 <div class="products-track" id="styles-track">
                     <?php 
                     $style_products = !empty($fashion) ? array_slice($fashion, 0, 8) : [];
+                    // If no real products, fallback but try to minimize sample data usage
                     if (empty($style_products)) {
-                        // Create fallback products
-                        for ($i = 1; $i <= 8; $i++) {
-                            $style_products[] = safeNormalizeProduct(null);
+                        // Try again with different approach or use minimal samples
+                        $style_products = fetchRealProducts(8, 2); // Try fashion category again
+                        if (empty($style_products)) {
+                            $style_products = fetchRealProducts(8); // Any products
+                        }
+                        // Only as last resort create samples
+                        if (empty($style_products)) {
+                            for ($i = 1; $i <= 4; $i++) {
+                                $style_products[] = safeNormalizeProduct(null);
+                            }
                         }
                     }
                     foreach($style_products as $product): 
                         $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
-                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
+                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
                                 <button class="wishlist-heart">♡</button>
                             </div>
                             <div class="product-details">
@@ -426,6 +545,7 @@ includeHeader($page_title);
                                     <span class="free-shipping-text">Free shipping available</span>
                                 </div>
                                 <div class="action-buttons">
+                                    <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['id']; ?>)">Add to Cart</button>
                                     <a href="<?php echo h($product['url']); ?>" class="options-button">Options</a>
                                 </div>
                             </div>
@@ -513,16 +633,24 @@ includeHeader($page_title);
                 <div class="products-track" id="furniture-track">
                     <?php 
                     $furniture_products = !empty($furniture) ? $furniture : [];
+                    // Try to get real furniture products instead of samples
                     if (empty($furniture_products)) {
-                        for ($i = 1; $i <= 6; $i++) {
-                            $furniture_products[] = safeNormalizeProduct(null);
+                        $furniture_products = fetchRealProducts(6, 4); // Try furniture category
+                        if (empty($furniture_products)) {
+                            $furniture_products = fetchRealProducts(6); // Any products
+                        }
+                        // Only fallback to samples if absolutely no products exist
+                        if (empty($furniture_products)) {
+                            for ($i = 1; $i <= 3; $i++) {
+                                $furniture_products[] = safeNormalizeProduct(null);
+                            }
                         }
                     }
                     foreach($furniture_products as $index => $product): 
                         $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
-                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
+                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
                                 <button class="wishlist-heart">♡</button>
                                 <?php if ($index < 2): ?>
                                     <div class="rollback-badge">Rollback</div>
@@ -538,6 +666,7 @@ includeHeader($page_title);
                                 </div>
                                 <p class="product-name"><?php echo h($product['title']); ?></p>
                                 <div class="action-buttons">
+                                    <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['id']; ?>)">Add to Cart</button>
                                     <a href="<?php echo h($product['url']); ?>" class="options-button">Options</a>
                                 </div>
                             </div>
@@ -778,6 +907,78 @@ body {
 
 .grid-card:hover {
     transform: translateY(-2px);
+}
+
+/* Admin Edit Functionality */
+.admin-editable {
+    position: relative;
+}
+
+.admin-edit-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+}
+
+.admin-editable:hover .admin-edit-overlay {
+    opacity: 1;
+}
+
+.admin-edit-btn {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.admin-edit-btn:hover {
+    background: #0071ce;
+    transform: scale(1.1);
+}
+
+/* Enhanced Image Handling */
+.card-bg {
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+.product-image-container img,
+.card-image-small img,
+.bedding-img,
+.tech-image-small img {
+    object-fit: cover !important;
+    width: 100%;
+    height: 100%;
+}
+
+/* Add to Cart Button Styling */
+.add-to-cart-btn {
+    background: #0071ce;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-right: 8px;
+}
+
+.add-to-cart-btn:hover {
+    background: #004c91;
 }
 
 .card-bg {
@@ -1822,6 +2023,163 @@ body {
 
 <!-- JavaScript for Functionality -->
 <script>
+/* ---------- Admin Banner Editing Functions ---------- */
+function editBanner(bannerId, bannerType) {
+    // Create modal for editing banner
+    const modal = document.createElement('div');
+    modal.className = 'admin-edit-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeEditModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Edit Banner</h3>
+                    <button onclick="closeEditModal()" class="close-btn">&times;</button>
+                </div>
+                <form id="edit-banner-form" onsubmit="saveBanner(event, '${bannerId}', '${bannerType}')">
+                    <div class="form-group">
+                        <label>Title:</label>
+                        <input type="text" name="title" id="banner-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <textarea name="description" id="banner-description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Image URL:</label>
+                        <input type="url" name="image_url" id="banner-image">
+                    </div>
+                    <div class="form-group">
+                        <label>Link URL:</label>
+                        <input type="url" name="link_url" id="banner-link">
+                    </div>
+                    <div class="form-group">
+                        <label>Button Text:</label>
+                        <input type="text" name="button_text" id="banner-button">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // Add modal styles
+    if (!document.getElementById('modal-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'modal-styles';
+        styles.textContent = `
+            .admin-edit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; }
+            .modal-overlay { background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+            .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+            .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+            .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+            .form-group { margin-bottom: 15px; }
+            .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+            .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+            .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+            .modal-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+            .modal-actions button[type="submit"] { background: #0071ce; color: white; }
+            .modal-actions button[type="button"] { background: #ccc; }
+        `;
+        document.head.appendChild(styles);
+    }
+    
+    document.body.appendChild(modal);
+}
+
+function closeEditModal() {
+    const modal = document.querySelector('.admin-edit-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function saveBanner(event, bannerId, bannerType) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const data = {
+        banner_id: bannerId,
+        banner_type: bannerType,
+        title: formData.get('title'),
+        description: formData.get('description'),
+        image_url: formData.get('image_url'),
+        link_url: formData.get('link_url'),
+        button_text: formData.get('button_text')
+    };
+    
+    // Send AJAX request to save banner
+    fetch('/admin/save-banner.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Banner updated successfully!');
+            closeEditModal();
+            // Refresh the page to show changes
+            location.reload();
+        } else {
+            alert('Error updating banner: ' + (result.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating banner. Please try again.');
+    });
+}
+
+/* ---------- Add to Cart Functionality ---------- */
+function addToCart(productId) {
+    if (!productId) {
+        alert('Product ID is required');
+        return;
+    }
+    
+    // Send AJAX request to add product to cart
+    fetch('/cart/ajax-add.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Product added to cart!');
+            // Update cart count if element exists
+            const cartCount = document.querySelector('.cart-count');
+            if (cartCount && result.cart_count) {
+                cartCount.textContent = result.cart_count;
+            }
+        } else {
+            // If user not logged in, redirect to login
+            if (result.login_required) {
+                window.location.href = '/login.php?redirect=' + encodeURIComponent(window.location.href);
+            } else {
+                alert('Error adding product to cart: ' + (result.message || 'Unknown error'));
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding product to cart. Please try again.');
+    });
+}
+
+/* ---------- Existing Functions ---------- */
 function scrollProducts(trackId, direction) {
     const track = document.getElementById(trackId);
     const scrollAmount = 220;
