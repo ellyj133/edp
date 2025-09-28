@@ -4884,6 +4884,7 @@ CREATE TABLE `users` (
   `bio` text DEFAULT NULL,
   `preferences` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`preferences`)),
   `two_factor_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `email_verified_at` timestamp NULL DEFAULT NULL, -- Email verification timestamp for user account security
   `two_fa_secret` varchar(255) DEFAULT NULL,
   `login_email_alerts` tinyint(1) NOT NULL DEFAULT 1,
   `login_sms_alerts` tinyint(1) NOT NULL DEFAULT 0,
@@ -4900,9 +4901,9 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `email`, `pass_hash`, `first_name`, `last_name`, `phone`, `role`, `status`, `verified_at`, `avatar`, `bio`, `preferences`, `two_factor_enabled`, `two_fa_secret`, `login_email_alerts`, `login_sms_alerts`, `new_device_alerts`, `suspicious_activity_alerts`, `last_login_at`, `last_login_ip`, `created_at`, `updated_at`, `last_login`) VALUES
-(4, 'Joseph', 'ellyj164@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$Yjg2Y2dNN0wzdFZZOUEuUA$XCK6vnbTtHx4S8EJvZP0qHf3xXNl0UQKNxa9fIcTHWs', 'xxxx', 'Mark bb', '+250 789 721 783', 'admin', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-11 15:56:21', '2025-09-20 22:28:43', NULL),
-(5, 'niyo', 'niyogushimwaj967@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$RW9vWGRWVHNRY0xrTVpKRg$4NdBl5tNh3vcmVSxIt5ROsXzYLH8z1YFnd8HLkxxZAY', 'NIYogu', 'Joseph', '+250 785 241 817', 'customer', 'active', NULL, NULL, NULL, NULL, 0, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-20 20:23:57', '2025-09-20 22:32:20', NULL);
+INSERT INTO `users` (`id`, `username`, `email`, `pass_hash`, `first_name`, `last_name`, `phone`, `role`, `status`, `verified_at`, `avatar`, `bio`, `preferences`, `two_factor_enabled`, `email_verified_at`, `two_fa_secret`, `login_email_alerts`, `login_sms_alerts`, `new_device_alerts`, `suspicious_activity_alerts`, `last_login_at`, `last_login_ip`, `created_at`, `updated_at`, `last_login`) VALUES
+(4, 'Joseph', 'ellyj164@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$Yjg2Y2dNN0wzdFZZOUEuUA$XCK6vnbTtHx4S8EJvZP0qHf3xXNl0UQKNxa9fIcTHWs', 'xxxx', 'Mark bb', '+250 789 721 783', 'admin', 'active', NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-11 15:56:21', '2025-09-20 22:28:43', NULL),
+(5, 'niyo', 'niyogushimwaj967@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$RW9vWGRWVHNRY0xrTVpKRg$4NdBl5tNh3vcmVSxIt5ROsXzYLH8z1YFnd8HLkxxZAY', 'NIYogu', 'Joseph', '+250 785 241 817', 'customer', 'active', NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 0, 1, 1, NULL, NULL, '2025-09-20 20:23:57', '2025-09-20 22:32:20', NULL);
 
 -- --------------------------------------------------------
 
