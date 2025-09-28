@@ -119,6 +119,47 @@
         </div>
     </footer>
 
+    <!-- Mobile Bottom Navigation - Amazon-style -->
+    <nav class="mobile-nav">
+        <a href="/" class="mobile-nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
+            <div class="mobile-nav-icon">🏠</div>
+            <span>Home</span>
+        </a>
+        <a href="/cart.php" class="mobile-nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'cart.php' ? 'active' : ''; ?>">
+            <div class="mobile-nav-icon" style="position: relative;">
+                🛒
+                <?php if (Session::isLoggedIn() && class_exists('Cart')): ?>
+                    <?php 
+                    try {
+                        $cart = new Cart();
+                        $cartCount = $cart->getCartCount(Session::getUserId());
+                        if ($cartCount > 0): 
+                    ?>
+                            <span class="mobile-nav-badge"><?php echo $cartCount; ?></span>
+                    <?php 
+                        endif;
+                    } catch (Exception $e) {
+                        // Silently ignore cart count errors
+                    }
+                    ?>
+                <?php endif; ?>
+            </div>
+            <span>Cart</span>
+        </a>
+        <a href="/wishlist.php" class="mobile-nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'wishlist.php' ? 'active' : ''; ?>">
+            <div class="mobile-nav-icon">💝</div>
+            <span>Wishlist</span>
+        </a>
+        <a href="<?php echo Session::isLoggedIn() ? '/account.php' : '/login.php'; ?>" class="mobile-nav-item <?php echo in_array(basename($_SERVER['PHP_SELF']), ['account.php', 'profile.php', 'orders.php']) ? 'active' : ''; ?>">
+            <div class="mobile-nav-icon"><?php echo Session::isLoggedIn() ? '👤' : '🔑'; ?></div>
+            <span><?php echo Session::isLoggedIn() ? 'Profile' : 'Login'; ?></span>
+        </a>
+        <a href="/categories.php" class="mobile-nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>">
+            <div class="mobile-nav-icon">📱</div>
+            <span>More</span>
+        </a>
+    </nav>
+
     <style>
         .ebay-footer {
             background-color: #f7f7f7;

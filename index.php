@@ -309,6 +309,66 @@ includeHeader($page_title);
         </div>
     </section>
 
+    <!-- Mobile Category Cards Section -->
+    <section class="mobile-categories-section">
+        <div class="container">
+            <div class="category-cards">
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=electronics" alt="Electronics">
+                    <h3>Electronics</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=fashion" alt="Fashion">
+                    <h3>Fashion</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=home" alt="Home">
+                    <h3>Home</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=sports" alt="Sports">
+                    <h3>Sports</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=auto" alt="Auto">
+                    <h3>Auto</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=beauty" alt="Beauty">
+                    <h3>Beauty</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=toys" alt="Toys">
+                    <h3>Toys</h3>
+                </div>
+                <div class="category-card">
+                    <img src="https://picsum.photos/80/80?random=books" alt="Books">
+                    <h3>Books</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mobile Promo Cards Section -->
+    <section class="mobile-promos-section">
+        <div class="container">
+            <div class="promo-cards">
+                <div class="promo-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                    <h3>Flash Sale</h3>
+                    <p>Up to 50% off electronics</p>
+                </div>
+                <div class="promo-card" style="background: linear-gradient(135deg, #4834d4 0%, #686de0 100%);">
+                    <h3>Free Shipping</h3>
+                    <p>On orders over $35</p>
+                </div>
+                <div class="promo-card" style="background: linear-gradient(135deg, #00d2d3 0%, #54a0ff 100%);">
+                    <h3>New Arrivals</h3>
+                    <p>Latest fashion trends</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Free Assembly Banner -->
     <section class="assembly-full-banner">
         <div class="container-wide">

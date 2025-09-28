@@ -1701,37 +1701,497 @@ footer {
     color: #ccc;
 }
 
-/* Responsive Design */
+/* Mobile-First Responsive Design - Amazon-like Mobile Experience */
+
+/* Mobile Header Improvements */
 @media (max-width: 768px) {
+    /* Sticky mobile search header */
+    .fezamarket-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1100;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* Adjust body padding to account for fixed header */
+    body {
+        padding-top: 120px; /* Adjust based on header height */
+    }
+    
     .navbar {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
     }
     
-    .nav-menu {
-        gap: 1rem;
-    }
-    
+    /* Mobile Search Bar - Top Priority */
     .search-container {
         margin: 0;
         max-width: none;
+        width: 100%;
+        order: -1; /* Move search to top */
     }
     
+    .search-container input {
+        border-radius: 25px;
+        padding: 12px 20px;
+        font-size: 16px; /* Prevent zoom on iOS */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 2px solid #e2e8f0;
+    }
+    
+    .search-container input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .search-button {
+        border-radius: 0 25px 25px 0;
+        padding: 12px 16px;
+    }
+    
+    /* Hide top navigation on mobile for space */
+    .top-nav {
+        display: none;
+    }
+    
+    /* Mobile logo and cart */
+    .navbar-brand {
+        font-size: 1.5rem;
+        margin: 0;
+    }
+    
+    .cart-icon {
+        font-size: 1.5rem;
+        position: relative;
+    }
+    
+    /* Navigation menu - horizontal scroll */
+    .nav-menu {
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 0.5rem;
+        padding: 0.5rem 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .nav-menu::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .nav-menu a {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: #f8fafc;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+}
+
+/* Product Grid Mobile Improvements */
+@media (max-width: 768px) {
+    /* 2-column grid for mobile */
     .products-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
     }
     
+    /* Horizontal scrolling product sections */
+    .product-carousel {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .product-carousel::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .product-carousel .products-grid {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        width: max-content;
+    }
+    
+    .product-carousel .product-card {
+        flex: 0 0 280px; /* Fixed width for horizontal scroll */
+        min-height: 320px;
+    }
+    
+    /* Product card mobile optimizations */
+    .product-card {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        background: white;
+    }
+    
+    .product-image {
+        height: 180px;
+    }
+    
+    .product-info {
+        padding: 0.75rem;
+    }
+    
+    .product-title {
+        font-size: 0.9rem;
+        line-height: 1.3;
+        margin-bottom: 0.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .product-price {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #dc2626;
+    }
+    
+    /* Touch-friendly buttons */
+    .btn {
+        min-height: 44px; /* Apple's minimum touch target */
+        padding: 12px 20px;
+        font-size: 1rem;
+        border-radius: 8px;
+        touch-action: manipulation;
+    }
+    
+    .add-to-cart, .add-to-wishlist {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+}
+
+/* Category Cards Mobile */
+@media (max-width: 768px) {
+    .category-cards {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 1rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .category-cards::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .category-card {
+        flex: 0 0 120px;
+        text-align: center;
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border: 1px solid #f1f5f9;
+    }
+    
+    .category-card img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .category-card h3 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #374151;
+        line-height: 1.2;
+    }
+}
+
+/* Mobile Bottom Navigation */
+@media (max-width: 768px) {
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-around;
+        padding: 0.75rem 0.5rem;
+        z-index: 1000;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .mobile-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: #6b7280;
+        font-size: 0.75rem;
+        min-width: 60px;
+        transition: color 0.2s ease;
+        touch-action: manipulation;
+    }
+    
+    .mobile-nav-item:hover,
+    .mobile-nav-item.active {
+        color: #3b82f6;
+    }
+    
+    .mobile-nav-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .mobile-nav-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #dc2626;
+        color: white;
+        border-radius: 10px;
+        min-width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+    
+    /* Add bottom padding to prevent content being hidden behind nav */
+    body {
+        padding-bottom: 80px;
+    }
+}
+
+/* Promo Cards Mobile */
+@media (max-width: 768px) {
+    .promo-cards {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 1rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .promo-cards::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .promo-card {
+        flex: 0 0 280px;
+        height: 140px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .promo-card h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .promo-card p {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+}
+
+/* Typography Mobile Improvements */
+@media (max-width: 768px) {
     .row {
         flex-direction: column;
+        margin: 0;
+        padding: 0;
     }
     
     .col-2, .col-3, .col-4, .col-6, .col-8, .col-9 {
         flex: 0 0 100%;
+        max-width: 100%;
+        padding: 0.5rem;
     }
     
     .container {
         padding: 0;
+        margin: 0;
+    }
+    
+    /* Section headings */
+    h1, h2, h3 {
+        padding: 0 1rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    h2 {
+        font-size: 1.4rem;
+        margin: 1.5rem 0 1rem 0;
+    }
+    
+    h3 {
+        font-size: 1.2rem;
+    }
+    
+    /* Improved spacing */
+    .mb-4 {
+        margin-bottom: 1.5rem;
+    }
+    
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 576px) {
+    body {
+        padding-top: 110px; /* Smaller header on tiny screens */
+    }
+    
+    .products-grid {
+        grid-template-columns: 1fr; /* Single column on very small screens */
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+    
+    .product-image {
+        height: 200px; /* Larger images when single column */
+    }
+    
+    .category-card {
+        flex: 0 0 100px; /* Smaller category cards */
+    }
+    
+    .category-card img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .mobile-nav {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .mobile-nav-item {
+        min-width: 50px;
+        font-size: 0.7rem;
+    }
+    
+    .mobile-nav-icon {
+        font-size: 1.3rem;
+    }
+}
+
+/* Performance optimizations for mobile */
+@media (max-width: 768px) {
+    /* Optimize animations for mobile */
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .product-card:hover {
+        transform: none; /* Disable hover effects on touch devices */
+    }
+    
+    img {
+        loading: lazy; /* Native lazy loading */
+    }
+}
+
+/* Mobile Category and Promo Sections - Hidden on Desktop */
+.mobile-categories-section,
+.mobile-promos-section {
+    display: none; /* Hidden on desktop */
+}
+
+@media (max-width: 768px) {
+    .mobile-categories-section,
+    .mobile-promos-section {
+        display: block;
+        padding: 1rem 0;
+        background: white;
+        margin: 0.5rem 0;
+    }
+    
+    /* Homepage grid sections - stack on mobile */
+    .walmart-grid {
+        display: block !important;
+    }
+    
+    .grid-card {
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    /* Product sections with horizontal scrolling */
+    .products-horizontal-container {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .products-track {
+        display: flex !important;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 1rem;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .products-track::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .walmart-product-card {
+        flex: 0 0 200px; /* Fixed width for horizontal scroll */
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    
+    /* Social trending - horizontal scroll */
+    .social-images-grid {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 1rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .social-images-grid::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .social-image-card {
+        flex: 0 0 250px;
+        height: 250px;
     }
 }
 

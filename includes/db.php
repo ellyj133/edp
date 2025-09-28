@@ -1,5 +1,8 @@
 <?php
-// /includes/db.php
+/**
+ * Database Connection - MariaDB/MySQL Only
+ * E-Commerce Platform - Production Ready
+ */
 declare(strict_types=1);
 
 if (!function_exists('db')) {
@@ -7,47 +10,29 @@ if (!function_exists('db')) {
         static $pdo = null;
         if ($pdo instanceof PDO) return $pdo;
 
-        // Check if SQLite is enabled
-        if (defined('USE_SQLITE') && USE_SQLITE) {
-            $sqlitePath = defined('SQLITE_PATH') ? SQLITE_PATH : __DIR__ . '/../test_ecommerce.db';
-            $dsn = "sqlite:{$sqlitePath}";
-            $options = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
-            ];
+        // MariaDB/MySQL configuration only - no SQLite fallback
+        $host     = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: 'localhost');
+        $port     = defined('DB_PORT') ? DB_PORT : (getenv('DB_PORT') ?: '3306');
+        $dbname   = defined('DB_NAME') ? DB_NAME : (getenv('DB_NAME') ?: 'ecommerce_platform');
+        $user     = defined('DB_USER') ? DB_USER : (getenv('DB_USER') ?: 'duns1');
+        $pass     = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASS') ?: 'Tumukunde');
+        $charset  = defined('DB_CHARSET') ? DB_CHARSET : (getenv('DB_CHARSET') ?: 'utf8mb4');
 
-            try {
-                $pdo = new PDO($dsn, null, null, $options);
-                // Enable foreign keys for SQLite
-                $pdo->exec('PRAGMA foreign_keys = ON');
-            } catch (PDOException $e) {
-                error_log('SQLite connection failed: '.$e->getMessage());
-                throw $e;
-            }
-        } else {
-            // Use MySQL/MariaDB configuration
-            $host     = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: 'localhost');
-            $port     = defined('DB_PORT') ? '3306' : (getenv('DB_PORT') ?: '3306');
-            $dbname   = defined('DB_NAME') ? DB_NAME : (getenv('DB_NAME') ?: 'ecommerce_platform');
-            $user     = defined('DB_USER') ? DB_USER : (getenv('DB_USER') ?: 'duns1');
-            $pass     = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASS') ?: 'Tumukunde');
-            $charset  = defined('DB_CHARSET') ? DB_CHARSET : (getenv('DB_CHARSET') ?: 'utf8mb4');
+        $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset} COLLATE {$charset}_unicode_ci",
+        ];
 
-            $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
-            $options = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
-            ];
-
-            try {
-                $pdo = new PDO($dsn, $user, $pass, $options);
-            } catch (PDOException $e) {
-                error_log('DB connection failed: '.$e->getMessage());
-                // For styling testing, return null instead of throwing
-                $pdo = null;
-            }
+        try {
+            $pdo = new PDO($dsn, $user, $pass, $options);
+            // Set MySQL-specific settings for optimal performance
+            $pdo->exec("SET SESSION sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
+        } catch (PDOException $e) {
+            error_log('MariaDB connection failed: '.$e->getMessage());
+            throw new Exception("Database connection failed. Please check your MariaDB configuration.");
         }
         
         return $pdo;

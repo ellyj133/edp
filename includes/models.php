@@ -208,14 +208,13 @@ class Product extends BaseModel {
     }
     
     public function findAll($limit = null, $offset = 0) {
+        // Fix #13: Remove product_images table references and use only existing columns
         $sql = "
-            SELECT p.*, pi.file_path as image_url, pi.alt_text as image_alt,
-                   v.business_name as vendor_name
+            SELECT p.*, v.business_name as vendor_name
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.status = 'active'  
-            ORDER BY p.featured DESC, p.created_at DESC
+            ORDER BY p.created_at DESC
         ";
         if ($limit) {
             $sql .= " LIMIT {$limit} OFFSET {$offset}";
@@ -477,12 +476,12 @@ class Cart extends BaseModel {
     protected $table = 'cart';
     
     public function getCartItems($userId) {
+        // Fix #3: Handle missing product_images table gracefully and make sku optional
         $stmt = $this->db->prepare("
-            SELECT c.*, p.name, p.price, p.stock_quantity, p.sku, 
-                   pi.file_path as product_image, v.business_name as vendor_name
+            SELECT c.*, p.name, p.price, p.stock_quantity,
+                   v.business_name as vendor_name
             FROM {$this->table} c 
             JOIN products p ON c.product_id = p.id 
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             LEFT JOIN vendors v ON p.vendor_id = v.id
             WHERE c.user_id = ? AND p.status = 'active'
             ORDER BY c.created_at DESC
@@ -492,9 +491,11 @@ class Cart extends BaseModel {
     }
     
     public function addItem($userId, $productId, $quantity = 1) {
+        // Fix #4: Check if item already exists and update quantity
         $stmt = $this->db->prepare("SELECT id, quantity FROM {$this->table} WHERE user_id = ? AND product_id = ?");
         $stmt->execute([$userId, $productId]);
         $existing = $stmt->fetch();
+        
         if ($existing) {
             $newQuantity = $existing['quantity'] + $quantity;
             $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
