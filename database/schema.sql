@@ -2830,6 +2830,7 @@ CREATE TABLE `products` (
   `slug` varchar(275) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `short_description` text DEFAULT NULL,
+  `image_url` varchar(500) DEFAULT NULL, -- Main product image URL for compatibility
   `sku` varchar(100) DEFAULT NULL,
   `barcode` varchar(100) DEFAULT NULL,
   `price` decimal(10,2) NOT NULL,
@@ -2883,6 +2884,7 @@ CREATE TABLE `products` (
   `tax_class` varchar(50) DEFAULT NULL,
   `meta_title` varchar(255) DEFAULT NULL,
   `meta_description` text DEFAULT NULL,
+  `keywords` text DEFAULT NULL, -- SEO keywords field for product search functionality
   `view_count` int(11) NOT NULL DEFAULT 0,
   `purchase_count` int(11) NOT NULL DEFAULT 0,
   `average_rating` decimal(3,2) NOT NULL DEFAULT 0.00,
@@ -2895,9 +2897,9 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `seller_id`, `vendor_id`, `category_id`, `brand_id`, `name`, `slug`, `description`, `short_description`, `sku`, `barcode`, `price`, `compare_price`, `sale_price`, `cost_price`, `currency_code`, `stock_quantity`, `min_stock_level`, `max_stock_level`, `weight`, `dimensions`, `status`, `is_featured`, `visibility`, `track_inventory`, `allow_backorder`, `stock_qty`, `low_stock_threshold`, `featured`, `digital`, `downloadable`, `virtual`, `tags`, `attributes`, `variations`, `shipping_class`, `weight_kg`, `length_cm`, `width_cm`, `height_cm`, `seo_title`, `seo_description`, `seo_keywords`, `published_at`, `scheduled_at`, `return_policy_text`, `warranty_text`, `compliance_notes`, `age_restriction`, `digital_is`, `digital_url`, `digital_file_path`, `thumbnail_path`, `custom_barcode`, `mpn`, `gtin`, `condition`, `brand`, `tax_status`, `tax_class`, `meta_title`, `meta_description`, `view_count`, `purchase_count`, `average_rating`, `review_count`, `created_at`, `updated_at`) VALUES
-(1, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 19:00:47', '2025-09-14 19:00:47'),
-(3, NULL, 3, 501, 1, 'TOYOTA HILUX', 'toyota-hilux-', 'The pickup truck was sold with the Hilux name in most markets, but in North America, the Hilux name was retired in 1976 in favor of Truck, Pickup Truck, or Compact Truck. In North America, the popular option package, the SR5 (Sport Runabout 5-Speed), was colloquially used as a model name for the truck, even though the option package was also used on other Toyota models, like the 1972 to 1979 Corolla. In 1984, the Trekker, the wagon version of the Hilux, was renamed the 4Runner in Venezuela, Australia and North America, and the Hilux Surf in Japan. In 1992, Toyota', 'The pickup truck was sold with the Hilux name in most markets, but in North America, the Hilux name was retired in 1976 in favor of Truck, Pickup Truck, or Compact Truck. In North America, the popular option package, the SR5 (Sport Runabout 5-Speed), was colloquially used as a model name for the truck, even though the option package was also used on other Toyota models, like the 1972 to 1979 Corolla. In 1984, the Trekker, the wagon version of the Hilux, was renamed the 4Runner in Venezuela, Australia and North America, and the Hilux Surf in Japan. In 1992, Toyota', 'TOYSXHD', NULL, 4000.00, NULL, NULL, NULL, 'USD', 100, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, 5, 1, 0, 0, 0, '', NULL, NULL, 'standard', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'used', NULL, 'taxable', NULL, '', '', 0, 0, 0.00, 0, '2025-09-27 13:02:05', '2025-09-27 13:02:05');
+INSERT INTO `products` (`id`, `seller_id`, `vendor_id`, `category_id`, `brand_id`, `name`, `slug`, `description`, `short_description`, `image_url`, `sku`, `barcode`, `price`, `compare_price`, `sale_price`, `cost_price`, `currency_code`, `stock_quantity`, `min_stock_level`, `max_stock_level`, `weight`, `dimensions`, `status`, `is_featured`, `visibility`, `track_inventory`, `allow_backorder`, `stock_qty`, `low_stock_threshold`, `featured`, `digital`, `downloadable`, `virtual`, `tags`, `attributes`, `variations`, `shipping_class`, `weight_kg`, `length_cm`, `width_cm`, `height_cm`, `seo_title`, `seo_description`, `seo_keywords`, `published_at`, `scheduled_at`, `return_policy_text`, `warranty_text`, `compliance_notes`, `age_restriction`, `digital_is`, `digital_url`, `digital_file_path`, `thumbnail_path`, `custom_barcode`, `mpn`, `gtin`, `condition`, `brand`, `tax_status`, `tax_class`, `meta_title`, `meta_description`, `keywords`, `view_count`, `purchase_count`, `average_rating`, `review_count`, `created_at`, `updated_at`) VALUES
+(1, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 19:00:47', '2025-09-14 19:00:47'),
+(3, NULL, 3, 501, 1, 'TOYOTA HILUX', 'toyota-hilux-', 'The pickup truck was sold with the Hilux name in most markets, but in North America, the Hilux name was retired in 1976 in favor of Truck, Pickup Truck, or Compact Truck. In North America, the popular option package, the SR5 (Sport Runabout 5-Speed), was colloquially used as a model name for the truck, even though the option package was also used on other Toyota models, like the 1972 to 1979 Corolla. In 1984, the Trekker, the wagon version of the Hilux, was renamed the 4Runner in Venezuela, Australia and North America, and the Hilux Surf in Japan. In 1992, Toyota', 'The pickup truck was sold with the Hilux name in most markets, but in North America, the Hilux name was retired in 1976 in favor of Truck, Pickup Truck, or Compact Truck. In North America, the popular option package, the SR5 (Sport Runabout 5-Speed), was colloquially used as a model name for the truck, even though the option package was also used on other Toyota models, like the 1972 to 1979 Corolla. In 1984, the Trekker, the wagon version of the Hilux, was renamed the 4Runner in Venezuela, Australia and North America, and the Hilux Surf in Japan. In 1992, Toyota', NULL, 'TOYSXHD', NULL, 4000.00, NULL, NULL, NULL, 'USD', 100, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, 5, 1, 0, 0, 0, '', NULL, NULL, 'standard', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'used', NULL, 'taxable', NULL, '', '', NULL, 0, 0, 0.00, 0, '2025-09-27 13:02:05', '2025-09-27 13:02:05');
 
 -- --------------------------------------------------------
 
@@ -6597,6 +6599,11 @@ ALTER TABLE `products`
   ADD KEY `idx_products_vendor_status` (`vendor_id`,`status`),
   ADD KEY `idx_products_brand` (`brand_id`);
 ALTER TABLE `products` ADD FULLTEXT KEY `idx_search` (`name`,`description`,`tags`);
+
+--
+-- Add performance index for keywords field (for search functionality)
+--
+ALTER TABLE `products` ADD KEY `idx_products_keywords` (`keywords`(255));
 
 --
 -- Indexes for table `product_analytics`
