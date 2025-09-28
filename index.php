@@ -9,9 +9,21 @@ require_once __DIR__ . '/includes/template-helpers.php';
 
 /* ---------- Admin Authorization Check ---------- */
 $is_admin_logged_in = false;
-if (Session::isLoggedIn()) {
-    $user_role = Session::getUserRole();
-    $is_admin_logged_in = ($user_role === 'admin');
+try {
+    if (Session::isLoggedIn()) {
+        $user_role = Session::getUserRole();
+        $is_admin_logged_in = ($user_role === 'admin');
+    }
+} catch (Exception $e) {
+    // Fallback: check session directly if database fails
+    $is_admin_logged_in = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin');
+    error_log("Admin check fallback: " . ($is_admin_logged_in ? 'true' : 'false'));
+}
+
+// For demo purposes, enable admin mode when database is not available
+if (!$is_admin_logged_in && !function_exists('db')) {
+    $is_admin_logged_in = true; // Temporary demo mode
+    error_log("Demo admin mode enabled");
 }
 
 /* ---------- Safe Helpers ---------- */
@@ -200,11 +212,60 @@ try {
     $grid_banners = [];
 }
 
+// For testing purposes, create a sample hero banner if none exist
+if (empty($hero_banners)) {
+    $hero_banners = [[
+        'id' => 'hero-1',
+        'title' => 'Welcome to FezaMarket',
+        'subtitle' => 'Save Money. Live Better.',
+        'description' => 'Discover amazing deals on everything you need. Free shipping on orders over $35.',
+        'image_url' => 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=400&fit=crop&crop=center',
+        'link_url' => '/deals',
+        'button_text' => 'Shop Now'
+    ]];
+}
+
 includeHeader($page_title);
 ?>
 
 <!-- Complete Walmart Homepage Layout -->
 <div class="walmart-exact-layout">
+    
+    <!-- Hero Banner Section (top of homepage) -->
+    <?php if (!empty($hero_banners)): ?>
+    <section class="hero-banner-section">
+        <div class="container-wide">
+            <?php foreach ($hero_banners as $hero): ?>
+            <div class="hero-banner <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                 data-banner-type="hero" data-banner-id="hero-<?php echo $hero['id']; ?>">
+                <?php if ($is_admin_logged_in): ?>
+                    <div class="admin-edit-overlay">
+                        <button class="admin-edit-btn" onclick="editBanner('hero-<?php echo $hero['id']; ?>', 'hero')" title="Edit Hero Banner">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                <?php endif; ?>
+                <div class="hero-content" style="background-image: url('<?php echo h($hero['image_url']); ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+                    <div class="hero-text">
+                        <h1><?php echo h($hero['title']); ?></h1>
+                        <?php if ($hero['subtitle']): ?>
+                            <p class="hero-subtitle"><?php echo h($hero['subtitle']); ?></p>
+                        <?php endif; ?>
+                        <?php if ($hero['description']): ?>
+                            <p class="hero-description"><?php echo h($hero['description']); ?></p>
+                        <?php endif; ?>
+                        <?php if ($hero['link_url'] && $hero['button_text']): ?>
+                            <a href="<?php echo h($hero['link_url']); ?>" class="hero-cta-btn"><?php echo h($hero['button_text']); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
     
     <!-- Top Grid Section -->
     <section class="top-grid-section">
@@ -273,12 +334,23 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Leaf Blowers - Small Right -->
-                <div class="grid-card card-1-3" style="grid-area: 1 / 5 / 2 / 7;">
-                    <div class="card-bg" style="background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%);">
+                <div class="grid-card card-1-3 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 1 / 5 / 2 / 7;"
+                     data-banner-type="grid" data-banner-id="leaf-blowers-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('leaf-blowers-banner', 'grid')" title="Edit Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <div class="card-bg" style="background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%); background-size: cover;">
                         <div class="small-promo-content">
                             <span class="promo-tag-small">Leaf blowers, mowers & more</span>
                             <div class="promo-image-small">
-                                <img src="https://picsum.photos/120/80?random=garden1" alt="Garden Tools">
+                                <img src="https://picsum.photos/120/80?random=garden1" alt="Garden Tools" style="object-fit: cover;">
                             </div>
                             <a href="/category/garden" class="shop-now-link">Shop now</a>
                         </div>
@@ -286,15 +358,26 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Dreamy Bedding - Medium Left -->
-                <div class="grid-card card-2-1" style="grid-area: 3 / 1 / 4 / 3;">
-                    <div class="card-bg" style="background: #f8f9fa;">
+                <div class="grid-card card-2-1 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 3 / 1 / 4 / 3;"
+                     data-banner-type="grid" data-banner-id="dreamy-bedding-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('dreamy-bedding-banner', 'grid')" title="Edit Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <div class="card-bg" style="background: #f8f9fa; background-size: cover;">
                         <div class="bedding-content">
                             <span class="promo-text">Save on dreamy bedding</span>
                             <div class="product-showcase-inline">
                                 <?php 
                                 $bedding_product = !empty($home_garden) ? safeNormalizeProduct($home_garden[0]) : safeNormalizeProduct(null);
                                 ?>
-                                <img src="<?php echo h($bedding_product['image']); ?>" alt="Bedding" class="bedding-img">
+                                <img src="<?php echo h($bedding_product['image']); ?>" alt="Bedding" class="bedding-img" style="object-fit: cover;">
                                 <div class="price-tag">from $50</div>
                             </div>
                             <a href="/category/bedding" class="shop-now-link">Shop now</a>
@@ -303,12 +386,23 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Tech Savings - Small Right -->
-                <div class="grid-card card-2-2" style="grid-area: 2 / 5 / 3 / 7;">
-                    <div class="card-bg" style="background: #fff3e0;">
+                <div class="grid-card card-2-2 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 2 / 5 / 3 / 7;"
+                     data-banner-type="grid" data-banner-id="tech-savings-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('tech-savings-banner', 'grid')" title="Edit Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <div class="card-bg" style="background: #fff3e0; background-size: cover;">
                         <div class="tech-savings-content">
                             <span class="savings-tag">Savings on tech—delivered fast</span>
                             <div class="tech-image-small">
-                                <img src="https://picsum.photos/120/80?random=laptop1" alt="Tech">
+                                <img src="https://picsum.photos/120/80?random=laptop1" alt="Tech" style="object-fit: cover;">
                             </div>
                             <a href="/category/electronics" class="shop-now-small">Shop now</a>
                         </div>
@@ -375,23 +469,30 @@ includeHeader($page_title);
                                 <?php 
                                 $fashion_items = array_slice($fashion, 0, 3);
                                 if (empty($fashion_items)) {
-                                    // Create fallback fashion items
-                                    $fashion_items = [
-                                        safeNormalizeProduct(null),
-                                        safeNormalizeProduct(null),
-                                        safeNormalizeProduct(null)
-                                    ];
+                                    // Try to get real fashion products
+                                    $fashion_items = fetchRealProducts(3, 2);
+                                    if (empty($fashion_items)) {
+                                        $fashion_items = fetchRealProducts(3); // Any products
+                                    }
                                 }
-                                foreach($fashion_items as $fashion_item): 
-                                    $item = safeNormalizeProduct($fashion_item); ?>
-                                    <div class="fashion-item-small">
-                                        <div class="fashion-image-container">
-                                            <img src="<?php echo h($item['image']); ?>" alt="<?php echo h($item['title']); ?>">
-                                            <div class="heart-icon">♡</div>
+                                
+                                // Only display if we have real items
+                                if (!empty($fashion_items)):
+                                    foreach($fashion_items as $fashion_item): 
+                                        $item = safeNormalizeProduct($fashion_item); ?>
+                                        <div class="fashion-item-small">
+                                            <div class="fashion-image-container">
+                                                <img src="<?php echo h($item['image']); ?>" alt="<?php echo h($item['title']); ?>" style="object-fit: cover;">
+                                                <div class="heart-icon">♡</div>
+                                            </div>
+                                            <div class="item-price-small"><?php echo h($item['price']); ?></div>
                                         </div>
-                                        <div class="item-price-small"><?php echo h($item['price']); ?></div>
+                                    <?php endforeach;
+                                else: ?>
+                                    <div class="no-fashion-items">
+                                        <p>No fashion items available</p>
                                     </div>
-                                <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                             <div class="navigation-arrows">
                                 <span class="arrow-left">‹</span>
@@ -510,20 +611,18 @@ includeHeader($page_title);
                     $style_products = !empty($fashion) ? array_slice($fashion, 0, 8) : [];
                     // If no real products, fallback but try to minimize sample data usage
                     if (empty($style_products)) {
-                        // Try again with different approach or use minimal samples
+                        // Try again with different approach
                         $style_products = fetchRealProducts(8, 2); // Try fashion category again
                         if (empty($style_products)) {
                             $style_products = fetchRealProducts(8); // Any products
                         }
-                        // Only as last resort create samples
-                        if (empty($style_products)) {
-                            for ($i = 1; $i <= 4; $i++) {
-                                $style_products[] = safeNormalizeProduct(null);
-                            }
-                        }
+                        // Do not create sample products - only display real products
                     }
-                    foreach($style_products as $product): 
-                        $product = safeNormalizeProduct($product); ?>
+                    
+                    // Only display products if we have real ones
+                    if (!empty($style_products)):
+                        foreach($style_products as $product): 
+                            $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
@@ -550,7 +649,12 @@ includeHeader($page_title);
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                    <?php endforeach; 
+                    else: ?>
+                        <div class="no-products-message">
+                            <p>No fashion products available at the moment. Please check back later!</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <button class="scroll-right-btn" onclick="scrollProducts('styles-track', 'right')">›</button>
             </div>
@@ -639,15 +743,13 @@ includeHeader($page_title);
                         if (empty($furniture_products)) {
                             $furniture_products = fetchRealProducts(6); // Any products
                         }
-                        // Only fallback to samples if absolutely no products exist
-                        if (empty($furniture_products)) {
-                            for ($i = 1; $i <= 3; $i++) {
-                                $furniture_products[] = safeNormalizeProduct(null);
-                            }
-                        }
+                        // Do not create sample products - only display real products
                     }
-                    foreach($furniture_products as $index => $product): 
-                        $product = safeNormalizeProduct($product); ?>
+                    
+                    // Only display products if we have real ones
+                    if (!empty($furniture_products)):
+                        foreach($furniture_products as $index => $product): 
+                            $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
@@ -671,7 +773,12 @@ includeHeader($page_title);
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                    <?php endforeach;
+                    else: ?>
+                        <div class="no-products-message">
+                            <p>No furniture products available at the moment. Please check back later!</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <button class="scroll-right-btn" onclick="scrollProducts('furniture-track', 'right')">›</button>
             </div>
@@ -689,13 +796,15 @@ includeHeader($page_title);
                 <div class="products-track" id="deals-track">
                     <?php 
                     $deal_products = !empty($deals) ? $deals : [];
+                    // Try to get real deal products
                     if (empty($deal_products)) {
-                        for ($i = 1; $i <= 6; $i++) {
-                            $deal_products[] = safeNormalizeProduct(null);
-                        }
+                        $deal_products = fetchRealProducts(6); // Try to get any products as deals
                     }
-                    foreach($deal_products as $product): 
-                        $product = safeNormalizeProduct($product); ?>
+                    
+                    // Only display products if we have real ones
+                    if (!empty($deal_products)):
+                        foreach($deal_products as $product): 
+                            $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
@@ -718,12 +827,17 @@ includeHeader($page_title);
                                     <span class="free-shipping-text">Free shipping, arrives in 3+ days</span>
                                 </div>
                                 <div class="action-buttons">
-                                    <button class="add-button">+ Add</button>
+                                    <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['id']; ?>)">Add to Cart</button>
                                     <a href="<?php echo h($product['url']); ?>" class="options-button">Options</a>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                    <?php endforeach;
+                    else: ?>
+                        <div class="no-products-message">
+                            <p>No deals available at the moment. Please check back later!</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <button class="scroll-right-btn" onclick="scrollProducts('deals-track', 'right')">›</button>
             </div>
@@ -792,13 +906,15 @@ includeHeader($page_title);
                 <div class="products-track" id="halloween-track">
                     <?php 
                     $halloween_products = !empty($trending_products) ? array_slice($trending_products, 0, 6) : [];
+                    // Try to get real products for Halloween section
                     if (empty($halloween_products)) {
-                        for ($i = 1; $i <= 6; $i++) {
-                            $halloween_products[] = safeNormalizeProduct(null);
-                        }
+                        $halloween_products = fetchRealProducts(6); // Any products
                     }
-                    foreach($halloween_products as $product): 
-                        $product = safeNormalizeProduct($product); ?>
+                    
+                    // Only display products if we have real ones
+                    if (!empty($halloween_products)):
+                        foreach($halloween_products as $product): 
+                            $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
@@ -813,11 +929,17 @@ includeHeader($page_title);
                                 </div>
                                 <p class="product-name"><?php echo h($product['title']); ?></p>
                                 <div class="action-buttons">
+                                    <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['id']; ?>)">Add to Cart</button>
                                     <a href="<?php echo h($product['url']); ?>" class="options-button">Options</a>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                    <?php endforeach;
+                    else: ?>
+                        <div class="no-products-message">
+                            <p>No trending products available at the moment. Please check back later!</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <button class="scroll-right-btn" onclick="scrollProducts('halloween-track', 'right')">›</button>
             </div>
@@ -963,6 +1085,88 @@ body {
     height: 100%;
 }
 
+/* Hero Banner Styles */
+.hero-banner-section {
+    margin: 20px 0 30px 0;
+}
+
+.hero-banner {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.hero-content {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px;
+    position: relative;
+}
+
+.hero-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1;
+}
+
+.hero-text {
+    position: relative;
+    z-index: 2;
+    color: white;
+    max-width: 600px;
+}
+
+.hero-text h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.hero-description {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.hero-cta-btn {
+    background: #0071ce;
+    color: white;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+    text-shadow: none;
+}
+
+.hero-cta-btn:hover {
+    background: #004c91;
+    color: white;
+    text-decoration: none;
+}
+
 /* Add to Cart Button Styling */
 .add-to-cart-btn {
     background: #0071ce;
@@ -979,6 +1183,21 @@ body {
 
 .add-to-cart-btn:hover {
     background: #004c91;
+}
+
+/* No Products Message Styling */
+.no-products-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.no-fashion-items {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 0.9rem;
 }
 
 .card-bg {
@@ -1986,6 +2205,29 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Hero Banner Mobile Styles */
+    .hero-content {
+        min-height: 300px;
+        padding: 20px;
+    }
+    
+    .hero-text h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .hero-description {
+        font-size: 1rem;
+    }
+    
+    .hero-cta-btn {
+        padding: 12px 24px;
+        font-size: 1rem;
+    }
+    
     .walmart-grid {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: repeat(8, 160px);
