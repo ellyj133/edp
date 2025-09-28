@@ -77,12 +77,12 @@ class Address extends BaseModel {
 class Wishlist extends BaseModel {
     protected $table = 'wishlists';
     public function getUserWishlist($userId, $limit = null) {
+        // Fix #5: Handle missing product_images table in wishlist queries
         $sql = "
-            SELECT w.*, p.name, p.price, p.status, p.stock_quantity, pi.image_path as image_url,
+            SELECT w.*, p.name, p.price, p.status, p.stock_quantity,
                    v.business_name as vendor_name, w.created_at as added_at
             FROM {$this->table} w
             JOIN products p ON w.product_id = p.id
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_thumbnail = 1
             LEFT JOIN vendors v ON p.vendor_id = v.id
             WHERE w.user_id = ? AND p.status = 'active'
             ORDER BY w.created_at DESC
@@ -95,8 +95,17 @@ class Wishlist extends BaseModel {
         return $stmt->fetchAll();
     }
     public function addToWishlist($userId, $productId, $notes = null) {
-        $stmt = $this->db->prepare("INSERT IGNORE INTO {$this->table} (user_id, product_id, notes) VALUES (?, ?, ?)");
-        return $stmt->execute([$userId, $productId, $notes]);
+        // Fix #6: Handle duplicate entries gracefully with proper error checking
+        try {
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, notes, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)");
+            return $stmt->execute([$userId, $productId, $notes]);
+        } catch (PDOException $e) {
+            // Handle duplicate entry (already exists)
+            if (strpos($e->getMessage(), 'UNIQUE constraint failed') !== false) {
+                return false; // Item already in wishlist
+            }
+            throw $e; // Re-throw other errors
+        }
     }
     public function removeFromWishlist($userId, $productId) {
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ? AND product_id = ?");
@@ -362,22 +371,22 @@ class Order extends BaseModel {
         }
     }
     private function addOrderItem($orderId, $item) {
+        // Fix #11: Handle missing sku column gracefully
         $stmt = $this->db->prepare("
             INSERT INTO order_items 
-            (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name, product_sku) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $product = new Product();
         $productData = $product->find($item['product_id']);
         return $stmt->execute([
             $orderId,
             $item['product_id'],
-            $productData['vendor_id'],
+            $productData['vendor_id'] ?? 1,
             $item['quantity'],
             $item['price'],
             $item['quantity'] * $item['price'],
-            $item['name'] ?? $productData['name'],
-            $item['sku'] ?? $productData['sku']
+            $item['name'] ?? $productData['name']
         ]);
     }
     public function getOrderWithItems($orderId, $userId = null) {

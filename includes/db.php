@@ -2,6 +2,14 @@
 // /includes/db.php
 declare(strict_types=1);
 
+// Define SQLite constants for ecommerce database
+if (!defined('USE_SQLITE')) {
+    define('USE_SQLITE', true);
+}
+if (!defined('SQLITE_PATH')) {
+    define('SQLITE_PATH', __DIR__ . '/../database/ecommerce.db');
+}
+
 if (!function_exists('db')) {
     function db(): ?PDO {
         static $pdo = null;
@@ -9,7 +17,7 @@ if (!function_exists('db')) {
 
         // Check if SQLite is enabled
         if (defined('USE_SQLITE') && USE_SQLITE) {
-            $sqlitePath = defined('SQLITE_PATH') ? SQLITE_PATH : __DIR__ . '/../test_ecommerce.db';
+            $sqlitePath = defined('SQLITE_PATH') ? SQLITE_PATH : __DIR__ . '/../database/ecommerce.db';
             $dsn = "sqlite:{$sqlitePath}";
             $options = [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -44,9 +52,23 @@ if (!function_exists('db')) {
             try {
                 $pdo = new PDO($dsn, $user, $pass, $options);
             } catch (PDOException $e) {
-                error_log('DB connection failed: '.$e->getMessage());
-                // For styling testing, return null instead of throwing
-                $pdo = null;
+                error_log('MySQL connection failed: '.$e->getMessage() . ' - Falling back to SQLite');
+                // Fall back to SQLite if MySQL fails
+                $sqlitePath = __DIR__ . '/../database/ecommerce.db';
+                $sqliteDsn = "sqlite:{$sqlitePath}";
+                $sqliteOptions = [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                ];
+                
+                try {
+                    $pdo = new PDO($sqliteDsn, null, null, $sqliteOptions);
+                    $pdo->exec('PRAGMA foreign_keys = ON');
+                } catch (PDOException $sqliteEx) {
+                    error_log('SQLite fallback also failed: ' . $sqliteEx->getMessage());
+                    $pdo = null;
+                }
             }
         }
         

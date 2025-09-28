@@ -147,6 +147,36 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS orders (
     FOREIGN KEY (user_id) REFERENCES users(id)
 )");
 
+// Create order_items table - Fix #1: Add missing order_items table
+$pdo->exec("CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    vendor_id INTEGER,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    product_sku VARCHAR(100),
+    product_image VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+)");
+
+// Create wishlists table - Fix #2: Add missing wishlists table
+$pdo->exec("CREATE TABLE IF NOT EXISTS wishlists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+)");
+
 // Insert demo data
 // Create default category
 $categoryExists = $pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
