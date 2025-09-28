@@ -5359,6 +5359,419 @@ CREATE TABLE `wishlists` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- MISSING TABLES SECTION
+-- Tables required by the codebase but missing from original schema
+-- Added based on comprehensive codebase analysis per user request
+--
+
+--
+-- Table structure for table `seller_wallets`
+-- Required by: seller/finance.php, seller/dashboard.php
+--
+
+CREATE TABLE `seller_wallets` (
+  `id` int(11) NOT NULL,
+  `vendor_id` int(11) NOT NULL,
+  `balance` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `pending_balance` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `total_earned` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `payment_details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payment_details`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `roles`
+-- Required by: admin/roles/index.php
+--
+
+CREATE TABLE `roles` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `display_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `level` int(11) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `is_system` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `permissions`
+-- Required by: admin/roles/index.php
+--
+
+CREATE TABLE `permissions` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `display_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `category` varchar(50) DEFAULT NULL,
+  `is_system` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `role_permissions`
+-- Required by: admin/roles/index.php
+--
+
+CREATE TABLE `role_permissions` (
+  `id` int(11) NOT NULL,
+  `role_id` int(11) NOT NULL,
+  `permission_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `wishlist`
+-- Required by: wishlist/toggle.php (fallback table)
+-- Note: This is separate from 'wishlists' for compatibility
+--
+
+CREATE TABLE `wishlist` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `mail_queue`
+-- Required by: includes/email.php
+--
+
+CREATE TABLE `mail_queue` (
+  `id` int(11) NOT NULL,
+  `to_email` varchar(255) NOT NULL,
+  `subject` varchar(500) NOT NULL,
+  `template_name` varchar(100) NOT NULL,
+  `template_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`template_data`)),
+  `options` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`options`)),
+  `status` enum('pending','sent','failed','retry') NOT NULL DEFAULT 'pending',
+  `attempts` int(11) NOT NULL DEFAULT 0,
+  `last_attempt` timestamp NULL DEFAULT NULL,
+  `sent_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `email_log`
+-- Required by: includes/email.php
+--
+
+CREATE TABLE `email_log` (
+  `id` int(11) NOT NULL,
+  `to_email` varchar(255) NOT NULL,
+  `subject` varchar(500) NOT NULL,
+  `template_name` varchar(100) DEFAULT NULL,
+  `status` enum('sent','failed') NOT NULL,
+  `error_message` text DEFAULT NULL,
+  `sent_at` timestamp NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `returns`
+-- Required by: admin/returns/index.php, includes/models_advanced.php
+--
+
+CREATE TABLE `returns` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `vendor_id` int(11) DEFAULT NULL,
+  `return_number` varchar(50) NOT NULL,
+  `reason` enum('defective','wrong_item','damaged','not_as_described','change_of_mind','warranty','other') NOT NULL,
+  `status` enum('requested','approved','rejected','shipped','received','refunded','completed','cancelled') NOT NULL DEFAULT 'requested',
+  `description` text DEFAULT NULL,
+  `return_value` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `refund_amount` decimal(10,2) DEFAULT NULL,
+  `return_tracking` varchar(100) DEFAULT NULL,
+  `admin_notes` text DEFAULT NULL,
+  `customer_notes` text DEFAULT NULL,
+  `processed_by` int(11) DEFAULT NULL,
+  `processed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `loyalty_accounts`
+-- Required by: admin/loyalty/index.php
+--
+
+CREATE TABLE `loyalty_accounts` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `program_name` varchar(100) NOT NULL DEFAULT 'main',
+  `current_points` int(11) NOT NULL DEFAULT 0,
+  `lifetime_points` int(11) NOT NULL DEFAULT 0,
+  `tier` enum('bronze','silver','gold','platinum','diamond') NOT NULL DEFAULT 'bronze',
+  `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'active',
+  `joined_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `last_activity` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `loyalty_ledger`
+-- Required by: admin/loyalty/index.php
+--
+
+CREATE TABLE `loyalty_ledger` (
+  `id` int(11) NOT NULL,
+  `account_id` int(11) NOT NULL,
+  `transaction_type` enum('earned','redeemed','expired','adjusted','bonus','penalty') NOT NULL,
+  `points` int(11) NOT NULL,
+  `balance_after` int(11) NOT NULL,
+  `reference_type` enum('order','review','referral','birthday','adjustment','redemption','expiration') DEFAULT NULL,
+  `reference_id` int(11) DEFAULT NULL,
+  `description` varchar(500) NOT NULL,
+  `expiry_date` timestamp NULL DEFAULT NULL,
+  `processed_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `loyalty_settings`
+-- Required by: admin/loyalty/index.php
+--
+
+CREATE TABLE `loyalty_settings` (
+  `id` int(11) NOT NULL,
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text NOT NULL,
+  `setting_type` enum('string','integer','boolean','json') NOT NULL DEFAULT 'string',
+  `description` text DEFAULT NULL,
+  `category` varchar(50) DEFAULT 'general',
+  `updated_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `loyalty_rewards`
+-- Required by: admin/loyalty/index.php
+--
+
+CREATE TABLE `loyalty_rewards` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `reward_type` enum('discount','free_shipping','product','cashback','custom') NOT NULL,
+  `reward_value` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `points_required` int(11) NOT NULL,
+  `max_redemptions` int(11) DEFAULT NULL,
+  `current_redemptions` int(11) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `valid_from` timestamp NULL DEFAULT NULL,
+  `valid_until` timestamp NULL DEFAULT NULL,
+  `terms_conditions` text DEFAULT NULL,
+  `created_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `loyalty_redemptions`
+-- Required by: admin/loyalty/index.php
+--
+
+CREATE TABLE `loyalty_redemptions` (
+  `id` int(11) NOT NULL,
+  `account_id` int(11) NOT NULL,
+  `reward_id` int(11) NOT NULL,
+  `points_used` int(11) NOT NULL,
+  `redemption_value` decimal(10,2) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `status` enum('pending','applied','expired','cancelled') NOT NULL DEFAULT 'pending',
+  `redemption_code` varchar(50) DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `redeemed_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `kyc_verifications`
+-- Required by: admin/kyc/index.php
+--
+
+CREATE TABLE `kyc_verifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `verification_type` enum('identity','address','business','financial') NOT NULL,
+  `status` enum('pending','approved','rejected','expired') NOT NULL DEFAULT 'pending',
+  `verification_level` enum('basic','intermediate','advanced') NOT NULL DEFAULT 'basic',
+  `documents_provided` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`documents_provided`)),
+  `verification_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`verification_data`)),
+  `reviewer_id` int(11) DEFAULT NULL,
+  `reviewer_notes` text DEFAULT NULL,
+  `verified_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `integrations`
+-- Required by: admin/integrations/index.php
+--
+
+CREATE TABLE `integrations` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `type` enum('payment','shipping','marketing','analytics','communication','storage','other') NOT NULL,
+  `provider` varchar(100) NOT NULL,
+  `status` enum('active','inactive','error','pending') NOT NULL DEFAULT 'inactive',
+  `config` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`config`)),
+  `api_credentials` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`api_credentials`)),
+  `webhook_url` varchar(500) DEFAULT NULL,
+  `webhook_secret` varchar(255) DEFAULT NULL,
+  `last_sync` timestamp NULL DEFAULT NULL,
+  `sync_frequency` int(11) DEFAULT NULL,
+  `error_count` int(11) NOT NULL DEFAULT 0,
+  `last_error` text DEFAULT NULL,
+  `installed_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `webhook_deliveries`
+-- Required by: admin/integrations/index.php
+--
+
+CREATE TABLE `webhook_deliveries` (
+  `id` int(11) NOT NULL,
+  `integration_id` int(11) NOT NULL,
+  `webhook_url` varchar(500) NOT NULL,
+  `event_type` varchar(100) NOT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`payload`)),
+  `response_status` int(11) DEFAULT NULL,
+  `response_headers` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`response_headers`)),
+  `response_body` longtext DEFAULT NULL,
+  `delivery_attempts` int(11) NOT NULL DEFAULT 1,
+  `last_attempt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `next_attempt` timestamp NULL DEFAULT NULL,
+  `status` enum('pending','delivered','failed','abandoned') NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_status_logs`
+-- Required by: seller/orders.php
+--
+
+CREATE TABLE `order_status_logs` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `old_status` varchar(50) DEFAULT NULL,
+  `new_status` varchar(50) NOT NULL,
+  `changed_by` int(11) DEFAULT NULL,
+  `change_reason` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_tracking`
+-- Required by: seller/orders.php
+--
+
+CREATE TABLE `order_tracking` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `tracking_number` varchar(100) NOT NULL,
+  `carrier` varchar(100) NOT NULL,
+  `status` enum('label_created','picked_up','in_transit','out_for_delivery','delivered','exception','returned') NOT NULL DEFAULT 'label_created',
+  `location` varchar(255) DEFAULT NULL,
+  `estimated_delivery` timestamp NULL DEFAULT NULL,
+  `delivered_at` timestamp NULL DEFAULT NULL,
+  `tracking_events` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tracking_events`)),
+  `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `canned_responses`
+-- Required by: admin/support/index.php
+--
+
+CREATE TABLE `canned_responses` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` text NOT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `tags` text DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `usage_count` int(11) NOT NULL DEFAULT 0,
+  `created_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `product_related`
+-- Required by: seller/products/add.php, seller/products/edit.php, seller/products/delete.php
+--
+
+CREATE TABLE `product_related` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `related_product_id` int(11) NOT NULL,
+  `relation_type` varchar(50) NOT NULL DEFAULT 'related',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- END OF MISSING TABLES SECTION
+--
+
 --
 -- Indexes for dumped tables
 --
@@ -10393,6 +10806,314 @@ ALTER TABLE `webhook_subscriptions`
 ALTER TABLE `wishlists`
   ADD CONSTRAINT `fk_wishlists_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_wishlists_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Indexes and Constraints for Missing Tables Section
+-- Added based on comprehensive codebase analysis per user request
+--
+
+--
+-- Indexes for table `seller_wallets`
+--
+ALTER TABLE `seller_wallets`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_vendor_wallet` (`vendor_id`),
+  ADD KEY `idx_seller_wallets_balance` (`balance`),
+  ADD KEY `idx_seller_wallets_created` (`created_at`);
+
+--
+-- Indexes for table `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_role_name` (`name`),
+  ADD KEY `idx_role_active` (`is_active`),
+  ADD KEY `idx_role_level` (`level`);
+
+--
+-- Indexes for table `permissions`
+--
+ALTER TABLE `permissions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_permission_name` (`name`),
+  ADD KEY `idx_permission_category` (`category`);
+
+--
+-- Indexes for table `role_permissions`
+--
+ALTER TABLE `role_permissions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_role_permission` (`role_id`, `permission_id`),
+  ADD KEY `idx_role_permissions_permission` (`permission_id`);
+
+--
+-- Indexes for table `wishlist`
+--
+ALTER TABLE `wishlist`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_user_product_wishlist` (`user_id`, `product_id`),
+  ADD KEY `idx_user_wishlist` (`user_id`),
+  ADD KEY `idx_product_wishlist` (`product_id`),
+  ADD KEY `idx_wishlist_created` (`created_at`);
+
+--
+-- Indexes for table `mail_queue`
+--
+ALTER TABLE `mail_queue`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_mail_status` (`status`),
+  ADD KEY `idx_mail_created` (`created_at`),
+  ADD KEY `idx_mail_to_email` (`to_email`),
+  ADD KEY `idx_mail_template` (`template_name`);
+
+--
+-- Indexes for table `email_log`
+--
+ALTER TABLE `email_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_email_log_status` (`status`),
+  ADD KEY `idx_email_log_sent` (`sent_at`),
+  ADD KEY `idx_email_log_to_email` (`to_email`);
+
+--
+-- Indexes for table `returns`
+--
+ALTER TABLE `returns`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_return_number` (`return_number`),
+  ADD KEY `idx_return_order` (`order_id`),
+  ADD KEY `idx_return_user` (`user_id`),
+  ADD KEY `idx_return_vendor` (`vendor_id`),
+  ADD KEY `idx_return_status` (`status`),
+  ADD KEY `idx_return_created` (`created_at`),
+  ADD KEY `idx_return_processed_by` (`processed_by`);
+
+--
+-- Indexes for table `loyalty_accounts`
+--
+ALTER TABLE `loyalty_accounts`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_user_program` (`user_id`, `program_name`),
+  ADD KEY `idx_loyalty_tier` (`tier`),
+  ADD KEY `idx_loyalty_status` (`status`);
+
+--
+-- Indexes for table `loyalty_ledger`
+--
+ALTER TABLE `loyalty_ledger`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_loyalty_account` (`account_id`),
+  ADD KEY `idx_loyalty_type` (`transaction_type`),
+  ADD KEY `idx_loyalty_created` (`created_at`),
+  ADD KEY `idx_loyalty_ledger_processor` (`processed_by`);
+
+--
+-- Indexes for table `loyalty_settings`
+--
+ALTER TABLE `loyalty_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_loyalty_setting_key` (`setting_key`),
+  ADD KEY `idx_loyalty_settings_category` (`category`),
+  ADD KEY `idx_loyalty_settings_user` (`updated_by`);
+
+--
+-- Indexes for table `loyalty_rewards`
+--
+ALTER TABLE `loyalty_rewards`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_loyalty_rewards_active` (`is_active`),
+  ADD KEY `idx_loyalty_rewards_points` (`points_required`),
+  ADD KEY `idx_loyalty_rewards_creator` (`created_by`),
+  ADD KEY `idx_loyalty_rewards_type` (`reward_type`);
+
+--
+-- Indexes for table `loyalty_redemptions`
+--
+ALTER TABLE `loyalty_redemptions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_loyalty_redemption_account` (`account_id`),
+  ADD KEY `idx_loyalty_redemption_reward` (`reward_id`),
+  ADD KEY `idx_loyalty_redemption_order` (`order_id`),
+  ADD KEY `idx_loyalty_redemption_status` (`status`);
+
+--
+-- Indexes for table `kyc_verifications`
+--
+ALTER TABLE `kyc_verifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_kyc_user` (`user_id`),
+  ADD KEY `idx_kyc_status` (`status`),
+  ADD KEY `idx_kyc_type` (`verification_type`),
+  ADD KEY `idx_kyc_reviewer` (`reviewer_id`);
+
+--
+-- Indexes for table `integrations`
+--
+ALTER TABLE `integrations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_integration_name` (`name`),
+  ADD KEY `idx_integration_type` (`type`),
+  ADD KEY `idx_integration_status` (`status`),
+  ADD KEY `idx_integration_installer` (`installed_by`);
+
+--
+-- Indexes for table `webhook_deliveries`
+--
+ALTER TABLE `webhook_deliveries`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_webhook_integration` (`integration_id`),
+  ADD KEY `idx_webhook_status` (`status`),
+  ADD KEY `idx_webhook_event` (`event_type`),
+  ADD KEY `idx_webhook_next_attempt` (`next_attempt`);
+
+--
+-- Indexes for table `order_status_logs`
+--
+ALTER TABLE `order_status_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_order_status_order` (`order_id`),
+  ADD KEY `idx_order_status_changed_by` (`changed_by`),
+  ADD KEY `idx_order_status_created` (`created_at`);
+
+--
+-- Indexes for table `order_tracking`
+--
+ALTER TABLE `order_tracking`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_order_tracking_order` (`order_id`),
+  ADD KEY `idx_order_tracking_number` (`tracking_number`),
+  ADD KEY `idx_order_tracking_status` (`status`);
+
+--
+-- Indexes for table `canned_responses`
+--
+ALTER TABLE `canned_responses`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_canned_responses_category` (`category`),
+  ADD KEY `idx_canned_responses_active` (`is_active`),
+  ADD KEY `idx_canned_responses_creator` (`created_by`);
+
+--
+-- Indexes for table `product_related`
+--
+ALTER TABLE `product_related`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_product_related_unique` (`product_id`, `related_product_id`, `relation_type`),
+  ADD KEY `idx_product_related_product` (`product_id`),
+  ADD KEY `idx_product_related_related` (`related_product_id`),
+  ADD KEY `idx_product_related_type` (`relation_type`);
+
+--
+-- Constraints for Missing Tables Section
+--
+
+--
+-- Constraints for table `seller_wallets`
+--
+ALTER TABLE `seller_wallets`
+  ADD CONSTRAINT `fk_seller_wallets_vendor` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `role_permissions`
+--
+ALTER TABLE `role_permissions`
+  ADD CONSTRAINT `fk_role_permissions_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_role_permissions_permission` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `wishlist`
+--
+ALTER TABLE `wishlist`
+  ADD CONSTRAINT `fk_wishlist_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_wishlist_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `returns`
+--
+ALTER TABLE `returns`
+  ADD CONSTRAINT `fk_returns_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_returns_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_returns_vendor` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_returns_processor` FOREIGN KEY (`processed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `loyalty_accounts`
+--
+ALTER TABLE `loyalty_accounts`
+  ADD CONSTRAINT `fk_loyalty_accounts_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `loyalty_ledger`
+--
+ALTER TABLE `loyalty_ledger`
+  ADD CONSTRAINT `fk_loyalty_ledger_account` FOREIGN KEY (`account_id`) REFERENCES `loyalty_accounts` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_loyalty_ledger_processor` FOREIGN KEY (`processed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `loyalty_settings`
+--
+ALTER TABLE `loyalty_settings`
+  ADD CONSTRAINT `fk_loyalty_settings_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `loyalty_rewards`
+--
+ALTER TABLE `loyalty_rewards`
+  ADD CONSTRAINT `fk_loyalty_rewards_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `loyalty_redemptions`
+--
+ALTER TABLE `loyalty_redemptions`
+  ADD CONSTRAINT `fk_loyalty_redemptions_account` FOREIGN KEY (`account_id`) REFERENCES `loyalty_accounts` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_loyalty_redemptions_reward` FOREIGN KEY (`reward_id`) REFERENCES `loyalty_rewards` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_loyalty_redemptions_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `kyc_verifications`
+--
+ALTER TABLE `kyc_verifications`
+  ADD CONSTRAINT `fk_kyc_verifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_kyc_verifications_reviewer` FOREIGN KEY (`reviewer_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `integrations`
+--
+ALTER TABLE `integrations`
+  ADD CONSTRAINT `fk_integrations_installer` FOREIGN KEY (`installed_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `webhook_deliveries`
+--
+ALTER TABLE `webhook_deliveries`
+  ADD CONSTRAINT `fk_webhook_deliveries_integration` FOREIGN KEY (`integration_id`) REFERENCES `integrations` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `order_status_logs`
+--
+ALTER TABLE `order_status_logs`
+  ADD CONSTRAINT `fk_order_status_logs_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_order_status_logs_user` FOREIGN KEY (`changed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `order_tracking`
+--
+ALTER TABLE `order_tracking`
+  ADD CONSTRAINT `fk_order_tracking_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `canned_responses`
+--
+ALTER TABLE `canned_responses`
+  ADD CONSTRAINT `fk_canned_responses_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `product_related`
+--
+ALTER TABLE `product_related`
+  ADD CONSTRAINT `fk_product_related_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_product_related_related_product` FOREIGN KEY (`related_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
