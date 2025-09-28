@@ -208,14 +208,13 @@ class Product extends BaseModel {
     }
     
     public function findAll($limit = null, $offset = 0) {
+        // Fix #13: Remove product_images table references and use only existing columns
         $sql = "
-            SELECT p.*, pi.file_path as image_url, pi.alt_text as image_alt,
-                   v.business_name as vendor_name
+            SELECT p.*, v.business_name as vendor_name
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.status = 'active'  
-            ORDER BY p.featured DESC, p.created_at DESC
+            ORDER BY p.created_at DESC
         ";
         if ($limit) {
             $sql .= " LIMIT {$limit} OFFSET {$offset}";
