@@ -1,644 +1,168 @@
 <?php
 /**
- * Marketing Campaigns Module
- * E-Commerce Platform - Admin Panel
- * 
- * Features:
- * - Email/SMS campaign creation
- * - Audience targeting and segmentation
- * - Campaign scheduling and automation
- * - Performance analytics and tracking
+ * Professional Marketing Campaigns Module
+ *
+ * @package    Admin/Campaigns
+ * @version    2.2.0
  */
 
-// Global admin page requirements
+// Core application requirements
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/csrf.php';
 require_once __DIR__ . '/../../includes/rbac.php';
-require_once __DIR__ . '/../../includes/mailer.php';
-require_once __DIR__ . '/../../includes/audit_log.php';
-
-// Initialize with graceful fallback
 require_once __DIR__ . '/../../includes/init.php';
 
-// Database graceful fallback 
-$database_available = false;
-$pdo = null;
-// Initialize with graceful fallback
-require_once __DIR__ . '/../../includes/init.php';
+// --- Page Setup & Security ---
+$page_title = 'Marketing Campaigns';
+$error_message = null;
 
-// Database graceful fallback
-$database_available = false;
-$pdo = null;
-try {
-    $pdo = db();
-    $pdo->query('SELECT 1');
-    $database_available = true;
-} catch (Exception $e) {
-    $database_available = false;
-    error_log("Database connection failed: " . $e->getMessage());
-}
-
-requireAdminAuth();
-checkPermission('campaigns.view');
-    $pdo = db();
-    $pdo->query('SELECT 1');
-    $database_available = true;
-
-requireAdminAuth();
-checkPermission('campaigns.view');
-
-// Handle actions
-$action = $_GET['action'] ?? 'list';
-$campaign_id = $_GET['id'] ?? '';
-$message = '';
-$error = '';
-
-// Process form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
-        $error = 'Invalid security token.';
-    } else {
-        try {
-            switch ($action) {
-                case 'create':
-                    checkPermission('campaigns.manage');
-                    $name = sanitizeInput($_POST['name']);
-                    $description = sanitizeInput($_POST['description']);
-                    $type = sanitizeInput($_POST['type']);
-                    $subject = sanitizeInput($_POST['subject']);
-                    $content = sanitizeInput($_POST['content']);
-                    $schedule_type = sanitizeInput($_POST['schedule_type']);
-                    $scheduled_at = !empty($_POST['scheduled_at']) ? $_POST['scheduled_at'] : null;
-                    
-                    $stmt = $pdo->prepare("
-                        INSERT INTO marketing_campaigns 
-                        (name, description, type, subject, content, schedule_type, scheduled_at, created_by)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
-                    $stmt->execute([
-                        $name, $description, $type, $subject, $content, 
-                        $schedule_type, $scheduled_at, $_SESSION['admin_id']
-                    ]);
-                    
-                    $campaign_id = $pdo->lastInsertId();
-                    
-                    logAuditEvent('marketing_campaign', $campaign_id, 'create', [
-                        'name' => $name,
-                        'type' => $type,
-                        'schedule_type' => $schedule_type
-                    ]);
-                    
-                    $message = 'Campaign created successfully.';
-                    break;
-                    
-                case 'send_campaign':
-                    checkPermission('campaigns.send');
-                    $id = (int)$_POST['id'];
-                    
-                    // Get campaign details
-                    $stmt = $pdo->prepare("SELECT * FROM marketing_campaigns WHERE id = ?");
-                    $stmt->execute([$id]);
-                    $campaign = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    if (!$campaign) {
-                        throw new Exception('Campaign not found.');
-                    }
-                    
-                    if ($campaign['status'] !== 'draft') {
-                        throw new Exception('Only draft campaigns can be sent.');
-                    }
-                    
-                    // Get audience based on campaign type
-                    $audience_sql = "
-                        SELECT id, name, email, phone 
-                        FROM users 
-                        WHERE status = 'active' AND email_verified_at IS NOT NULL
-                    ";
-                    
-                    $stmt = $pdo->query($audience_sql);
-                    $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    
-                    $pdo->beginTransaction();
-                    
-                    // Update campaign status
-                    $stmt = $pdo->prepare("
-                        UPDATE marketing_campaigns 
-                        SET status = 'sending', sent_count = 0
-                        WHERE id = ?
-                    ");
-                    $stmt->execute([$id]);
-                    
-                    // Add recipients
-                    foreach ($recipients as $recipient) {
-                        $stmt = $pdo->prepare("
-                            INSERT INTO campaign_recipients 
-                            (campaign_id, user_id, email, phone)
-                            VALUES (?, ?, ?, ?)
-                        ");
-                        $stmt->execute([
-                            $id, $recipient['id'], $recipient['email'], $recipient['phone']
-                        ]);
-                    }
-                    
-                    $pdo->commit();
-                    
-                    logAuditEvent('marketing_campaign', $id, 'send', [
-                        'recipient_count' => count($recipients)
-                    ]);
-                    
-                    $message = 'Campaign sent to ' . count($recipients) . ' recipients.';
-                    break;
-                    
-                case 'update_status':
-                    checkPermission('campaigns.manage');
-                    $id = (int)$_POST['id'];
-                    $status = sanitizeInput($_POST['status']);
-                    
-                    $stmt = $pdo->prepare("
-                        UPDATE marketing_campaigns 
-                        SET status = ?
-                        WHERE id = ?
-                    ");
-                    $stmt->execute([$status, $id]);
-                    
-                    logAuditEvent('marketing_campaign', $id, 'status_update', [
-                        'new_status' => $status
-                    ]);
-                    
-                    $message = 'Campaign status updated successfully.';
-                    break;
-            }
-        } catch (Exception $e) {
-            if (isset($pdo) && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $error = $e->getMessage();
-        }
-    }
-}
-
-// Get data for display
+// Initialize default stats to prevent errors
+$stats = ['total_campaigns' => 0, 'messages_sent' => 0, 'opens' => 0, 'clicks' => 0, 'open_rate' => 0, 'click_rate' => 0];
 $campaigns = [];
-$campaign_stats = ['total_campaigns' => 0, 'draft_campaigns' => 0, 'sent_campaigns' => 0, 'total_sent' => 0, 'total_opened' => 0, 'total_clicked' => 0];
 
-if ($database_available) {
-    try {
-        // Get campaigns with performance data
-        $stmt = $pdo->query("
-            SELECT c.*, 
-                   COUNT(cr.id) as recipient_count,
-                   COUNT(CASE WHEN cr.status = 'sent' THEN 1 END) as sent_count,
-                   COUNT(CASE WHEN cr.status = 'opened' THEN 1 END) as opened_count,
-                   COUNT(CASE WHEN cr.status = 'clicked' THEN 1 END) as clicked_count,
-                   admin.name as created_by_name
-            FROM marketing_campaigns c
-            LEFT JOIN campaign_recipients cr ON c.id = cr.campaign_id
-            LEFT JOIN users admin ON c.created_by = admin.id
-            GROUP BY c.id
-            ORDER BY c.created_at DESC
-        ");
-        $campaigns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Get campaign statistics
-        $stmt = $pdo->query("
-            SELECT 
-                COUNT(*) as total_campaigns,
-                COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft_campaigns,
-                COUNT(CASE WHEN status = 'sent' THEN 1 END) as sent_campaigns,
-                SUM(sent_count) as total_sent,
-                SUM(opened_count) as total_opened,
-                SUM(clicked_count) as total_clicked
-            FROM marketing_campaigns
-        ");
-        $campaign_stats = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-    } catch (Exception $e) {
-        $error = 'Error loading campaign data: ' . $e->getMessage();
+try {
+    requireAdminAuth();
+    checkPermission('campaigns.view');
+    $pdo = db();
+
+    // --- DATA FETCHING (GET REQUESTS) ---
+    $stats_query = $pdo->query("
+        SELECT
+            (SELECT COUNT(*) FROM marketing_campaigns) as total_campaigns,
+            (SELECT COUNT(*) FROM campaign_recipients) as messages_sent,
+            (SELECT COUNT(DISTINCT id) FROM campaign_recipients WHERE opened_at IS NOT NULL) as opens,
+            (SELECT COUNT(DISTINCT id) FROM campaign_recipients WHERE clicked_at IS NOT NULL) as clicks
+    ");
+    if ($stats_query && $result = $stats_query->fetch(PDO::FETCH_ASSOC)) {
+        $stats['total_campaigns'] = (int)$result['total_campaigns'];
+        $stats['messages_sent'] = (int)$result['messages_sent'];
+        $stats['opens'] = (int)$result['opens'];
+        $stats['clicks'] = (int)$result['clicks'];
+        $stats['open_rate'] = ($stats['messages_sent'] > 0) ? ($stats['opens'] / $stats['messages_sent']) * 100 : 0;
+        $stats['click_rate'] = ($stats['opens'] > 0) ? ($stats['clicks'] / $stats['opens']) * 100 : 0;
     }
-} else {
-    // Demo data when database is unavailable
-    $campaigns = [
-        [
-            'id' => 1,
-            'name' => 'Spring Sale Campaign',
-            'subject' => '50% Off Spring Collection!',
-            'type' => 'email',
-            'status' => 'sent',
-            'recipient_count' => 1250,
-            'sent_count' => 1250,
-            'opened_count' => 345,
-            'clicked_count' => 78,
-            'created_at' => '2024-03-15 10:00:00',
-            'created_by_name' => 'Admin'
-        ],
-        [
-            'id' => 2,
-            'name' => 'New Product Launch',
-            'subject' => 'Introducing Our Latest Innovation',
-            'type' => 'email',
-            'status' => 'draft',
-            'recipient_count' => 850,
-            'sent_count' => 0,
-            'opened_count' => 0,
-            'clicked_count' => 0,
-            'created_at' => '2024-03-14 15:30:00',
-            'created_by_name' => 'Marketing Manager'
-        ]
-    ];
-    
-    $campaign_stats = [
-        'total_campaigns' => 5,
-        'draft_campaigns' => 2,
-        'sent_campaigns' => 3,
-        'total_sent' => 3450,
-        'total_opened' => 892,
-        'total_clicked' => 234
-    ];
+
+    // This query is now safe to run after the ALTER TABLE commands
+    $campaigns_query = $pdo->query("
+        SELECT mc.id, mc.name, mc.type, mc.status, mc.created_at,
+               (SELECT COUNT(*) FROM campaign_recipients WHERE campaign_id = mc.id) as recipient_count,
+               (SELECT COUNT(*) FROM campaign_recipients WHERE campaign_id = mc.id AND opened_at IS NOT NULL) as open_count,
+               (SELECT COUNT(*) FROM campaign_recipients WHERE campaign_id = mc.id AND clicked_at IS NOT NULL) as click_count
+        FROM marketing_campaigns mc ORDER BY mc.created_at DESC
+    ");
+    if ($campaigns_query) {
+        $campaigns = $campaigns_query->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+} catch (Exception $e) {
+    $error_message = "Error loading campaign data: " . $e->getMessage();
 }
+
+// --- RENDER PAGE ---
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketing Campaigns - Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title><?php echo htmlspecialchars($page_title); ?> - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <style>
-        .sidebar { min-height: 100vh; background-color: #2c3e50; }
-        .sidebar a { color: #bdc3c7; text-decoration: none; }
-        .sidebar a:hover { color: #fff; background-color: #34495e; }
+        body { background-color: #f8f9fa; }
+        .sidebar { background-color: #212529; }
+        .sidebar .nav-link { color: rgba(255,255,255,.75); }
+        .sidebar .nav-link:hover { color: #fff; }
+        .sidebar .nav-link.active { color: #fff; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 sidebar p-3">
-                <h4 class="text-white mb-4">Admin Panel</h4>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../index.php">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.php">
-                            <i class="fas fa-bullhorn"></i> Campaigns
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../coupons/index.php">
-                            <i class="fas fa-tags"></i> Coupons
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../analytics/index.php">
-                            <i class="fas fa-chart-line"></i> Analytics
-                        </a>
-                    </li>
-                </ul>
+
+<div class="d-flex">
+    <!-- Admin Sidebar -->
+    <div class="d-flex flex-column flex-shrink-0 p-3 sidebar" style="width: 250px; min-height: 100vh;">
+        <a href="/admin/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+            <span class="fs-4">Admin Panel</span>
+        </a>
+        <hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item"><a href="/admin/" class="nav-link"><i class="fas fa-tachometer-alt fa-fw me-2"></i>Dashboard</a></li>
+            <li><a href="/admin/campaigns/" class="nav-link active"><i class="fas fa-bullhorn fa-fw me-2"></i>Campaigns</a></li>
+            <li><a href="/admin/coupons/" class="nav-link"><i class="fas fa-tags fa-fw me-2"></i>Coupons</a></li>
+            <li><a href="/admin/analytics/" class="nav-link"><i class="fas fa-chart-line fa-fw me-2"></i>Analytics</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1 p-4">
+        <?php if (defined('ADMIN_BYPASS') && ADMIN_BYPASS): ?>
+            <div class="alert alert-warning alert-dismissible fade show">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Admin Bypass Mode Active!</strong> Authentication is disabled for development.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        <?php endif; ?>
 
-            <!-- Main Content -->
-            <div class="col-md-10 p-4">
-                <?php if (defined('ADMIN_BYPASS') && ADMIN_BYPASS): ?>
-                <div class="alert alert-warning alert-dismissible fade show mb-4">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Admin Bypass Mode Active!</strong> Authentication is disabled for development. 
-                    To disable, set ADMIN_BYPASS=false in your .env file.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                <?php endif; ?>
-                
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-bullhorn text-primary"></i> Marketing Campaigns</h2>
-                    <div class="btn-group">
-                        <?php if (hasPermission('campaigns.manage')): ?>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#campaignModal">
-                            <i class="fas fa-plus"></i> New Campaign
-                        </button>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-success" onclick="exportCampaigns()">
-                            <i class="fas fa-download"></i> Export
-                        </button>
-                    </div>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2"><i class="fas fa-bullhorn"></i> Marketing Campaigns</h1>
+            <div>
+                <a href="/admin/campaigns/new.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>New Campaign</a>
+                <button class="btn btn-secondary"><i class="fas fa-download me-2"></i>Export</button>
+            </div>
+        </div>
 
-                <?php if ($message): ?>
-                    <div class="alert alert-success alert-dismissible fade show">
-                        <?= htmlspecialchars($message) ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
+        <?php if ($error_message): ?>
+            <div class="alert alert-danger alert-dismissible fade show"><?php echo htmlspecialchars($error_message); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <?php endif; ?>
 
-                <?php if ($error): ?>
-                    <div class="alert alert-danger alert-dismissible fade show">
-                        <?= htmlspecialchars($error) ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-3 col-md-6"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2"><?php echo (int)$stats['total_campaigns']; ?></h5><p class="card-text text-muted">Total Campaigns</p></div></div></div>
+            <div class="col-lg-3 col-md-6"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2"><?php echo (int)$stats['messages_sent']; ?></h5><p class="card-text text-muted">Messages Sent</p></div></div></div>
+            <div class="col-lg-3 col-md-6"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2 text-success"><?php echo number_format($stats['open_rate'], 2); ?>%</h5><p class="card-text text-muted">Open Rate</p></div></div></div>
+            <div class="col-lg-3 col-md-6"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2 text-warning"><?php echo number_format($stats['click_rate'], 2); ?>%</h5><p class="card-text text-muted">Click Rate</p></div></div></div>
+        </div>
 
-                <!-- Campaign Statistics -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4><?= number_format($campaign_stats['total_campaigns']) ?></h4>
-                                        <p class="mb-0">Total Campaigns</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-bullhorn fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4><?= number_format($campaign_stats['total_sent']) ?></h4>
-                                        <p class="mb-0">Messages Sent</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-paper-plane fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-success text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4><?= number_format($campaign_stats['total_opened']) ?></h4>
-                                        <p class="mb-0">Opens</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-eye fa-2x"></i>
-                                    </div>
-                                </div>
-                                <small>
-                                    <?= $campaign_stats['total_sent'] > 0 ? 
-                                        number_format(($campaign_stats['total_opened'] / $campaign_stats['total_sent']) * 100, 1) : 0 ?>% Open Rate
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-warning text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4><?= number_format($campaign_stats['total_clicked']) ?></h4>
-                                        <p class="mb-0">Clicks</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-mouse-pointer fa-2x"></i>
-                                    </div>
-                                </div>
-                                <small>
-                                    <?= $campaign_stats['total_sent'] > 0 ? 
-                                        number_format(($campaign_stats['total_clicked'] / $campaign_stats['total_sent']) * 100, 1) : 0 ?>% Click Rate
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Campaigns Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Campaign List</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Campaign</th>
-                                        <th>Type</th>
-                                        <th>Status</th>
-                                        <th>Recipients</th>
-                                        <th>Performance</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($campaigns as $campaign): ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?= htmlspecialchars($campaign['name']) ?></strong>
-                                            <?php if ($campaign['subject']): ?>
-                                            <br><small class="text-muted"><?= htmlspecialchars($campaign['subject']) ?></small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php
-                                            $type_icons = [
-                                                'email' => 'fa-envelope',
-                                                'sms' => 'fa-sms',
-                                                'push' => 'fa-bell',
-                                                'banner' => 'fa-image',
-                                                'social' => 'fa-share-alt',
-                                                'newsletter' => 'fa-newspaper',
-                                                'promotional' => 'fa-percentage'
-                                            ];
-                                            $icon = $type_icons[$campaign['type']] ?? 'fa-bullhorn';
-                                            ?>
-                                            <i class="fas <?= $icon ?>"></i> <?= ucfirst($campaign['type']) ?>
-                                        </td>
-                                        <td>
-                                            <?php
-                                            $status_colors = [
-                                                'draft' => 'secondary',
-                                                'scheduled' => 'warning',
-                                                'sending' => 'info',
-                                                'sent' => 'success',
-                                                'cancelled' => 'danger'
-                                            ];
-                                            $color = $status_colors[$campaign['status']] ?? 'secondary';
-                                            ?>
-                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($campaign['status']) ?></span>
-                                        </td>
-                                        <td><?= number_format($campaign['recipient_count']) ?></td>
-                                        <td>
-                                            <?php if ($campaign['sent_count'] > 0): ?>
-                                            <small>
-                                                Opens: <?= number_format($campaign['opened_count']) ?> 
-                                                (<?= number_format(($campaign['opened_count'] / $campaign['sent_count']) * 100, 1) ?>%)<br>
-                                                Clicks: <?= number_format($campaign['clicked_count']) ?>
-                                                (<?= number_format(($campaign['clicked_count'] / $campaign['sent_count']) * 100, 1) ?>%)
-                                            </small>
-                                            <?php else: ?>
-                                            <span class="text-muted">No data</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?= date('M j, Y', strtotime($campaign['created_at'])) ?><br>
-                                            <small class="text-muted"><?= htmlspecialchars($campaign['created_by_name']) ?></small>
-                                        </td>
-                                        <td>
-                                            <?php if (hasPermission('campaigns.send') && $campaign['status'] === 'draft'): ?>
-                                            <button class="btn btn-sm btn-success" onclick="sendCampaign(<?= $campaign['id'] ?>, '<?= htmlspecialchars($campaign['name']) ?>')">
-                                                <i class="fas fa-paper-plane"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                            <?php if (hasPermission('campaigns.manage')): ?>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="editCampaign(<?= $campaign['id'] ?>)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="duplicateCampaign(<?= $campaign['id'] ?>)">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <!-- Campaign List -->
+        <div class="card shadow-sm">
+            <div class="card-header"><h5>Campaign List</h5></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead><tr><th>Campaign</th><th>Type</th><th>Status</th><th>Recipients</th><th>Performance</th><th>Created</th><th class="text-end">Actions</th></tr></thead>
+                        <tbody>
+                            <?php if (empty($campaigns)): ?>
+                                <tr><td colspan="7" class="text-center text-muted p-5"><i class="fas fa-folder-open fa-2x mb-2"></i><br>No campaigns found. Create one to get started.</td></tr>
+                            <?php else: foreach ($campaigns as $campaign): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($campaign['name']); ?></strong></td>
+                                    <td><span class="badge bg-secondary"><?php echo ucfirst($campaign['type']); ?></span></td>
+                                    <td>
+                                        <?php $status_map = ['draft' => 'secondary', 'sending' => 'info', 'sent' => 'success', 'archived' => 'dark']; ?>
+                                        <span class="badge bg-<?php echo $status_map[$campaign['status']] ?? 'primary'; ?>"><?php echo ucfirst($campaign['status']); ?></span>
+                                    </td>
+                                    <td><?php echo number_format($campaign['recipient_count']); ?></td>
+                                    <td>
+                                        <?php $open_rate = $campaign['recipient_count'] > 0 ? ($campaign['open_count'] / $campaign['recipient_count']) * 100 : 0; ?>
+                                        <small>Opens: <?php echo number_format($campaign['open_count']); ?> (<?php echo number_format($open_rate, 1); ?>%)</small><br>
+                                        <small>Clicks: <?php echo number_format($campaign['click_count']); ?></small>
+                                    </td>
+                                    <td><?php echo date('Y-m-d', strtotime($campaign['created_at'])); ?></td>
+                                    <td class="text-end">
+                                        <a href="view_campaign.php?id=<?php echo $campaign['id']; ?>" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="edit_campaign.php?id=<?php echo $campaign['id']; ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
+</div>
 
-    <!-- Campaign Modal -->
-    <div class="modal fade" id="campaignModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <form method="POST" action="?action=create">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Create Marketing Campaign</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="csrf_token" value="<?= generateCSRFToken() ?>">
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Campaign Name *</label>
-                                    <input type="text" name="name" class="form-control" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Type *</label>
-                                    <select name="type" class="form-select" required>
-                                        <option value="email">Email</option>
-                                        <option value="sms">SMS</option>
-                                        <option value="push">Push Notification</option>
-                                        <option value="banner">Banner</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Subject/Title</label>
-                                    <input type="text" name="subject" class="form-control">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Schedule</label>
-                                    <select name="schedule_type" class="form-select">
-                                        <option value="immediate">Send Immediately</option>
-                                        <option value="scheduled">Schedule for Later</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3" id="schedule_date_field" style="display: none;">
-                                    <label class="form-label">Schedule Date</label>
-                                    <input type="datetime-local" name="scheduled_at" class="form-control">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control" rows="3"></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Content *</label>
-                                    <textarea name="content" class="form-control" rows="8" required></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create Campaign</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Send Campaign Modal -->
-    <div class="modal fade" id="sendModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="POST" action="?action=send_campaign">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Send Campaign</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="csrf_token" value="<?= generateCSRFToken() ?>">
-                        <input type="hidden" name="id" id="send_campaign_id">
-                        
-                        <p>Are you sure you want to send the campaign "<strong id="send_campaign_name"></strong>"?</p>
-                        <p class="text-muted">This action cannot be undone. The campaign will be sent to all eligible recipients.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">Send Campaign</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Show/hide schedule date field
-        document.querySelector('select[name="schedule_type"]').addEventListener('change', function() {
-            const scheduleField = document.getElementById('schedule_date_field');
-            if (this.value === 'scheduled') {
-                scheduleField.style.display = 'block';
-            } else {
-                scheduleField.style.display = 'none';
-            }
-        });
-        
-        function sendCampaign(campaignId, campaignName) {
-            document.getElementById('send_campaign_id').value = campaignId;
-            document.getElementById('send_campaign_name').textContent = campaignName;
-            
-            var modal = new bootstrap.Modal(document.getElementById('sendModal'));
-            modal.show();
-        }
-        
-        function editCampaign(campaignId) {
-            // Implementation for editing campaign
-            alert('Edit campaign functionality to be implemented');
-        }
-        
-        function duplicateCampaign(campaignId) {
-            // Implementation for duplicating campaign
-            alert('Duplicate campaign functionality to be implemented');
-        }
-        
-        function exportCampaigns() {
-            window.location.href = '?export=1';
-        }
-    </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -225,7 +225,7 @@ if ($database_available) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($payout_stats['total_requests']) ?></h4>
+                                        <h4><?= number_format($payout_stats['total_requests'] ?? 0) ?></h4>
                                         <p class="mb-0">Total Requests</p>
                                     </div>
                                     <div class="align-self-center">
@@ -240,7 +240,7 @@ if ($database_available) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($payout_stats['pending_requests']) ?></h4>
+                                        <h4><?= number_format($payout_stats['pending_requests'] ?? 0) ?></h4>
                                         <p class="mb-0">Pending</p>
                                     </div>
                                     <div class="align-self-center">
@@ -255,7 +255,7 @@ if ($database_available) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4>$<?= number_format($payout_stats['approved_amount'], 2) ?></h4>
+                                        <h4>$<?= number_format($payout_stats['approved_amount'] ?? 0, 2) ?></h4>
                                         <p class="mb-0">Approved Amount</p>
                                     </div>
                                     <div class="align-self-center">
@@ -270,7 +270,7 @@ if ($database_available) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4>$<?= number_format($payout_stats['total_amount'], 2) ?></h4>
+                                        <h4>$<?= number_format($payout_stats['total_amount'] ?? 0, 2) ?></h4>
                                         <p class="mb-0">Total Amount</p>
                                     </div>
                                     <div class="align-self-center">

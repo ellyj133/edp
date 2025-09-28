@@ -6,6 +6,13 @@
 
 require_once __DIR__ . '/../../includes/init.php';
 
+// Safe HTML escape helper (prevents null deprecation warnings in PHP 8.1+)
+if (!function_exists('e')) {
+    function e($value): string {
+        return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
+    }
+}
+
 // Initialize PDO global variable for this module
 $pdo = db();
 RoleMiddleware::requireAdmin();
@@ -70,7 +77,6 @@ if ($_POST && isset($_POST['action'])) {
                     'low_stock_threshold' => intval($_POST['low_stock_threshold'] ?? 10),
                     'track_inventory' => isset($_POST['track_inventory']) ? 1 : 0,
                     'allow_backorders' => isset($_POST['allow_backorders']) ? 1 : 0,
-                    // FIX 1: Use proper null coalescing to handle undefined array key
                     'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
                     'status' => sanitizeInput($_POST['status']),
                     'tags' => sanitizeInput($_POST['tags'] ?? ''),
@@ -139,7 +145,7 @@ if ($_POST && isset($_POST['action'])) {
 $product = new Product();
 $category = new Category();
 
-// Initialize vendor variable to prevent undefined errors
+// Initialize vendor variable
 $vendor = null;
 if (class_exists('Vendor')) {
     $vendor = new Vendor();
@@ -182,16 +188,13 @@ if (!empty($search_query)) {
 
 $where_clause = !empty($filters) ? 'WHERE ' . implode(' AND ', $filters) : '';
 
-// FIX 3: Updated SQL query to handle missing vendors table gracefully
-// Check if vendors table exists first
+// Check if vendors table exists
 $table_exists_sql = "SHOW TABLES LIKE 'vendors'";
 $table_exists_stmt = $pdo->prepare($table_exists_sql);
 $table_exists_stmt->execute();
 $vendors_table_exists = $table_exists_stmt->fetchColumn();
 
 if ($vendors_table_exists) {
-    // If vendors table exists, use the original query with JOIN
-    // FIX: Corrected JOIN conditions - categories.id and vendors.id are the primary keys
     $sql = "SELECT p.*, c.name as category_name, v.business_name as vendor_name 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id 
@@ -200,8 +203,6 @@ if ($vendors_table_exists) {
             ORDER BY p.created_at DESC 
             LIMIT :limit OFFSET :offset";
 } else {
-    // If vendors table doesn't exist, query without vendor JOIN
-    // FIX: Corrected JOIN condition for categories table
     $sql = "SELECT p.*, c.name as category_name, 'No Vendor' as vendor_name 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id 
@@ -247,7 +248,7 @@ include_once __DIR__ . '/../../includes/admin_header.php';
 <div class="admin-container">
     <div class="admin-header">
         <div class="admin-header-left">
-            <h1><?php echo htmlspecialchars($page_title); ?></h1>
+            <h1><?php echo e($page_title); ?></h1>
             <p class="admin-subtitle">Manage your product catalog</p>
         </div>
         <div class="admin-header-right">
@@ -285,7 +286,7 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                         <?php foreach ($categories as $cat): ?>
                             <option value="<?php echo $cat['id']; ?>" 
                                     <?php echo $category_filter == $cat['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($cat['name']); ?>
+                                <?php echo e($cat['name']); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -299,7 +300,7 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                         <?php foreach ($vendors as $v): ?>
                             <option value="<?php echo $v['id']; ?>" 
                                     <?php echo $vendor_filter == $v['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($v['business_name'] ?? $v['name'] ?? 'Unknown Vendor'); ?>
+                                <?php echo e($v['business_name'] ?? $v['name'] ?? 'Unknown Vendor'); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -310,7 +311,7 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                     <label>Search</label>
                     <input type="text" name="search" class="form-control" 
                            placeholder="Search products..." 
-                           value="<?php echo htmlspecialchars($search_query); ?>">
+                           value="<?php echo e($search_query); ?>">
                 </div>
                 
                 <div class="filter-actions">
@@ -404,8 +405,8 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                         <div class="product-info">
                                             <div class="product-image">
                                                 <?php if (!empty($prod['image_url'])): ?>
-                                                    <img src="<?php echo htmlspecialchars($prod['image_url']); ?>" 
-                                                         alt="<?php echo htmlspecialchars($prod['name']); ?>">
+                                                    <img src="<?php echo e($prod['image_url']); ?>" 
+                                                         alt="<?php echo e($prod['name'] ?? 'Product'); ?>">
                                                 <?php else: ?>
                                                     <div class="no-image">
                                                         <i class="fas fa-image"></i>
@@ -413,14 +414,13 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                                 <?php endif; ?>
                                             </div>
                                             <div class="product-details">
-                                                <h4><?php echo htmlspecialchars($prod['name']); ?></h4>
-                                                <?php if (!empty($prod['short_description'])): ?>
+                                                <h4><?php echo e($prod['name'] ?? 'Unnamed'); ?></h4>
+                                                <?php if (($prod['short_description'] ?? '') !== ''): ?>
                                                     <p class="product-description">
                                                         <?php 
-                                                        // FIX 2: Proper handling of short_description to avoid null parameter
-                                                        $description = $prod['short_description'] !== null ? $prod['short_description'] : '';
-                                                        echo htmlspecialchars(substr($description, 0, 100)) . 
-                                                             (strlen($description) > 100 ? '...' : ''); 
+                                                        $description = $prod['short_description'] ?? '';
+                                                        $snippet = mb_substr($description, 0, 100, 'UTF-8');
+                                                        echo e($snippet) . (mb_strlen($description, 'UTF-8') > 100 ? '...' : '');
                                                         ?>
                                                     </p>
                                                 <?php endif; ?>
@@ -428,24 +428,24 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                         </div>
                                     </td>
                                     <td class="sku-cell">
-                                        <code><?php echo htmlspecialchars($prod['sku']); ?></code>
+                                        <code><?php echo e($prod['sku'] ?? ''); ?></code>
                                     </td>
                                     <td class="price-cell">
                                         <div class="price-info">
-                                            <span class="current-price">$<?php echo number_format($prod['price'], 2); ?></span>
+                                            <span class="current-price">$<?php echo number_format((float)($prod['price'] ?? 0), 2); ?></span>
                                             <?php if (!empty($prod['compare_price']) && $prod['compare_price'] > $prod['price']): ?>
                                                 <span class="compare-price">$<?php echo number_format($prod['compare_price'], 2); ?></span>
                                             <?php endif; ?>
                                         </div>
                                     </td>
                                     <td class="stock-cell">
-                                        <?php if ($prod['track_inventory']): ?>
+                                        <?php if (!empty($prod['track_inventory'])): ?>
                                             <div class="stock-info">
                                                 <span class="stock-quantity 
-                                                    <?php echo $prod['stock_quantity'] <= ($prod['low_stock_threshold'] ?? 10) ? 'low-stock' : ''; ?>">
-                                                    <?php echo number_format($prod['stock_quantity']); ?>
+                                                    <?php echo ($prod['stock_quantity'] ?? 0) <= ($prod['low_stock_threshold'] ?? 10) ? 'low-stock' : ''; ?>">
+                                                    <?php echo number_format((int)($prod['stock_quantity'] ?? 0)); ?>
                                                 </span>
-                                                <?php if ($prod['stock_quantity'] <= ($prod['low_stock_threshold'] ?? 10)): ?>
+                                                <?php if (($prod['stock_quantity'] ?? 0) <= ($prod['low_stock_threshold'] ?? 10)): ?>
                                                     <span class="stock-warning">
                                                         <i class="fas fa-exclamation-triangle"></i>
                                                     </span>
@@ -455,18 +455,15 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                             <span class="no-tracking">Not tracked</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($prod['category_name'] ?? 'No Category'); ?></td>
+                                    <td><?php echo e($prod['category_name'] ?? 'No Category'); ?></td>
                                     <?php if ($vendors_table_exists): ?>
-                                    <td><?php echo htmlspecialchars($prod['vendor_name'] ?? 'No Vendor'); ?></td>
+                                    <td><?php echo e($prod['vendor_name'] ?? 'No Vendor'); ?></td>
                                     <?php endif; ?>
                                     <td>
-                                        <span class="status-badge status-<?php echo $prod['status']; ?>">
-                                            <?php echo ucfirst($prod['status']); ?>
+                                        <span class="status-badge status-<?php echo e($prod['status'] ?? 'unknown'); ?>">
+                                            <?php echo e(ucfirst($prod['status'] ?? 'unknown')); ?>
                                         </span>
-                                        <?php 
-                                        // FIX 1 CONTINUED: Properly check if 'is_featured' exists and has value
-                                        if (isset($prod['is_featured']) && $prod['is_featured']): 
-                                        ?>
+                                        <?php if (!empty($prod['is_featured'])): ?>
                                             <span class="featured-badge">
                                                 <i class="fas fa-star"></i>
                                             </span>
@@ -483,7 +480,7 @@ include_once __DIR__ . '/../../includes/admin_header.php';
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <button type="button" class="btn btn-sm btn-danger" 
-                                                    onclick="confirmDelete(<?php echo $prod['id']; ?>, '<?php echo htmlspecialchars($prod['name'], ENT_QUOTES); ?>')" 
+                                                    onclick="confirmDelete(<?php echo $prod['id']; ?>, '<?php echo e($prod['name'] ?? 'Unnamed'); ?>')" 
                                                     title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -552,7 +549,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const checkedCount = document.querySelectorAll('.product-checkbox:checked').length;
         selectedCount.textContent = `${checkedCount} selected`;
         
-        // Update select all checkboxes
         const allChecked = checkedCount === productCheckboxes.length;
         const someChecked = checkedCount > 0;
         

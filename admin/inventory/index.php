@@ -212,8 +212,8 @@ checkPermission('inventory.view');
         FROM inventory i
         JOIN products p ON i.product_id = p.id
         JOIN warehouses w ON i.warehouse_id = w.id
-        WHERE i.quantity <= i.min_stock_level AND i.min_stock_level > 0
-        ORDER BY (i.quantity - i.min_stock_level) ASC
+        WHERE i.qty <= i.min_stock_level AND i.min_stock_level > 0
+        ORDER BY (i.qty - i.min_stock_level) ASC
     ");
     $low_stock_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

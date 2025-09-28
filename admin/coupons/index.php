@@ -18,6 +18,13 @@ require_once __DIR__ . '/../../includes/rbac.php';
 require_once __DIR__ . '/../../includes/mailer.php';
 require_once __DIR__ . '/../../includes/audit_log.php';
 
+// Helper function for safe input sanitization
+if (!function_exists('sanitizeInput')) {
+    function sanitizeInput($input) {
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+}
+
 try {
     require_once __DIR__ . '/../../includes/init.php';
     
@@ -141,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ");
                     $stmt->execute([
                         $code, $name, $description, $type, $value, $min_spend, 
-                        $max_uses, $per_user_limit, $starts_at, $expires_at, $_SESSION['admin_id']
+                        $max_uses, $per_user_limit, $starts_at, $expires_at, $_SESSION['admin_id'] ?? 1
                     ]);
                     
                     logAuditEvent('coupon', $pdo->lastInsertId(), 'create', [
@@ -216,18 +223,26 @@ $coupons = [];
 $coupon_stats = [];
 $redemption_data = [];
 
-if ($database_available) {
+if ($database_available && $pdo) {
     try {
-        // Get coupons with usage statistics
+        // Get coupons with usage statistics - FINAL FIXED QUERY
         $stmt = $pdo->query("
             SELECT c.*, 
-                   COUNT(cr.id) as usage_count,
-                   SUM(cr.discount_amount) as total_discount,
-                   admin.name as created_by_name
+                   COALESCE(COUNT(cr.id), 0) as usage_count,
+                   COALESCE(SUM(cr.discount_amount), 0) as total_discount,
+                   COALESCE(
+                       CONCAT(TRIM(admin.first_name), ' ', TRIM(admin.last_name)),
+                       admin.username,
+                       admin.email,
+                       'System Administrator'
+                   ) as created_by_name
             FROM coupons c
             LEFT JOIN coupon_redemptions cr ON c.id = cr.coupon_id
             LEFT JOIN users admin ON c.created_by = admin.id
-            GROUP BY c.id
+            GROUP BY c.id, c.code, c.name, c.description, c.type, c.value, 
+                     c.min_spend, c.max_uses, c.per_user_limit, c.starts_at, 
+                     c.expires_at, c.status, c.created_at, c.created_by,
+                     admin.first_name, admin.last_name, admin.username, admin.email
             ORDER BY c.created_at DESC
         ");
         $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -235,23 +250,29 @@ if ($database_available) {
         // Get coupon statistics
         $stmt = $pdo->query("
             SELECT 
-                COUNT(*) as total_coupons,
-                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_coupons,
-                COUNT(CASE WHEN expires_at < NOW() THEN 1 END) as expired_coupons,
-                SUM(CASE WHEN status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) THEN 1 ELSE 0 END) as valid_coupons
+                COALESCE(COUNT(*), 0) as total_coupons,
+                COALESCE(COUNT(CASE WHEN status = 'active' THEN 1 END), 0) as active_coupons,
+                COALESCE(COUNT(CASE WHEN expires_at < NOW() AND expires_at IS NOT NULL THEN 1 END), 0) as expired_coupons,
+                COALESCE(SUM(CASE WHEN status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) THEN 1 ELSE 0 END), 0) as valid_coupons
             FROM coupons
         ");
         $coupon_stats = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Get recent redemptions
+        // Get recent redemptions - FINAL FIXED QUERY
         $stmt = $pdo->query("
             SELECT cr.*, c.code as coupon_code, c.type, c.value,
-                   u.name as user_name, u.email as user_email,
-                   o.id as order_number
+                   COALESCE(
+                       CONCAT(TRIM(u.first_name), ' ', TRIM(u.last_name)),
+                       u.username,
+                       u.email,
+                       'Unknown Customer'
+                   ) as user_name, 
+                   COALESCE(u.email, 'no-email@example.com') as user_email,
+                   COALESCE(o.id, 0) as order_number
             FROM coupon_redemptions cr
             JOIN coupons c ON cr.coupon_id = c.id
-            JOIN users u ON cr.user_id = u.id
-            JOIN orders o ON cr.order_id = o.id
+            LEFT JOIN users u ON cr.user_id = u.id
+            LEFT JOIN orders o ON cr.order_id = o.id
             ORDER BY cr.used_at DESC
             LIMIT 20
         ");
@@ -259,6 +280,15 @@ if ($database_available) {
         
     } catch (Exception $e) {
         $error = 'Error loading coupon data: ' . $e->getMessage();
+        // Set fallback data in case of error
+        $coupon_stats = [
+            'total_coupons' => 0,
+            'active_coupons' => 0,
+            'expired_coupons' => 0,
+            'valid_coupons' => 0
+        ];
+        $coupons = [];
+        $redemption_data = [];
     }
 } else {
     // Demo data when database is not available
@@ -282,7 +312,7 @@ if ($database_available) {
             'total_discount' => 450.75,
             'max_uses' => 100,
             'expires_at' => '2024-12-31 23:59:59',
-            'created_by_name' => 'Administrator'
+            'created_by_name' => 'System Administrator'
         ],
         [
             'id' => 2,
@@ -296,7 +326,7 @@ if ($database_available) {
             'total_discount' => 240.00,
             'max_uses' => 50,
             'expires_at' => null,
-            'created_by_name' => 'Administrator'
+            'created_by_name' => 'System Administrator'
         ]
     ];
     
@@ -313,9 +343,17 @@ if ($database_available) {
     ];
 }
 
+// Ensure coupon_stats has all required keys with safe defaults
+$coupon_stats = array_merge([
+    'total_coupons' => 0,
+    'active_coupons' => 0,
+    'expired_coupons' => 0,
+    'valid_coupons' => 0
+], $coupon_stats ?? []);
+
 // Get selected coupon if editing
 $selected_coupon = null;
-if ($action === 'edit' && $coupon_id) {
+if ($action === 'edit' && $coupon_id && $database_available && $pdo) {
     try {
         $stmt = $pdo->prepare("SELECT * FROM coupons WHERE id = ?");
         $stmt->execute([$coupon_id]);
@@ -406,7 +444,7 @@ if ($action === 'edit' && $coupon_id) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($coupon_stats['total_coupons']) ?></h4>
+                                        <h4><?= number_format((int)$coupon_stats['total_coupons']) ?></h4>
                                         <p class="mb-0">Total Coupons</p>
                                     </div>
                                     <div class="align-self-center">
@@ -421,7 +459,7 @@ if ($action === 'edit' && $coupon_id) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($coupon_stats['valid_coupons']) ?></h4>
+                                        <h4><?= number_format((int)$coupon_stats['valid_coupons']) ?></h4>
                                         <p class="mb-0">Valid Coupons</p>
                                     </div>
                                     <div class="align-self-center">
@@ -436,7 +474,7 @@ if ($action === 'edit' && $coupon_id) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= number_format($coupon_stats['expired_coupons']) ?></h4>
+                                        <h4><?= number_format((int)$coupon_stats['expired_coupons']) ?></h4>
                                         <p class="mb-0">Expired Coupons</p>
                                     </div>
                                     <div class="align-self-center">
@@ -451,7 +489,7 @@ if ($action === 'edit' && $coupon_id) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <h4><?= count($redemption_data) ?></h4>
+                                        <h4><?= number_format(count($redemption_data)) ?></h4>
                                         <p class="mb-0">Recent Uses</p>
                                     </div>
                                     <div class="align-self-center">
@@ -484,73 +522,85 @@ if ($action === 'edit' && $coupon_id) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($coupons as $coupon): ?>
+                                    <?php if (empty($coupons)): ?>
                                     <tr>
-                                        <td><code><?= htmlspecialchars($coupon['code']) ?></code></td>
-                                        <td><?= htmlspecialchars($coupon['name']) ?></td>
-                                        <td>
-                                            <?php
-                                            $type_labels = [
-                                                'percentage' => 'Percentage',
-                                                'fixed' => 'Fixed Amount',
-                                                'free_shipping' => 'Free Shipping',
-                                                'buy_x_get_y' => 'BOGO'
-                                            ];
-                                            echo $type_labels[$coupon['type']] ?? ucfirst($coupon['type']);
-                                            ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($coupon['type'] === 'percentage'): ?>
-                                                <?= number_format($coupon['value'], 1) ?>%
-                                            <?php elseif ($coupon['type'] === 'fixed'): ?>
-                                                $<?= number_format($coupon['value'], 2) ?>
-                                            <?php else: ?>
-                                                <?= htmlspecialchars($coupon['value']) ?>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?= number_format($coupon['usage_count']) ?>
-                                            <?php if ($coupon['max_uses']): ?>
-                                            / <?= number_format($coupon['max_uses']) ?>
-                                            <?php endif; ?>
-                                            <?php if ($coupon['total_discount']): ?>
-                                            <br><small class="text-muted">$<?= number_format($coupon['total_discount'], 2) ?> saved</small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php
-                                            $status_colors = [
-                                                'active' => 'success',
-                                                'inactive' => 'secondary',
-                                                'expired' => 'danger'
-                                            ];
-                                            $status = $coupon['status'];
-                                            if ($coupon['expires_at'] && strtotime($coupon['expires_at']) < time()) {
-                                                $status = 'expired';
-                                            }
-                                            $color = $status_colors[$status] ?? 'secondary';
-                                            ?>
-                                            <span class="badge bg-<?= $color ?>"><?= ucfirst($status) ?></span>
-                                        </td>
-                                        <td>
-                                            <?php if ($coupon['expires_at']): ?>
-                                                <?= date('M j, Y', strtotime($coupon['expires_at'])) ?>
-                                            <?php else: ?>
-                                                <span class="text-muted">Never</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if (hasPermission('coupons.manage')): ?>
-                                            <a href="?action=edit&id=<?= $coupon['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCoupon(<?= $coupon['id'] ?>, '<?= htmlspecialchars($coupon['code']) ?>')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            <?php endif; ?>
+                                        <td colspan="8" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="fas fa-tags fa-3x mb-3"></i>
+                                                <h5>No Coupons Found</h5>
+                                                <p>Create your first coupon to get started.</p>
+                                            </div>
                                         </td>
                                     </tr>
-                                    <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <?php foreach ($coupons as $coupon): ?>
+                                        <tr>
+                                            <td><code><?= htmlspecialchars($coupon['code']) ?></code></td>
+                                            <td><?= htmlspecialchars($coupon['name']) ?></td>
+                                            <td>
+                                                <?php
+                                                $type_labels = [
+                                                    'percentage' => 'Percentage',
+                                                    'fixed' => 'Fixed Amount',
+                                                    'free_shipping' => 'Free Shipping',
+                                                    'buy_x_get_y' => 'BOGO'
+                                                ];
+                                                echo $type_labels[$coupon['type']] ?? ucfirst($coupon['type']);
+                                                ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($coupon['type'] === 'percentage'): ?>
+                                                    <?= number_format((float)$coupon['value'], 1) ?>%
+                                                <?php elseif ($coupon['type'] === 'fixed'): ?>
+                                                    $<?= number_format((float)$coupon['value'], 2) ?>
+                                                <?php else: ?>
+                                                    <?= htmlspecialchars($coupon['value']) ?>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?= number_format((int)($coupon['usage_count'] ?? 0)) ?>
+                                                <?php if (!empty($coupon['max_uses'])): ?>
+                                                / <?= number_format((int)$coupon['max_uses']) ?>
+                                                <?php endif; ?>
+                                                <?php if (!empty($coupon['total_discount']) && (float)$coupon['total_discount'] > 0): ?>
+                                                <br><small class="text-muted">$<?= number_format((float)$coupon['total_discount'], 2) ?> saved</small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                $status_colors = [
+                                                    'active' => 'success',
+                                                    'inactive' => 'secondary',
+                                                    'expired' => 'danger'
+                                                ];
+                                                $status = $coupon['status'];
+                                                if ($coupon['expires_at'] && strtotime($coupon['expires_at']) < time()) {
+                                                    $status = 'expired';
+                                                }
+                                                $color = $status_colors[$status] ?? 'secondary';
+                                                ?>
+                                                <span class="badge bg-<?= $color ?>"><?= ucfirst($status) ?></span>
+                                            </td>
+                                            <td>
+                                                <?php if ($coupon['expires_at']): ?>
+                                                    <?= date('M j, Y', strtotime($coupon['expires_at'])) ?>
+                                                <?php else: ?>
+                                                    <span class="text-muted">Never</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (hasPermission('coupons.manage')): ?>
+                                                <a href="?action=edit&id=<?= $coupon['id'] ?>" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCoupon(<?= $coupon['id'] ?>, '<?= htmlspecialchars($coupon['code']) ?>')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -575,22 +625,37 @@ if ($action === 'edit' && $coupon_id) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($redemption_data as $redemption): ?>
+                                    <?php if (empty($redemption_data)): ?>
                                     <tr>
-                                        <td><code><?= htmlspecialchars($redemption['coupon_code']) ?></code></td>
-                                        <td>
-                                            <?= htmlspecialchars($redemption['user_name']) ?><br>
-                                            <small class="text-muted"><?= htmlspecialchars($redemption['user_email']) ?></small>
+                                        <td colspan="5" class="text-center py-3">
+                                            <div class="text-muted">
+                                                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                                                <p>No recent coupon redemptions</p>
+                                            </div>
                                         </td>
-                                        <td>
-                                            <a href="../orders/index.php?action=view&id=<?= $redemption['order_id'] ?>">
-                                                #<?= $redemption['order_number'] ?>
-                                            </a>
-                                        </td>
-                                        <td>$<?= number_format($redemption['discount_amount'], 2) ?></td>
-                                        <td><?= date('M j, Y g:i A', strtotime($redemption['used_at'])) ?></td>
                                     </tr>
-                                    <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <?php foreach ($redemption_data as $redemption): ?>
+                                        <tr>
+                                            <td><code><?= htmlspecialchars($redemption['coupon_code']) ?></code></td>
+                                            <td>
+                                                <?= htmlspecialchars($redemption['user_name']) ?><br>
+                                                <small class="text-muted"><?= htmlspecialchars($redemption['user_email']) ?></small>
+                                            </td>
+                                            <td>
+                                                <?php if ($redemption['order_number']): ?>
+                                                <a href="../orders/index.php?action=view&id=<?= $redemption['order_id'] ?>">
+                                                    #<?= $redemption['order_number'] ?>
+                                                </a>
+                                                <?php else: ?>
+                                                <span class="text-muted">N/A</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>$<?= number_format((float)($redemption['discount_amount'] ?? 0), 2) ?></td>
+                                            <td><?= date('M j, Y g:i A', strtotime($redemption['used_at'])) ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>

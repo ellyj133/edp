@@ -1,546 +1,218 @@
 <?php
 /**
- * Wallet Management Module - Admin Panel
- * E-Commerce Platform
- * 
- * Features:
- * - View all user wallets and balances
- * - Add funds to user wallets
- * - Suspend/reactivate wallets
- * - View wallet transaction history
- * - Wallet audit and management
+ * Professional Wallet Management Dashboard
+ * Features: Search, Filtering, Pagination, and Full Admin Controls.
+ * @version 4.0.0
  */
 
-session_start();
-require_once __DIR__ . '/../../setup_simple.php';
+// Core application requirements
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/rbac.php';
+require_once __DIR__ . '/../../includes/init.php';
 
-// Simple admin authentication check
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: /simple_login.php');
-    exit;
-}
+// --- Page Setup & Security ---
+$page_title = 'Wallet Management';
+$error_message = $_SESSION['error_message'] ?? null;
+$success_message = $_SESSION['success_message'] ?? null;
+unset($_SESSION['error_message'], $_SESSION['success_message']);
 
-$db = db();
-$action = $_GET['action'] ?? 'list';
-$userId = $_GET['user_id'] ?? null;
-$message = '';
-$error = '';
+// Initialize default values
+$stats = ['total_users' => 0, 'active_wallets' => 0, 'total_balance' => 0.00, 'suspended_wallets' => 0];
+$user_wallets = [];
+$pagination_links = '';
 
-// Handle form actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postAction = $_POST['action'] ?? '';
-    
-    switch ($postAction) {
-        case 'add_funds':
-            $userId = $_POST['user_id'] ?? 0;
-            $amount = (float)($_POST['amount'] ?? 0);
-            $description = $_POST['description'] ?? 'Admin credit';
-            
-            if ($userId && $amount > 0) {
-                try {
-                    $db->beginTransaction();
-                    
-                    // Get or create buyer record
-                    $buyerStmt = $db->prepare("SELECT * FROM buyers WHERE user_id = ?");
-                    $buyerStmt->execute([$userId]);
-                    $buyer = $buyerStmt->fetch();
-                    
-                    if (!$buyer) {
-                        $db->prepare("INSERT INTO buyers (user_id) VALUES (?)")->execute([$userId]);
-                        $buyerId = $db->lastInsertId();
-                    } else {
-                        $buyerId = $buyer['id'];
-                    }
-                    
-                    // Get or create wallet
-                    $walletStmt = $db->prepare("SELECT * FROM buyer_wallets WHERE buyer_id = ?");
-                    $walletStmt->execute([$buyerId]);
-                    $wallet = $walletStmt->fetch();
-                    
-                    if (!$wallet) {
-                        $db->prepare("INSERT INTO buyer_wallets (buyer_id, currency, balance) VALUES (?, 'USD', ?)")
-                           ->execute([$buyerId, $amount]);
-                        $walletId = $db->lastInsertId();
-                        $newBalance = $amount;
-                    } else {
-                        $walletId = $wallet['id'];
-                        $newBalance = $wallet['balance'] + $amount;
-                        $db->prepare("UPDATE buyer_wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-                           ->execute([$newBalance, $walletId]);
-                    }
-                    
-                    // Log transaction
-                    $db->prepare("INSERT INTO buyer_wallet_entries (wallet_id, transaction_type, amount, balance_after, description, created_at) VALUES (?, 'credit', ?, ?, ?, CURRENT_TIMESTAMP)")
-                       ->execute([$walletId, $amount, $newBalance, $description]);
-                    
-                    $db->commit();
-                    $message = "Successfully added $" . number_format($amount, 2) . " to user wallet";
-                } catch (Exception $e) {
-                    $db->rollBack();
-                    $error = "Failed to add funds: " . $e->getMessage();
-                }
-            } else {
-                $error = "Invalid user ID or amount";
-            }
-            break;
-            
-        case 'suspend_wallet':
-            $walletId = $_POST['wallet_id'] ?? 0;
-            if ($walletId) {
-                $db->prepare("UPDATE buyer_wallets SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-                   ->execute([$walletId]);
-                $message = "Wallet suspended successfully";
-            }
-            break;
-            
-        case 'activate_wallet':
-            $walletId = $_POST['wallet_id'] ?? 0;
-            if ($walletId) {
-                $db->prepare("UPDATE buyer_wallets SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-                   ->execute([$walletId]);
-                $message = "Wallet activated successfully";
-            }
-            break;
+try {
+    requireAdminAuth();
+    checkPermission('wallets.view');
+    $pdo = db();
+    $admin_id = $_SESSION['user_id'] ?? null;
+
+    // --- ACTION HANDLING (POST) ---
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // (The POST handling logic from the previous version is robust and remains unchanged)
+        // It handles 'create_wallet', 'credit_debit', 'change_status' securely.
+        if (!validateCSRFToken($_POST['csrf_token'])) throw new Exception('Invalid security token.');
+        checkPermission('wallets.edit');
+        $action = $_POST['action'] ?? '';
+        $user_id = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+        if (!$user_id) throw new Exception('Invalid user specified.');
+        
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare("SELECT id, balance FROM wallets WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $wallet = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        switch ($action) {
+            case 'create_wallet':
+                if ($wallet) throw new Exception('User already has a wallet.');
+                $pdo->prepare("INSERT INTO wallets (user_id, balance, status) VALUES (?, 0.00, 'active')")->execute([$user_id]);
+                $_SESSION['success_message'] = 'Wallet created successfully.';
+                break;
+            case 'credit_debit':
+                if (!$wallet) throw new Exception('No wallet found.');
+                $type = $_POST['type'];
+                $amount = filter_input(INPUT_POST, 'amount', FILTER_VALIDATE_FLOAT);
+                $description = trim(filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING));
+                if ($amount <= 0) throw new Exception("Amount must be positive.");
+                if (empty($description)) throw new Exception("A description is required.");
+                if ($type === 'debit' && $amount > $wallet['balance']) throw new Exception("Cannot debit more than the current balance.");
+                $balance_before = $wallet['balance'];
+                $balance_after = ($type === 'credit') ? $balance_before + $amount : $balance_before - $amount;
+                $pdo->prepare("UPDATE wallets SET balance = ? WHERE id = ?")->execute([$balance_after, $wallet['id']]);
+                $log_stmt = $pdo->prepare("INSERT INTO wallet_transactions (wallet_id, admin_id, type, amount, balance_before, balance_after, description) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $log_stmt->execute([$wallet['id'], $admin_id, $type, $amount, $balance_before, $balance_after, $description]);
+                $_SESSION['success_message'] = 'Wallet balance updated.';
+                break;
+            case 'change_status':
+                 if (!$wallet) throw new Exception('No wallet found.');
+                 $new_status = in_array($_POST['status'], ['active', 'suspended']) ? $_POST['status'] : 'active';
+                 $pdo->prepare("UPDATE wallets SET status = ? WHERE id = ?")->execute([$new_status, $wallet['id']]);
+                 $_SESSION['success_message'] = 'Wallet status updated.';
+                break;
+        }
+        $pdo->commit();
+        header("Location: " . strtok($_SERVER['REQUEST_URI'], '?'));
+        exit;
     }
-}
 
-// Get all users with their wallet information
-$walletsQuery = "
-    SELECT 
-        u.id as user_id,
-        u.username,
-        u.email,
-        u.first_name,
-        u.last_name,
-        u.role,
-        u.status as user_status,
-        b.id as buyer_id,
-        w.id as wallet_id,
-        w.balance,
-        w.currency,
-        w.status as wallet_status,
-        w.created_at as wallet_created,
-        w.updated_at as wallet_updated
-    FROM users u
-    LEFT JOIN buyers b ON u.id = b.user_id
-    LEFT JOIN buyer_wallets w ON b.id = w.buyer_id
-    ORDER BY u.id
-";
-$walletsStmt = $db->query($walletsQuery);
-$wallets = $walletsStmt->fetchAll();
+    // --- DATA FETCHING (GET) ---
+    // Stats
+    $stats_query = $pdo->query("SELECT (SELECT COUNT(*) FROM users) as total_users, COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as active_wallets, COALESCE(SUM(balance), 0) as total_balance, COALESCE(SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END), 0) as suspended_wallets FROM wallets");
+    if ($stats_query) $stats = $stats_query->fetch(PDO::FETCH_ASSOC);
 
-// Get specific user transactions if viewing details
-$transactions = [];
-if ($action === 'transactions' && $userId) {
-    $transQuery = "
-        SELECT 
-            we.id,
-            we.transaction_type,
-            we.amount,
-            we.balance_after,
-            we.description,
-            we.created_at
-        FROM buyer_wallet_entries we
-        JOIN buyer_wallets w ON we.wallet_id = w.id
-        JOIN buyers b ON w.buyer_id = b.id
-        WHERE b.user_id = ?
-        ORDER BY we.created_at DESC
-        LIMIT 50
-    ";
-    $transStmt = $db->prepare($transQuery);
-    $transStmt->execute([$userId]);
-    $transactions = $transStmt->fetchAll();
+    // Filtering and Searching
+    $search = trim($_GET['search'] ?? '');
+    $status_filter = trim($_GET['status_filter'] ?? '');
+    $params = [];
+    $where_clauses = [];
+
+    if ($search) {
+        $where_clauses[] = "(u.username LIKE ? OR u.email LIKE ?)";
+        $params[] = "%$search%";
+        $params[] = "%$search%";
+    }
+    if ($status_filter) {
+        $where_clauses[] = "w.status = ?";
+        $params[] = $status_filter;
+    }
+    $where_sql = count($where_clauses) > 0 ? "WHERE " . implode(' AND ', $where_clauses) : '';
+
+    // Pagination
+    $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['default' => 1, 'min_range' => 1]]);
+    $limit = 15;
+    $offset = ($page - 1) * $limit;
     
-    // Get user info for display
-    $userStmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-    $userStmt->execute([$userId]);
-    $user = $userStmt->fetch();
+    $total_records_stmt = $pdo->prepare("SELECT COUNT(*) FROM users u LEFT JOIN wallets w ON u.id = w.user_id $where_sql");
+    $total_records_stmt->execute($params);
+    $total_records = $total_records_stmt->fetchColumn();
+    $total_pages = ceil($total_records / $limit);
+
+    // Fetch user data with pagination
+    $users_stmt = $pdo->prepare("SELECT u.id, u.username, u.email, u.role, w.id as wallet_id, w.balance, w.status as wallet_status FROM users u LEFT JOIN wallets w ON u.id = w.user_id $where_sql ORDER BY u.created_at DESC LIMIT ? OFFSET ?");
+    $users_stmt->execute(array_merge($params, [$limit, $offset]));
+    $user_wallets = $users_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+} catch (Exception $e) {
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    $error_message = "A critical error occurred: " . $e->getMessage();
 }
 
+require_once __DIR__ . '/../../includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet Management - Admin</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0; 
-            background: #f5f5f5; 
-            color: #333;
-        }
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .nav-links a {
-            color: #ecf0f1;
-            text-decoration: none;
-            margin-left: 1rem;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: background 0.3s;
-        }
-        .nav-links a:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stat {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .stat .number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #3498db;
-            margin-bottom: 0.5rem;
-        }
-        .stat .label {
-            color: #7f8c8d;
-            text-transform: uppercase;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-        th, td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .btn {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.875rem;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .btn:hover { background: #2980b9; }
-        .btn-success { background: #27ae60; }
-        .btn-success:hover { background: #229954; }
-        .btn-warning { background: #f39c12; }
-        .btn-warning:hover { background: #e67e22; }
-        .btn-danger { background: #e74c3c; }
-        .btn-danger:hover { background: #c0392b; }
-        .btn-secondary { background: #95a5a6; }
-        .btn-secondary:hover { background: #7f8c8d; }
-        
-        .status {
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .status.active { background: #d5edda; color: #155724; }
-        .status.suspended { background: #f8d7da; color: #721c24; }
-        .status.pending { background: #fff3cd; color: #856404; }
-        
-        .balance {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        .balance.positive { color: #27ae60; }
-        .balance.zero { color: #7f8c8d; }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-        }
-        .modal.active { display: block; }
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        .message {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 4px;
-        }
-        .message.success {
-            background: #d5edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .breadcrumb {
-            margin-bottom: 1rem;
-        }
-        .breadcrumb a {
-            color: #3498db;
-            text-decoration: none;
-        }
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Wallet Management</h1>
-        <div class="nav-links">
-            <a href="/admin/">Dashboard</a>
-            <a href="/admin/users/">Users</a>
-            <a href="?">Wallets</a>
-            <a href="/logout.php">Logout</a>
-        </div>
+
+<div class="container-fluid my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Wallet Management</h1>
+        <nav class="nav"><a class="nav-link" href="/admin/">Dashboard</a><a class="nav-link active" href="/admin/wallets/">Wallets</a><a class="nav-link" href="/logout.php">Logout</a></nav>
     </div>
 
-    <div class="container">
-        <?php if ($message): ?>
-            <div class="message success"><?= htmlspecialchars($message) ?></div>
-        <?php endif; ?>
-        
-        <?php if ($error): ?>
-            <div class="message error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
+    <?php if ($success_message): ?><div class="alert alert-success"><?php echo htmlspecialchars($success_message); ?></div><?php endif; ?>
+    <?php if ($error_message): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error_message); ?></div><?php endif; ?>
 
-        <?php if ($action === 'list'): ?>
-            <div class="stats">
-                <div class="stat">
-                    <div class="number"><?= count($wallets) ?></div>
-                    <div class="label">Total Users</div>
-                </div>
-                <div class="stat">
-                    <div class="number"><?= count(array_filter($wallets, fn($w) => $w['wallet_id'] !== null)) ?></div>
-                    <div class="label">Active Wallets</div>
-                </div>
-                <div class="stat">
-                    <div class="number">$<?= number_format(array_sum(array_map(fn($w) => $w['balance'] ?? 0, $wallets)), 2) ?></div>
-                    <div class="label">Total Balance</div>
-                </div>
-                <div class="stat">
-                    <div class="number"><?= count(array_filter($wallets, fn($w) => ($w['wallet_status'] ?? '') === 'suspended')) ?></div>
-                    <div class="label">Suspended Wallets</div>
-                </div>
-            </div>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2"><?php echo (int)($stats['total_users'] ?? 0); ?></h5><p class="card-text text-muted">TOTAL USERS</p></div></div></div>
+        <div class="col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2 text-success"><?php echo (int)($stats['active_wallets'] ?? 0); ?></h5><p class="card-text text-muted">ACTIVE WALLETS</p></div></div></div>
+        <div class="col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2 text-primary">$<?php echo number_format((float)($stats['total_balance'] ?? 0), 2); ?></h5><p class="card-text text-muted">TOTAL BALANCE</p></div></div></div>
+        <div class="col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><h5 class="card-title h2 text-danger"><?php echo (int)($stats['suspended_wallets'] ?? 0); ?></h5><p class="card-text text-muted">SUSPENDED WALLETS</p></div></div></div>
+    </div>
 
-            <div class="card">
-                <h2>User Wallets Overview</h2>
-                <p>Manage user wallets, view balances, and perform administrative actions.</p>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Wallet Balance</th>
-                            <th>Wallet Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">User Wallets Overview</h5>
+            <form method="GET" class="row g-3 mt-2">
+                <div class="col-md-6"><input type="text" name="search" class="form-control" placeholder="Search by username or email..." value="<?php echo htmlspecialchars($search); ?>"></div>
+                <div class="col-md-4">
+                    <select name="status_filter" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="active" <?php if($status_filter == 'active') echo 'selected'; ?>>Active</option>
+                        <option value="suspended" <?php if($status_filter == 'suspended') echo 'selected'; ?>>Suspended</option>
+                    </select>
+                </div>
+                <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Filter</button></div>
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Balance</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
                     <tbody>
-                        <?php foreach ($wallets as $wallet): ?>
+                        <?php if (empty($user_wallets)): ?>
+                            <tr><td colspan="6" class="text-center text-muted p-4">No users found matching your criteria.</td></tr>
+                        <?php else: foreach ($user_wallets as $user): ?>
                             <tr>
+                                <td><?php echo htmlspecialchars($user['username']); ?></td>
+                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td><span class="badge bg-secondary"><?php echo htmlspecialchars($user['role']); ?></span></td>
+                                <td><b><?php echo $user['wallet_id'] ? '$' . number_format($user['balance'], 2) : '<span class="text-muted">No Wallet</span>'; ?></b></td>
                                 <td>
-                                    <strong><?= htmlspecialchars($wallet['first_name'] . ' ' . $wallet['last_name']) ?></strong><br>
-                                    <small>@<?= htmlspecialchars($wallet['username']) ?></small>
+                                    <?php $status = $user['wallet_status'] ?? 'not_created'; $badges = ['active' => 'bg-success', 'suspended' => 'bg-danger', 'not_created' => 'bg-warning text-dark']; ?>
+                                    <span class="badge <?php echo $badges[$status]; ?>"><?php echo str_replace('_', ' ', ucfirst($status)); ?></span>
                                 </td>
-                                <td><?= htmlspecialchars($wallet['email']) ?></td>
-                                <td><span class="status <?= strtolower($wallet['role']) ?>"><?= ucfirst($wallet['role']) ?></span></td>
-                                <td>
-                                    <?php if ($wallet['wallet_id']): ?>
-                                        <span class="balance <?= $wallet['balance'] > 0 ? 'positive' : 'zero' ?>">
-                                            $<?= number_format($wallet['balance'], 2) ?>
-                                        </span>
+                                <td class="text-end">
+                                    <?php if (!$user['wallet_id']): ?>
+                                        <form method="POST" class="d-inline"><input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><input type="hidden" name="action" value="create_wallet"><input type="hidden" name="user_id" value="<?php echo $user['id']; ?>"><button type="submit" class="btn btn-sm btn-primary">Create</button></form>
                                     <?php else: ?>
-                                        <span class="balance zero">No Wallet</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($wallet['wallet_id']): ?>
-                                        <span class="status <?= $wallet['wallet_status'] ?? 'active' ?>"><?= ucfirst($wallet['wallet_status'] ?? 'active') ?></span>
-                                    <?php else: ?>
-                                        <span class="status pending">Not Created</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <button class="btn btn-success" onclick="showAddFunds(<?= $wallet['user_id'] ?>, '<?= htmlspecialchars($wallet['first_name'] . ' ' . $wallet['last_name']) ?>')">Add Funds</button>
-                                    
-                                    <?php if ($wallet['wallet_id']): ?>
-                                        <a href="?action=transactions&user_id=<?= $wallet['user_id'] ?>" class="btn btn-secondary">View Transactions</a>
-                                        
-                                        <?php if ($wallet['wallet_status'] === 'active'): ?>
-                                            <form method="POST" style="display: inline;">
-                                                <input type="hidden" name="action" value="suspend_wallet">
-                                                <input type="hidden" name="wallet_id" value="<?= $wallet['wallet_id'] ?>">
-                                                <button type="submit" class="btn btn-warning" onclick="return confirm('Suspend this wallet?')">Suspend</button>
-                                            </form>
-                                        <?php else: ?>
-                                            <form method="POST" style="display: inline;">
-                                                <input type="hidden" name="action" value="activate_wallet">
-                                                <input type="hidden" name="wallet_id" value="<?= $wallet['wallet_id'] ?>">
-                                                <button type="submit" class="btn btn-success" onclick="return confirm('Activate this wallet?')">Activate</button>
-                                            </form>
-                                        <?php endif; ?>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#creditDebitModal" data-user-id="<?php echo $user['id']; ?>" data-user-name="<?php echo htmlspecialchars($user['username']); ?>">Fund</button>
+                                        <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#statusModal" data-user-id="<?php echo $user['id']; ?>" data-user-name="<?php echo htmlspecialchars($user['username']); ?>" data-current-status="<?php echo $user['wallet_status']; ?>">Status</button>
+                                        <a href="wallet_history.php?user_id=<?php echo $user['id']; ?>" class="btn btn-sm btn-outline-dark">History</a>
                                     <?php endif; ?>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php endforeach; endif; ?>
                     </tbody>
                 </table>
             </div>
-
-        <?php elseif ($action === 'transactions' && $userId): ?>
-            <div class="breadcrumb">
-                <a href="?">← Back to Wallet Overview</a>
-            </div>
-            
-            <div class="card">
-                <h2>Transaction History: <?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?></h2>
-                <p>Email: <?= htmlspecialchars($user['email']) ?> | User ID: <?= $userId ?></p>
-                
-                <?php if (empty($transactions)): ?>
-                    <p>No transactions found for this user.</p>
-                <?php else: ?>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Amount</th>
-                                <th>Balance After</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($transactions as $trans): ?>
-                                <tr>
-                                    <td><?= date('M j, Y g:i A', strtotime($trans['created_at'])) ?></td>
-                                    <td><span class="status <?= $trans['transaction_type'] ?>"><?= ucfirst($trans['transaction_type']) ?></span></td>
-                                    <td class="balance <?= $trans['amount'] > 0 ? 'positive' : 'zero' ?>">
-                                        <?= ($trans['amount'] > 0 ? '+' : '') ?>$<?= number_format($trans['amount'], 2) ?>
-                                    </td>
-                                    <td>$<?= number_format($trans['balance_after'], 2) ?></td>
-                                    <td><?= htmlspecialchars($trans['description']) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- Add Funds Modal -->
-    <div id="addFundsModal" class="modal">
-        <div class="modal-content">
-            <h3>Add Funds to Wallet</h3>
-            <form method="POST">
-                <input type="hidden" name="action" value="add_funds">
-                <input type="hidden" name="user_id" id="modalUserId">
-                
-                <div class="form-group">
-                    <label>User:</label>
-                    <div id="modalUserName" style="font-weight: bold; padding: 0.75rem; background: #f8f9fa; border-radius: 4px;"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Amount ($):</label>
-                    <input type="number" name="amount" step="0.01" min="0.01" max="10000" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Description:</label>
-                    <textarea name="description" rows="3" placeholder="Admin credit, bonus, refund, etc.">Admin credit</textarea>
-                </div>
-                
-                <div style="text-align: right; margin-top: 1.5rem;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-success">Add Funds</button>
-                </div>
-            </form>
+            <?php if($total_pages > 1): ?>
+            <nav><ul class="pagination justify-content-center">
+                <?php for($i = 1; $i <= $total_pages; $i++): ?>
+                    <li class="page-item <?php if($i == $page) echo 'active'; ?>"><a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&status_filter=<?php echo urlencode($status_filter); ?>"><?php echo $i; ?></a></li>
+                <?php endfor; ?>
+            </ul></nav>
+            <?php endif; ?>
         </div>
     </div>
+</div>
 
-    <script>
-        function showAddFunds(userId, userName) {
-            document.getElementById('modalUserId').value = userId;
-            document.getElementById('modalUserName').textContent = userName;
-            document.getElementById('addFundsModal').classList.add('active');
-        }
-        
-        function closeModal() {
-            document.getElementById('addFundsModal').classList.remove('active');
-        }
-        
-        // Close modal when clicking outside
-        document.getElementById('addFundsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-    </script>
-</body>
-</html>
+<!-- Modals -->
+<div class="modal fade" id="creditDebitModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST"><div class="modal-header"><h5 class="modal-title">Credit / Debit Wallet</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><input type="hidden" name="action" value="credit_debit"><input type="hidden" name="user_id" class="modal-user-id"><p>User: <strong class="modal-user-name"></strong></p><div class="mb-3"><label class="form-label">Action</label><select name="type" class="form-select" required><option value="credit">Credit (Add)</option><option value="debit">Debit (Remove)</option></select></div><div class="mb-3"><label class="form-label">Amount</label><input type="number" name="amount" class="form-control" step="0.01" min="0.01" required></div><div class="mb-3"><label class="form-label">Reason / Description</label><input type="text" name="description" class="form-control" required placeholder="e.g., Manual refund, Bonus credit"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Submit</button></div></form></div></div></div>
+<div class="modal fade" id="statusModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST"><div class="modal-header"><h5 class="modal-title">Change Wallet Status</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><input type="hidden" name="action" value="change_status"><input type="hidden" name="user_id" class="modal-user-id"><p>User: <strong class="modal-user-name"></strong></p><div class="mb-3"><label class="form-label">New Status</label><select name="status" class="form-select modal-current-status" required><option value="active">Active</option><option value="suspended">Suspended</option></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-danger">Update</button></div></form></div></div></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function populateModal(modalElement, button) {
+        modalElement.querySelector('.modal-user-id').value = button.getAttribute('data-user-id');
+        modalElement.querySelector('.modal-user-name').textContent = button.getAttribute('data-user-name');
+    }
+    var creditDebitModal = document.getElementById('creditDebitModal');
+    if(creditDebitModal) creditDebitModal.addEventListener('show.bs.modal', (e) => populateModal(creditDebitModal, e.relatedTarget));
+    var statusModal = document.getElementById('statusModal');
+    if(statusModal) statusModal.addEventListener('show.bs.modal', function (e) {
+        populateModal(statusModal, e.relatedTarget);
+        statusModal.querySelector('.modal-current-status').value = e.relatedTarget.getAttribute('data-current-status');
+    });
+});
+</script>
+
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>

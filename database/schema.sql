@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Sep 27, 2025 at 01:33 PM
+-- Generation Time: Sep 28, 2025 at 02:50 PM
 -- Server version: 10.11.13-MariaDB-0ubuntu0.24.04.1
 -- PHP Version: 8.3.6
 
@@ -375,7 +375,12 @@ INSERT INTO `audit_log` (`id`, `user_id`, `action`, `resource_type`, `resource_i
 (37, 4, 'login_success', 'user', '4', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 10:57:04'),
 (38, 4, 'login_success', 'user', '4', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-21 13:07:53'),
 (39, 4, 'login_success', 'user', '4', '105.178.104.165', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 11:29:06'),
-(40, 4, 'login_success', 'user', '4', '105.178.32.38', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 14:29:31');
+(40, 4, 'login_success', 'user', '4', '105.178.32.38', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 14:29:31'),
+(41, 4, 'login_success', 'user', '4', '102.22.163.69', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 16:20:48'),
+(42, 4, 'login_success', 'user', '4', '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 18:43:44'),
+(43, NULL, 'login_failed', 'user', NULL, '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '{\"email\":\"ellyj164@gmail.com\"}', '2025-09-27 19:26:39'),
+(44, 4, 'login_success', 'user', '4', '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 19:26:47'),
+(45, 4, 'login_success', 'user', '4', '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '[]', '2025-09-27 22:44:06');
 
 -- --------------------------------------------------------
 
@@ -1084,6 +1089,22 @@ CREATE TABLE `campaign_products` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `campaign_recipients`
+--
+
+CREATE TABLE `campaign_recipients` (
+  `id` int(11) NOT NULL,
+  `campaign_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `status` enum('sent','failed') NOT NULL DEFAULT 'sent',
+  `opened_at` datetime DEFAULT NULL,
+  `clicked_at` datetime DEFAULT NULL,
+  `sent_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `campaign_stats`
 --
 
@@ -1622,6 +1643,7 @@ CREATE TABLE `disputes` (
   `description` text NOT NULL,
   `amount_disputed` decimal(10,2) NOT NULL DEFAULT 0.00,
   `status` enum('open','investigating','pending_vendor','pending_customer','escalated','resolved','closed') NOT NULL DEFAULT 'open',
+  `sla_deadline` datetime DEFAULT NULL,
   `priority` enum('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
   `assigned_to` int(11) DEFAULT NULL,
   `escalated_to` int(11) DEFAULT NULL,
@@ -1894,6 +1916,45 @@ CREATE TABLE `homepage_sections` (
   `section_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`section_data`)),
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `homepage_sections`
+--
+
+INSERT INTO `homepage_sections` (`id`, `section_key`, `section_data`, `created_at`, `updated_at`) VALUES
+(1, 'layout_config', '[{\"id\":\"hero\",\"type\":\"hero\",\"title\":\"Hero Banner\",\"enabled\":true},{\"id\":\"categories\",\"type\":\"categories\",\"title\":\"Featured Categories\",\"enabled\":true},{\"id\":\"deals\",\"type\":\"deals\",\"title\":\"Daily Deals\",\"enabled\":true},{\"id\":\"trending\",\"type\":\"products\",\"title\":\"Trending Products\",\"enabled\":true},{\"id\":\"brands\",\"type\":\"brands\",\"title\":\"Top Brands\",\"enabled\":true},{\"id\":\"featured\",\"type\":\"products\",\"title\":\"Featured Products\",\"enabled\":true},{\"id\":\"new-arrivals\",\"type\":\"products\",\"title\":\"New Arrivals\",\"enabled\":true},{\"id\":\"recommendations\",\"type\":\"products\",\"title\":\"Recommended for You\",\"enabled\":true}]', '2025-09-27 18:28:52', '2025-09-27 18:46:41');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory`
+--
+
+CREATE TABLE `inventory` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `warehouse_id` int(11) NOT NULL,
+  `qty` int(11) NOT NULL DEFAULT 0,
+  `safety_stock` int(11) NOT NULL DEFAULT 0,
+  `min_stock_level` int(11) NOT NULL DEFAULT 0,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_adjustments`
+--
+
+CREATE TABLE `inventory_adjustments` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `warehouse_id` int(11) NOT NULL,
+  `adjustment` int(11) NOT NULL,
+  `reason` varchar(255) DEFAULT NULL,
+  `adjusted_by` int(11) DEFAULT NULL,
+  `adjusted_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -2193,7 +2254,11 @@ INSERT INTO `login_attempts` (`id`, `identifier`, `ip_address`, `success`, `user
 (37, 'ellyj164@gmail.com', '197.234.242.154', 1, NULL, '2025-09-21 06:57:04'),
 (38, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-21 09:07:53'),
 (39, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 09:29:06'),
-(40, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 12:29:31');
+(40, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 12:29:31'),
+(41, 'ellyj164@gmail.com', '172.68.42.184', 1, NULL, '2025-09-27 14:20:48'),
+(42, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 16:43:44'),
+(44, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-27 17:26:47'),
+(45, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-27 20:44:06');
 
 -- --------------------------------------------------------
 
@@ -2235,6 +2300,8 @@ INSERT INTO `loyalty_tiers` (`id`, `name`, `description`, `min_points`, `max_poi
 CREATE TABLE `marketing_campaigns` (
   `id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `type` enum('email','sms') NOT NULL DEFAULT 'email',
   `description` text DEFAULT NULL,
   `campaign_type` enum('flash_sale','daily_deal','seasonal','promotion','affiliate','email','social') NOT NULL,
   `status` enum('draft','scheduled','active','paused','completed','cancelled') NOT NULL DEFAULT 'draft',
@@ -2681,6 +2748,8 @@ CREATE TABLE `payouts` (
 
 CREATE TABLE `payout_requests` (
   `id` int(11) NOT NULL,
+  `vendor_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
   `wallet_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `request_amount` decimal(10,2) NOT NULL,
@@ -2760,7 +2829,7 @@ CREATE TABLE `products` (
   `name` varchar(255) NOT NULL,
   `slug` varchar(275) DEFAULT NULL,
   `description` text DEFAULT NULL,
-  `short_description` varchar(500) DEFAULT NULL,
+  `short_description` text DEFAULT NULL,
   `sku` varchar(100) DEFAULT NULL,
   `barcode` varchar(100) DEFAULT NULL,
   `price` decimal(10,2) NOT NULL,
@@ -2828,7 +2897,7 @@ CREATE TABLE `products` (
 
 INSERT INTO `products` (`id`, `seller_id`, `vendor_id`, `category_id`, `brand_id`, `name`, `slug`, `description`, `short_description`, `sku`, `barcode`, `price`, `compare_price`, `sale_price`, `cost_price`, `currency_code`, `stock_quantity`, `min_stock_level`, `max_stock_level`, `weight`, `dimensions`, `status`, `is_featured`, `visibility`, `track_inventory`, `allow_backorder`, `stock_qty`, `low_stock_threshold`, `featured`, `digital`, `downloadable`, `virtual`, `tags`, `attributes`, `variations`, `shipping_class`, `weight_kg`, `length_cm`, `width_cm`, `height_cm`, `seo_title`, `seo_description`, `seo_keywords`, `published_at`, `scheduled_at`, `return_policy_text`, `warranty_text`, `compliance_notes`, `age_restriction`, `digital_is`, `digital_url`, `digital_file_path`, `thumbnail_path`, `custom_barcode`, `mpn`, `gtin`, `condition`, `brand`, `tax_status`, `tax_class`, `meta_title`, `meta_description`, `view_count`, `purchase_count`, `average_rating`, `review_count`, `created_at`, `updated_at`) VALUES
 (1, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 19:00:47', '2025-09-14 19:00:47'),
-(2, NULL, 3, 1, NULL, 'iphone 16 PROMAX', 'iphone-16-promax', 'BUSHOO', 'IPHONE', NULL, NULL, 1000.00, NULL, NULL, NULL, 'USD', 8, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, NULL, 0, 0, 0, 0, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'new', NULL, 'taxable', NULL, NULL, NULL, 0, 0, 0.00, 0, '2025-09-14 19:17:44', '2025-09-14 19:17:44');
+(3, NULL, 3, 501, 1, 'TOYOTA HILUX', 'toyota-hilux-', 'The pickup truck was sold with the Hilux name in most markets, but in North America, the Hilux name was retired in 1976 in favor of Truck, Pickup Truck, or Compact Truck. In North America, the popular option package, the SR5 (Sport Runabout 5-Speed), was colloquially used as a model name for the truck, even though the option package was also used on other Toyota models, like the 1972 to 1979 Corolla. In 1984, the Trekker, the wagon version of the Hilux, was renamed the 4Runner in Venezuela, Australia and North America, and the Hilux Surf in Japan. In 1992, Toyota', 'The pickup truck was sold with the Hilux name in most markets, but in North America, the Hilux name was retired in 1976 in favor of Truck, Pickup Truck, or Compact Truck. In North America, the popular option package, the SR5 (Sport Runabout 5-Speed), was colloquially used as a model name for the truck, even though the option package was also used on other Toyota models, like the 1972 to 1979 Corolla. In 1984, the Trekker, the wagon version of the Hilux, was renamed the 4Runner in Venezuela, Australia and North America, and the Hilux Surf in Japan. In 1992, Toyota', 'TOYSXHD', NULL, 4000.00, NULL, NULL, NULL, 'USD', 100, 5, NULL, NULL, NULL, 'active', 0, 'public', 1, 0, NULL, 5, 1, 0, 0, 0, '', NULL, NULL, 'standard', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 'used', NULL, 'taxable', NULL, '', '', 0, 0, 0.00, 0, '2025-09-27 13:02:05', '2025-09-27 13:02:05');
 
 -- --------------------------------------------------------
 
@@ -3048,6 +3117,16 @@ CREATE TABLE `product_images` (
   `file_path` varchar(500) DEFAULT NULL,
   `sort` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `product_images`
+--
+
+INSERT INTO `product_images` (`id`, `product_id`, `image_url`, `alt_text`, `is_primary`, `created_at`, `updated_at`, `file_path`, `sort`) VALUES
+(1, 3, '/uploads/products/2025/09/img_1758985325_5dffc53e5a3f9764.jpg', NULL, 1, '2025-09-27 15:02:05', '2025-09-27 15:02:05', '/uploads/products/2025/09/img_1758985325_5dffc53e5a3f9764.jpg', 0),
+(2, 3, '/uploads/products/2025/09/img_1758985325_884ee88bdf4ebeaa.jpg', NULL, 0, '2025-09-27 15:02:05', '2025-09-27 15:02:05', '/uploads/products/2025/09/img_1758985325_884ee88bdf4ebeaa.jpg', 0),
+(3, 3, '/uploads/products/2025/09/img_1758985325_87c18aa1407ddf7a.jpg', NULL, 0, '2025-09-27 15:02:05', '2025-09-27 15:02:05', '/uploads/products/2025/09/img_1758985325_87c18aa1407ddf7a.jpg', 0),
+(4, 3, '/uploads/products/2025/09/img_1758985325_ed80746d21e0308b.png', NULL, 0, '2025-09-27 15:02:05', '2025-09-27 15:02:05', '/uploads/products/2025/09/img_1758985325_ed80746d21e0308b.png', 0);
 
 -- --------------------------------------------------------
 
@@ -5022,7 +5101,11 @@ INSERT INTO `user_sessions` (`id`, `user_id`, `session_token`, `ip_address`, `us
 (23, 4, '17f2c2a513cb00ea106ded0edfdc8465cf5ce7e94ee7a904eca94cb214fd4cfbe0e1ccd24a246831a472ec1bec15e64ec6586fb864076bf5d199da7b254e8c3f', '41.186.132.60', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 06:57:04', '2025-09-21 07:57:04', 1, '6d761f39b7a07245e02f186554c44ddaf4b1ba0620d0a5f2900adf5c7abb030b', '2025-09-21 10:57:04'),
 (24, 4, '4fb2f4a6be0ff7e4ce7a37455d4270094b7180ddeb15c0443817ce56b31c0fb34202f7cfd13e2c0a9f4502a3209fa9095c5be8ca6c4c9dd6850ca263115ec952', '197.157.187.91', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-21 09:07:53', '2025-09-21 10:07:53', 1, 'cd24a266e6ba806401e754034eaa260adebdec513f755fc4a276e7be12591015', '2025-09-21 13:07:53'),
 (25, 4, '031730c9413b2bc112a1b8079542234cdf516ae67b41e63b744956aa8cfe70ed668bf0997479062aee68405c8214a86a281bc735b4f0331801249c30e7fb11c6', '105.178.104.165', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 09:29:06', '2025-09-27 10:29:06', 1, '57becd5acda28d9ba6494d5229b87015d662c43dba50e78a7ab900c080caadb0', '2025-09-27 11:29:06'),
-(26, 4, '2c270d1f3db48df927fd814152fe264f2193cec550c15a52d928835f2147a0e99112d7db0e4d52af6a75184e74c0cccb5b7f6b63b9f4671062c98453508bdc44', '105.178.32.38', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 12:29:31', '2025-09-27 13:29:31', 1, '8c1ae6be54d60be95aec8f9de52bc07903ee90fb2acb62a0ddf3b6aeb084c972', '2025-09-27 14:29:31');
+(26, 4, '2c270d1f3db48df927fd814152fe264f2193cec550c15a52d928835f2147a0e99112d7db0e4d52af6a75184e74c0cccb5b7f6b63b9f4671062c98453508bdc44', '105.178.32.38', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 12:29:31', '2025-09-27 13:29:31', 1, '8c1ae6be54d60be95aec8f9de52bc07903ee90fb2acb62a0ddf3b6aeb084c972', '2025-09-27 14:29:31'),
+(27, 4, '8578ddaec20f803f947ee962300a696d16e8b46b1779879e7227a4720610b8d7d3b379840372ed9c3d27c889537b3642b8dedd7ba6eb57db9e307f2969cb0df5', '102.22.163.69', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 14:20:48', '2025-09-27 15:20:48', 1, '825db3a2d91457ba5207469df11722671107a066dc7c4fbe39325dfab372e8bc', '2025-09-27 16:20:48'),
+(28, 4, '684c6bc5b380a264ad958463f0a226fb18c5811e28f57fa7d49dfea3ed06cfc0676ca96b3797f8f36b239861b6aa6bbd41d97cb1070b1aec449bc4f546c6beea', '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 16:43:44', '2025-09-27 17:43:44', 1, '55e5420a7a4827c30822c04a90b5105f95a8741b8a011cea1d36e707e06918a6', '2025-09-27 18:43:44'),
+(29, 4, 'f6214bb5cdd9fa00a0da42123cdee0deae7b037dafd5ed5388419b894ff9852afdc00d196621873a55e2ee09d79c94c7a22454e38528962a879ad85d1c2e4235', '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 17:26:47', '2025-09-27 18:26:47', 1, '8cf34af13f09929fbe934e1d33237600c6a6891c0f748e6f389257ef329edb70', '2025-09-27 19:26:47'),
+(30, 4, 'e06f0e1c761a523ae9debbddc229ccf36ba24e38c23de0ebeb742f9f298d83ae201a15ed741226a0525803a907d095acd13e340553745c9d7c31e2892ac579bd', '105.178.104.79', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', '2025-09-27 20:44:06', '2025-09-27 21:44:06', 1, '6dcf8006144476cb1fa39c4eb77a51eb408dc1d6c170d761dee1d8af503254e8', '2025-09-27 22:44:06');
 
 -- --------------------------------------------------------
 
@@ -5074,16 +5157,17 @@ CREATE TABLE `vendors` (
   `approved_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `name` varchar(255) NOT NULL DEFAULT ''
+  `name` varchar(255) NOT NULL DEFAULT '',
+  `email` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `vendors`
 --
 
-INSERT INTO `vendors` (`id`, `user_id`, `business_name`, `business_description`, `business_type`, `tax_id`, `business_address`, `business_phone`, `business_email`, `website`, `description`, `logo_url`, `banner_url`, `status`, `commission_rate`, `payment_details`, `business_documents`, `approved_at`, `approved_by`, `created_at`, `updated_at`, `name`) VALUES
-(3, 4, 'ffffeza', 'ffffff', 'individual', '', 'fffffffffffffff', NULL, NULL, NULL, NULL, NULL, NULL, 'approved', 10.00, NULL, NULL, NULL, NULL, '2025-09-14 20:46:17', '2025-09-14 20:48:37', ''),
-(4, 5, 'Joseph store', 'Businesss managenebt', 'individual', '', 'BUsiness tools to manage my account', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', 10.00, NULL, NULL, NULL, NULL, '2025-09-20 22:27:33', '2025-09-20 20:31:07', '');
+INSERT INTO `vendors` (`id`, `user_id`, `business_name`, `business_description`, `business_type`, `tax_id`, `business_address`, `business_phone`, `business_email`, `website`, `description`, `logo_url`, `banner_url`, `status`, `commission_rate`, `payment_details`, `business_documents`, `approved_at`, `approved_by`, `created_at`, `updated_at`, `name`, `email`) VALUES
+(3, 4, 'ffffeza', 'ffffff', 'individual', '', 'fffffffffffffff', NULL, NULL, NULL, NULL, NULL, NULL, 'approved', 10.00, NULL, NULL, NULL, NULL, '2025-09-14 20:46:17', '2025-09-14 20:48:37', '', ''),
+(4, 5, 'Joseph store', 'Businesss managenebt', 'individual', '', 'BUsiness tools to manage my account', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', 10.00, NULL, NULL, NULL, NULL, '2025-09-20 22:27:33', '2025-09-20 20:31:07', '', '');
 
 -- --------------------------------------------------------
 
@@ -5145,6 +5229,7 @@ CREATE TABLE `wallets` (
   `user_id` int(11) NOT NULL,
   `wallet_type` enum('vendor','affiliate','customer') NOT NULL DEFAULT 'vendor',
   `balance` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `status` enum('active','suspended') NOT NULL DEFAULT 'active',
   `pending_balance` decimal(15,2) NOT NULL DEFAULT 0.00,
   `frozen_balance` decimal(15,2) NOT NULL DEFAULT 0.00,
   `total_earned` decimal(15,2) NOT NULL DEFAULT 0.00,
@@ -5177,6 +5262,24 @@ CREATE TABLE `wallet_entries` (
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `wallet_transactions`
+--
+
+CREATE TABLE `wallet_transactions` (
+  `id` int(11) NOT NULL,
+  `wallet_id` int(11) NOT NULL,
+  `type` enum('credit','debit','system_adjustment','initial') NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `balance_before` decimal(10,2) NOT NULL,
+  `balance_after` decimal(10,2) NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `admin_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -5719,6 +5822,14 @@ ALTER TABLE `campaign_products`
   ADD KEY `idx_joined_at` (`joined_at`);
 
 --
+-- Indexes for table `campaign_recipients`
+--
+ALTER TABLE `campaign_recipients`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `campaign_user` (`campaign_id`,`user_id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `campaign_stats`
 --
 ALTER TABLE `campaign_stats`
@@ -6063,6 +6174,22 @@ ALTER TABLE `homepage_banners`
 ALTER TABLE `homepage_sections`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_section_key` (`section_key`);
+
+--
+-- Indexes for table `inventory`
+--
+ALTER TABLE `inventory`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `product_warehouse` (`product_id`,`warehouse_id`),
+  ADD KEY `warehouse_id` (`warehouse_id`);
+
+--
+-- Indexes for table `inventory_adjustments`
+--
+ALTER TABLE `inventory_adjustments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `product_id` (`product_id`),
+  ADD KEY `warehouse_id` (`warehouse_id`);
 
 --
 -- Indexes for table `inventory_alerts`
@@ -7494,6 +7621,14 @@ ALTER TABLE `wallet_entries`
   ADD KEY `fk_wallet_entries_creator` (`created_by`);
 
 --
+-- Indexes for table `wallet_transactions`
+--
+ALTER TABLE `wallet_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `wallet_id` (`wallet_id`),
+  ADD KEY `admin_id` (`admin_id`);
+
+--
 -- Indexes for table `warehouses`
 --
 ALTER TABLE `warehouses`
@@ -7603,7 +7738,7 @@ ALTER TABLE `api_logs`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
@@ -7810,6 +7945,12 @@ ALTER TABLE `campaign_products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `campaign_recipients`
+--
+ALTER TABLE `campaign_recipients`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `campaign_stats`
 --
 ALTER TABLE `campaign_stats`
@@ -7999,6 +8140,18 @@ ALTER TABLE `homepage_banners`
 -- AUTO_INCREMENT for table `homepage_sections`
 --
 ALTER TABLE `homepage_sections`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `inventory`
+--
+ALTER TABLE `inventory`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `inventory_adjustments`
+--
+ALTER TABLE `inventory_adjustments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -8071,7 +8224,7 @@ ALTER TABLE `live_stream_products`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `loyalty_tiers`
@@ -8221,7 +8374,7 @@ ALTER TABLE `platform_notification_reads`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `product_analytics`
@@ -8281,7 +8434,7 @@ ALTER TABLE `product_drafts`
 -- AUTO_INCREMENT for table `product_images`
 --
 ALTER TABLE `product_images`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `product_inventory`
@@ -8815,7 +8968,7 @@ ALTER TABLE `user_role_assignments`
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `user_two_factor_auth`
@@ -8851,6 +9004,12 @@ ALTER TABLE `wallets`
 -- AUTO_INCREMENT for table `wallet_entries`
 --
 ALTER TABLE `wallet_entries`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `wallet_transactions`
+--
+ALTER TABLE `wallet_transactions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -9131,6 +9290,13 @@ ALTER TABLE `campaign_products`
   ADD CONSTRAINT `fk_campaign_products_vendor` FOREIGN KEY (`vendor_id`) REFERENCES `vendors` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `campaign_recipients`
+--
+ALTER TABLE `campaign_recipients`
+  ADD CONSTRAINT `campaign_recipients_ibfk_1` FOREIGN KEY (`campaign_id`) REFERENCES `marketing_campaigns` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `campaign_recipients_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `campaign_stats`
 --
 ALTER TABLE `campaign_stats`
@@ -9320,6 +9486,20 @@ ALTER TABLE `file_uploads`
 --
 ALTER TABLE `homepage_banners`
   ADD CONSTRAINT `fk_homepage_banners_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `inventory`
+--
+ALTER TABLE `inventory`
+  ADD CONSTRAINT `inventory_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `inventory_ibfk_2` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `inventory_adjustments`
+--
+ALTER TABLE `inventory_adjustments`
+  ADD CONSTRAINT `inventory_adjustments_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `inventory_adjustments_ibfk_2` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `inventory_alerts`
@@ -10179,6 +10359,13 @@ ALTER TABLE `wallets`
 ALTER TABLE `wallet_entries`
   ADD CONSTRAINT `fk_wallet_entries_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_wallet_entries_wallet` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `wallet_transactions`
+--
+ALTER TABLE `wallet_transactions`
+  ADD CONSTRAINT `wallet_transactions_ibfk_1` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `wallet_transactions_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `warehouses`
