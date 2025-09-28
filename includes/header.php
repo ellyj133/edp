@@ -722,13 +722,65 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             });
         });
         
-        // Mobile menu toggle (if needed)
+        // Mobile menu toggle functionality
         function toggleMobileMenu() {
-            const navLinks = document.querySelector('.nav-links');
-            if (navLinks) {
-                navLinks.classList.toggle('mobile-active');
+            const overlay = document.querySelector('.mobile-nav-overlay');
+            if (overlay) {
+                const isVisible = overlay.style.display !== 'none';
+                if (isVisible) {
+                    overlay.classList.remove('active');
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 300);
+                } else {
+                    overlay.style.display = 'block';
+                    setTimeout(() => {
+                        overlay.classList.add('active');
+                    }, 10);
+                }
             }
         }
+        
+        // Close mobile menu
+        function closeMobileMenu() {
+            const overlay = document.querySelector('.mobile-nav-overlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // Add event listeners for mobile menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+            const mobileNavClose = document.querySelector('.mobile-nav-close');
+            const mobileNavOverlay = document.querySelector('.mobile-nav-overlay');
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+            
+            if (mobileNavClose) {
+                mobileNavClose.addEventListener('click', closeMobileMenu);
+            }
+            
+            // Close menu when clicking overlay
+            if (mobileNavOverlay) {
+                mobileNavOverlay.addEventListener('click', function(e) {
+                    if (e.target === mobileNavOverlay) {
+                        closeMobileMenu();
+                    }
+                });
+            }
+            
+            // Close menu when clicking nav links
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', closeMobileMenu);
+            });
+        });
     </script>
 
     <!-- Main Content Container Start -->

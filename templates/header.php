@@ -568,12 +568,29 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
     <!-- Main Header -->
     <div class="main-header">
         <div class="main-header-content">
-            <a href="/" class="logo">
-                <span class="f">f</span><span class="e">e</span><span class="z">z</span><span class="a">a</span>
-            </a>
+            <!-- Mobile Header Row: Hamburger - Logo - Cart -->
+            <div class="mobile-header-row">
+                <button class="mobile-menu-toggle" title="Menu" aria-label="Mobile Menu" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <a href="/" class="logo">
+                    <span class="f">f</span><span class="e">e</span><span class="z">z</span><span class="a">a</span>
+                </a>
+                
+                <div class="header-icons">
+                    <a href="/cart.php" class="header-icon" title="Shopping Cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <?php if ($cart_count > 0): ?>
+                            <span class="notification-badge"><?php echo min($cart_count, 99); ?></span>
+                        <?php endif; ?>
+                    </a>
+                </div>
+            </div>
             
+            <!-- Desktop Category Dropdown -->
             <div class="category-dropdown">
-                Shop by category
+                Shop by category ▼
                 <div class="category-dropdown-content">
                     <a href="/category.php?cat=electronics">Electronics</a>
                     <a href="/category.php?cat=motors">Motors</a>
@@ -587,8 +604,9 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                 </div>
             </div>
             
+            <!-- Search Container -->
             <div class="search-container">
-                <form action="/search.php" method="GET" id="searchForm" style="display: flex; width: 100%; position: relative;">
+                <form action="/search.php" method="GET" id="searchForm">
                     <input 
                         type="text" 
                         name="q" 
@@ -614,7 +632,8 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                 <a href="/search.php?advanced=1" class="advanced-link">Advanced</a>
             </div>
             
-            <div class="header-icons">
+            <!-- Desktop Header Icons -->
+            <div class="desktop-header-icons">
                 <a href="/notifications.php" class="header-icon" title="Notifications">
                     <i class="far fa-bell"></i>
                 </a>
@@ -624,9 +643,6 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                         <span class="notification-badge"><?php echo min($cart_count, 99); ?></span>
                     <?php endif; ?>
                 </a>
-                <button class="mobile-menu-toggle header-icon hamburger-line" title="Menu" aria-label="Mobile Menu">
-                    <i class="fas fa-bars"></i>
-                </button>
             </div>
         </div>
     </div>
