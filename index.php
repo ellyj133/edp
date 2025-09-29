@@ -257,18 +257,7 @@ try {
     $grid_banners = [];
 }
 
-// For testing purposes, create a sample hero banner if none exist
-if (empty($hero_banners)) {
-    $hero_banners = [[
-        'id' => 'hero-1',
-        'title' => 'Welcome to FezaMarket',
-        'subtitle' => 'Save Money. Live Better.',
-        'description' => 'Discover amazing deals on everything you need. Free shipping on orders over $35.',
-        'image_url' => 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=400&fit=crop&crop=center',
-        'link_url' => '/deals',
-        'button_text' => 'Shop Now'
-    ]];
-}
+
 
 includeHeader($page_title);
 ?>
@@ -276,41 +265,7 @@ includeHeader($page_title);
 <!-- Complete Walmart Homepage Layout -->
 <div class="walmart-exact-layout">
     
-    <!-- Hero Banner Section (top of homepage) -->
-    <?php if (!empty($hero_banners)): ?>
-    <section class="hero-banner-section">
-        <div class="container-wide">
-            <?php foreach ($hero_banners as $hero): ?>
-            <div class="hero-banner <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
-                 data-banner-type="hero" data-banner-id="hero-<?php echo $hero['id']; ?>">
-                <?php if ($is_admin_logged_in): ?>
-                    <div class="admin-edit-overlay">
-                        <button class="admin-edit-btn" onclick="editBanner('hero-<?php echo $hero['id']; ?>', 'hero')" title="Edit Hero Banner">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                <?php endif; ?>
-                <div class="hero-content" style="background-image: url('<?php echo h($hero['image_url']); ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;">
-                    <div class="hero-text">
-                        <h1><?php echo h($hero['title']); ?></h1>
-                        <?php if ($hero['subtitle']): ?>
-                            <p class="hero-subtitle"><?php echo h($hero['subtitle']); ?></p>
-                        <?php endif; ?>
-                        <?php if ($hero['description']): ?>
-                            <p class="hero-description"><?php echo h($hero['description']); ?></p>
-                        <?php endif; ?>
-                        <?php if ($hero['link_url'] && $hero['button_text']): ?>
-                            <a href="<?php echo h($hero['link_url']); ?>" class="hero-cta-btn"><?php echo h($hero['button_text']); ?></a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </section>
-    <?php endif; ?>
+
     
     <!-- Top Grid Section -->
     <section class="top-grid-section">
@@ -629,7 +584,18 @@ includeHeader($page_title);
     <!-- Free Assembly Banner -->
     <section class="assembly-full-banner">
         <div class="container-wide">
-            <div class="assembly-banner-content" style="background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);">
+            <div class="assembly-banner-content <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                 style="background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);"
+                 data-banner-type="assembly" data-banner-id="free-assembly-banner">
+                <?php if ($is_admin_logged_in): ?>
+                    <div class="admin-edit-overlay">
+                        <button class="admin-edit-btn" onclick="editBanner('free-assembly-banner', 'assembly')" title="Edit Assembly Banner">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                <?php endif; ?>
                 <div class="assembly-left">
                     <span class="assembly-tag">Only at FezaMarket</span>
                     <h2 class="assembly-title">Free Assembly</h2>
@@ -709,7 +675,18 @@ includeHeader($page_title);
     <!-- PrettyGarden Banner -->
     <section class="prettygarden-banner">
         <div class="container-wide">
-            <div class="prettygarden-content" style="background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);">
+            <div class="prettygarden-content <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                 style="background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);"
+                 data-banner-type="prettygarden" data-banner-id="prettygarden-banner">
+                <?php if ($is_admin_logged_in): ?>
+                    <div class="admin-edit-overlay">
+                        <button class="admin-edit-btn" onclick="editBanner('prettygarden-banner', 'prettygarden')" title="Edit PrettyGarden Banner">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                <?php endif; ?>
                 <div class="prettygarden-left">
                     <h2 class="pg-title">Dresses to sweaters</h2>
                     <h3 class="pg-subtitle">Just in from PrettyGarden</h3>
@@ -894,7 +871,17 @@ includeHeader($page_title);
         <div class="container-wide">
             <div class="halloween-grid">
                 <!-- Halloween Coziness -->
-                <div class="halloween-card halloween-coziness">
+                <div class="halloween-card halloween-coziness <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     data-banner-type="halloween" data-banner-id="halloween-coziness-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('halloween-coziness-banner', 'halloween')" title="Edit Halloween Coziness Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="halloween-content" style="background: linear-gradient(135deg, #ff6600 0%, #ff9900 100%);">
                         <div class="halloween-text">
                             <span class="halloween-tag">Family-friendly & beyond</span>
@@ -908,7 +895,17 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Halloween Kitchen -->
-                <div class="halloween-card halloween-kitchen">
+                <div class="halloween-card halloween-kitchen <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     data-banner-type="halloween" data-banner-id="halloween-kitchen-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('halloween-kitchen-banner', 'halloween')" title="Edit Halloween Kitchen Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="halloween-content" style="background: #663399;">
                         <h2 class="halloween-kitchen-title">Halloween kitchen & dining</h2>
                         <div class="kitchen-items">
@@ -925,7 +922,17 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Halloween Fashion -->
-                <div class="halloween-card halloween-fashion">
+                <div class="halloween-card halloween-fashion <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     data-banner-type="halloween" data-banner-id="halloween-fashion-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('halloween-fashion-banner', 'halloween')" title="Edit Halloween Fashion Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="halloween-content" style="background: linear-gradient(135deg, #ff6b9d 0%, #ffa8cc 100%);">
                         <h2 class="halloween-fashion-title">Fierce & festive Halloween fashion</h2>
                         <div class="fashion-halloween-grid">
