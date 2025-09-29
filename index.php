@@ -176,6 +176,29 @@ if (!function_exists('fetchRealProducts')) {
 }
 
 /* ---------- Banner Management Functions ---------- */
+if (!function_exists('fetchBannerBySlotKey')) {
+    function fetchBannerBySlotKey($slot_key): ?array {
+        try {
+            $pdo = db();
+            
+            $sql = "SELECT slot_key, title, subtitle, link_url, image_url, 
+                           bg_image_path, fg_image_path, width, height
+                    FROM banners 
+                    WHERE slot_key = :slot_key";
+                    
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':slot_key', $slot_key);
+            $stmt->execute();
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            
+        } catch (Exception $e) {
+            error_log("Error fetching banner by slot key: " . $e->getMessage());
+            return null;
+        }
+    }
+}
+
 if (!function_exists('fetchBanners')) {
     function fetchBanners($position = 'hero'): array {
         try {
@@ -273,9 +296,16 @@ includeHeader($page_title);
             <div class="walmart-grid">
                 
                 <!-- Fall Shoe Edit - Large Left -->
+                <?php 
+                $shoes_banner = fetchBannerBySlotKey('shoes-banner');
+                $shoes_title = $shoes_banner['title'] ?? 'The fall shoe edit';
+                $shoes_bg = $shoes_banner['bg_image_path'] ?? null;
+                $shoes_link = $shoes_banner['link_url'] ?? '/category/shoes';
+                $shoes_bg_style = $shoes_bg ? "background-image: url('$shoes_bg');" : "background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%);";
+                ?>
                 <div class="grid-card card-1-1 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
                      style="grid-area: 1 / 1 / 3 / 3;" 
-                     data-banner-type="grid" data-banner-id="shoes-banner">
+                     data-banner-type="grid" data-slot-key="shoes-banner">
                     <?php if ($is_admin_logged_in): ?>
                         <div class="admin-edit-overlay">
                             <button class="admin-edit-btn" onclick="editBanner('shoes-banner', 'grid')" title="Edit Banner">
@@ -285,14 +315,20 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%); background-size: cover;">
+                    <div class="card-bg" style="<?php echo $shoes_bg_style; ?> background-size: cover;">
                         <div class="card-content-wrapper">
                             <div class="text-content">
-                                <span class="small-tag">The fall shoe edit</span>
-                                <div class="card-image-small">
-                                    <img src="https://picsum.photos/200/150?random=shoes1" alt="Fall Shoes" style="object-fit: cover;">
-                                </div>
-                                <a href="/category/shoes" class="shop-now-link">Shop now</a>
+                                <span class="small-tag"><?php echo h($shoes_title); ?></span>
+                                <?php if ($shoes_banner['fg_image_path'] || $shoes_banner['image_url']): ?>
+                                    <div class="card-image-small">
+                                        <img src="<?php echo h($shoes_banner['fg_image_path'] ?: $shoes_banner['image_url']); ?>" alt="<?php echo h($shoes_title); ?>" style="object-fit: cover;">
+                                    </div>
+                                <?php else: ?>
+                                    <div class="card-image-small">
+                                        <img src="https://picsum.photos/200/150?random=shoes1" alt="Fall Shoes" style="object-fit: cover;">
+                                    </div>
+                                <?php endif; ?>
+                                <a href="<?php echo h($shoes_link); ?>" class="shop-now-link">Shop now</a>
                             </div>
                         </div>
                     </div>
@@ -1122,6 +1158,18 @@ body {
 }
 
 /* Enhanced Image Handling - Apply to ALL banners */
+.banner {
+    position: relative;
+    overflow: hidden;
+}
+
+.banner > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
 .card-bg,
 .hero-content,
 .assembly-banner-content,
@@ -1130,6 +1178,20 @@ body {
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
+}
+
+/* Fix banner gaps and ensure full coverage */
+.grid-card,
+.walmart-grid .grid-card {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.walmart-grid {
+    gap: 12px;
+    margin: 0 auto;
+    padding: 0;
 }
 
 .product-image-container img,
@@ -2346,7 +2408,7 @@ body {
 <!-- JavaScript for Functionality -->
 <script>
 /* ---------- Admin Banner Editing Functions ---------- */
-function editBanner(bannerId, bannerType) {
+function editBanner(slotKey, bannerType) {
     // Create modal for editing banner
     const modal = document.createElement('div');
     modal.className = 'admin-edit-modal';
@@ -2357,40 +2419,42 @@ function editBanner(bannerId, bannerType) {
                     <h3>Edit Banner</h3>
                     <button onclick="closeEditModal()" class="close-btn">&times;</button>
                 </div>
-                <form id="edit-banner-form" onsubmit="saveBanner(event, '${bannerId}', '${bannerType}')" enctype="multipart/form-data">
+                <form id="edit-banner-form" onsubmit="saveBanner(event, '${slotKey}', '${bannerType}')" enctype="multipart/form-data">
                     <div class="form-group">
                         <label>Title:</label>
-                        <input type="text" name="title" id="banner-title" required>
+                        <input type="text" name="title" id="banner-title" maxlength="200">
                     </div>
                     <div class="form-group">
-                        <label>Description:</label>
-                        <textarea name="description" id="banner-description"></textarea>
+                        <label>Subtitle:</label>
+                        <input type="text" name="subtitle" id="banner-subtitle" maxlength="255">
                     </div>
                     <div class="form-group">
-                        <label>Background Image:</label>
-                        <div class="image-upload-options">
-                            <div class="upload-option">
-                                <label for="banner-image-file">Upload Image File:</label>
-                                <input type="file" name="banner_image" id="banner-image-file" accept="image/*">
-                                <small>Max size: 5MB. Supports JPEG, PNG, GIF, WebP</small>
-                            </div>
-                            <div class="upload-divider">OR</div>
-                            <div class="upload-option">
-                                <label for="banner-image-url">Image URL:</label>
-                                <input type="url" name="image_url" id="banner-image-url" placeholder="https://example.com/image.jpg">
-                            </div>
-                        </div>
+                        <label>Background Image (Upload):</label>
+                        <input type="file" name="bg_image" id="banner-bg-image" accept="image/jpeg,image/jpg,image/png,image/webp">
+                        <small>Max size: 5MB. Supports JPEG, PNG, WebP</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Foreground/Overlay Image URL:</label>
+                        <input type="url" name="image_url" id="banner-image-url" placeholder="https://example.com/overlay.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label>Foreground/Overlay Image (Upload):</label>
+                        <input type="file" name="fg_image" id="banner-fg-image" accept="image/jpeg,image/jpg,image/png,image/webp">
+                        <small>Optional overlay image upload</small>
                     </div>
                     <div class="form-group">
                         <label>Link URL:</label>
                         <input type="url" name="link_url" id="banner-link">
                     </div>
                     <div class="form-group">
-                        <label>Button Text:</label>
-                        <input type="text" name="button_text" id="banner-button">
+                        <label>Width (pixels):</label>
+                        <input type="number" name="width" id="banner-width" min="1" placeholder="e.g., 1200">
                     </div>
-                    <input type="hidden" name="banner_id" value="${bannerId}">
-                    <input type="hidden" name="banner_type" value="${bannerType}">
+                    <div class="form-group">
+                        <label>Height (pixels):</label>
+                        <input type="number" name="height" id="banner-height" min="1" placeholder="e.g., 400">
+                    </div>
+                    <input type="hidden" name="slot_key" value="${slotKey}">
                     <div class="modal-actions">
                         <button type="button" onclick="closeEditModal()">Cancel</button>
                         <button type="submit">Save Changes</button>
@@ -2435,17 +2499,14 @@ function closeEditModal() {
     }
 }
 
-function saveBanner(event, bannerId, bannerType) {
+function saveBanner(event, slotKey, bannerType) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
     
-    // Add banner ID and type if not already in form
-    if (!formData.has('banner_id')) {
-        formData.append('banner_id', bannerId);
-    }
-    if (!formData.has('banner_type')) {
-        formData.append('banner_type', bannerType);
+    // Ensure slot_key is set
+    if (!formData.has('slot_key')) {
+        formData.append('slot_key', slotKey);
     }
     
     // Show loading state
@@ -2454,23 +2515,21 @@ function saveBanner(event, bannerId, bannerType) {
     submitBtn.textContent = 'Saving...';
     submitBtn.disabled = true;
     
-    // Send AJAX request to save banner
-    fetch('/admin/save-banner.php', {
+    // Send request to our new dedicated endpoint
+    fetch('/admin/banner-save.php', {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(result => {
-        if (result.success) {
+        if (result.ok) {
             alert('Banner updated successfully!');
             closeEditModal();
             // Refresh the page to show changes
             location.reload();
         } else {
-            alert('Error updating banner: ' + (result.message || 'Unknown error'));
+            alert('Error updating banner: ' + (result.error || 'Unknown error'));
         }
     })
     .catch(error => {
