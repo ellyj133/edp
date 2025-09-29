@@ -257,18 +257,7 @@ try {
     $grid_banners = [];
 }
 
-// For testing purposes, create a sample hero banner if none exist
-if (empty($hero_banners)) {
-    $hero_banners = [[
-        'id' => 'hero-1',
-        'title' => 'Welcome to FezaMarket',
-        'subtitle' => 'Save Money. Live Better.',
-        'description' => 'Discover amazing deals on everything you need. Free shipping on orders over $35.',
-        'image_url' => 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=400&fit=crop&crop=center',
-        'link_url' => '/deals',
-        'button_text' => 'Shop Now'
-    ]];
-}
+
 
 includeHeader($page_title);
 ?>
@@ -276,41 +265,7 @@ includeHeader($page_title);
 <!-- Complete Walmart Homepage Layout -->
 <div class="walmart-exact-layout">
     
-    <!-- Hero Banner Section (top of homepage) -->
-    <?php if (!empty($hero_banners)): ?>
-    <section class="hero-banner-section">
-        <div class="container-wide">
-            <?php foreach ($hero_banners as $hero): ?>
-            <div class="hero-banner <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
-                 data-banner-type="hero" data-banner-id="hero-<?php echo $hero['id']; ?>">
-                <?php if ($is_admin_logged_in): ?>
-                    <div class="admin-edit-overlay">
-                        <button class="admin-edit-btn" onclick="editBanner('hero-<?php echo $hero['id']; ?>', 'hero')" title="Edit Hero Banner">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                <?php endif; ?>
-                <div class="hero-content" style="background-image: url('<?php echo h($hero['image_url']); ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;">
-                    <div class="hero-text">
-                        <h1><?php echo h($hero['title']); ?></h1>
-                        <?php if ($hero['subtitle']): ?>
-                            <p class="hero-subtitle"><?php echo h($hero['subtitle']); ?></p>
-                        <?php endif; ?>
-                        <?php if ($hero['description']): ?>
-                            <p class="hero-description"><?php echo h($hero['description']); ?></p>
-                        <?php endif; ?>
-                        <?php if ($hero['link_url'] && $hero['button_text']): ?>
-                            <a href="<?php echo h($hero['link_url']); ?>" class="hero-cta-btn"><?php echo h($hero['button_text']); ?></a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </section>
-    <?php endif; ?>
+
     
     <!-- Top Grid Section -->
     <section class="top-grid-section">
