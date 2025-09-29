@@ -193,7 +193,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
             
         case 'make_offer':
-            // Since Offer model doesn't exist, we'll create a simple notification or log
             try {
                 $offerAmount = (float)($_POST['offer_amount'] ?? 0);
                 if ($offerAmount <= 0 || $offerAmount >= $product['price']) {
@@ -201,11 +200,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
                 
-                // For now, just log the offer or save to a simple table
-                // You can implement a proper Offer model later
-                error_log("Offer received: User $userId offered $offerAmount for product $productId");
+                // Use the new Offer model to create the offer
+                $offerModel = new Offer();
+                $message = $_POST['offer_message'] ?? null;
+                $expiresAt = null; // Could be set to 7 days from now: date('Y-m-d H:i:s', strtotime('+7 days'))
                 
-                echo json_encode(['success' => true, 'message' => 'Offer submitted successfully! We will contact you soon.']);
+                $result = $offerModel->createOffer($productId, $userId, $offerAmount, $message, $expiresAt);
+                
+                if ($result) {
+                    echo json_encode(['success' => true, 'message' => 'Offer submitted successfully! We will contact you soon.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to submit offer. Please try again.']);
+                }
             } catch (Exception $e) {
                 error_log("Offer error: " . $e->getMessage());
                 echo json_encode(['success' => false, 'message' => 'Error submitting offer']);
