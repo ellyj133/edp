@@ -189,10 +189,10 @@ class Product extends BaseModel {
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
-            WHERE (p.name LIKE ? OR p.description LIKE ? OR p.short_description LIKE ?) 
+            WHERE (p.name LIKE ? OR p.description LIKE ? OR p.short_description LIKE ? OR p.keywords LIKE ?) 
             AND p.status = 'active'
         ";
-        $params = [$searchTerm, $searchTerm, $searchTerm];
+        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
         if ($categoryId) {
             $sql .= " AND p.category_id = ?";
             $params[] = $categoryId;
@@ -200,14 +200,15 @@ class Product extends BaseModel {
         $sql .= " ORDER BY 
                     CASE 
                         WHEN p.name LIKE ? THEN 1
-                        WHEN p.short_description LIKE ? THEN 2
-                        WHEN p.description LIKE ? THEN 3
-                        ELSE 4
+                        WHEN p.keywords LIKE ? THEN 2  
+                        WHEN p.short_description LIKE ? THEN 3
+                        WHEN p.description LIKE ? THEN 4
+                        ELSE 5
                     END,
                     p.featured DESC, p.updated_at DESC, p.created_at DESC";
         
         // Add search terms for relevance sorting
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
         
         if ($limit) {
             $sql .= " LIMIT ? OFFSET ?";
@@ -469,15 +470,23 @@ class Category extends BaseModel {
     }
     
     public function findBySlug($slug) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE status = 'active'");
-        $stmt->execute();
-        $categories = $stmt->fetchAll();
-        foreach ($categories as $category) {
-            if (slugify($category['name']) === $slug) {
-                return $category;
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE slug = ? AND status = 'active'");
+        $stmt->execute([$slug]);
+        $result = $stmt->fetch();
+        
+        // Fallback: try matching by slugified name if no direct slug match
+        if (!$result) {
+            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE status = 'active'");
+            $stmt->execute();
+            $categories = $stmt->fetchAll();
+            foreach ($categories as $category) {
+                if (slugify($category['name']) === $slug) {
+                    return $category;
+                }
             }
         }
-        return null;
+        
+        return $result;
     }
 }
 
