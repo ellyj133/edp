@@ -1838,7 +1838,6 @@ footer {
     /* Adjust body padding to account for fixed header */
     body {
         padding-top: 140px; /* Adjust based on header height */
-        padding-bottom: 80px; /* Space for bottom nav */
     }
     
     /* Mobile header layout */
@@ -2026,60 +2025,6 @@ footer {
     }
 }
 
-/* Mobile Bottom Navigation */
-@media (max-width: 768px) {
-    .mobile-bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: white;
-        border-top: 1px solid #e5e7eb;
-        display: flex;
-        justify-content: space-around;
-        padding: 0.75rem 0.5rem;
-        z-index: 1000;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .mobile-nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-decoration: none;
-        color: #6b7280;
-        font-size: 0.75rem;
-        min-width: 60px;
-        transition: color 0.2s ease;
-        touch-action: manipulation;
-        position: relative;
-    }
-    
-    .mobile-nav-item:hover,
-    .mobile-nav-item.active {
-        color: #3b82f6;
-    }
-    
-    .mobile-nav-icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .mobile-nav-badge {
-        position: absolute;
-        top: -5px;
-        right: 5px;
-        background: #dc2626;
-        color: white;
-        border-radius: 10px;
-        min-width: 18px;
-        height: 18px;
-        font-size: 0.7rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-    }
 /* Desktop-first styles (preserve original layout) */
 .mobile-header-row {
     display: none; /* Hide on desktop */
@@ -2100,7 +2045,6 @@ footer {
         display: flex;
     }
     
-    .mobile-bottom-nav,
     .mobile-nav-overlay,
     .mobile-categories-section,
     .mobile-promos-section {
@@ -2420,11 +2364,6 @@ footer {
         align-items: center;
         justify-content: center;
         font-weight: 600;
-    }
-    
-    /* Add bottom padding to prevent content being hidden behind nav */
-    body {
-        padding-bottom: 80px;
     }
 }
 
