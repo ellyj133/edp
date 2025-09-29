@@ -897,11 +897,16 @@ img {
     margin-bottom: 8px;
 }
 
-/* Hero Banner Section Styles - Fix for white gap issue */
+/* Hero Banner Section Styles - True full-width fix */
 .hero-banner-section {
     margin: 0;
     padding: 0;
-    width: 100%;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
 }
 
 .hero-banner-section .container-wide {
@@ -918,7 +923,7 @@ img {
     margin: 0;
     border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
 }
 
 .hero-content {
@@ -929,6 +934,9 @@ img {
     justify-content: flex-start;
     padding: 40px;
     position: relative;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .hero-text {
