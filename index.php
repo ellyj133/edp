@@ -298,9 +298,9 @@ includeHeader($page_title);
                 <!-- Fall Shoe Edit - Large Left -->
                 <?php 
                 $shoes_banner = fetchBannerBySlotKey('shoes-banner');
-                $shoes_title = $shoes_banner['title'] ?? 'The fall shoe edit';
-                $shoes_bg = $shoes_banner['bg_image_path'] ?? null;
-                $shoes_link = $shoes_banner['link_url'] ?? '/category/shoes';
+                $shoes_title = $shoes_banner && isset($shoes_banner['title']) ? $shoes_banner['title'] : 'The fall shoe edit';
+                $shoes_bg = $shoes_banner && isset($shoes_banner['bg_image_path']) ? $shoes_banner['bg_image_path'] : null;
+                $shoes_link = $shoes_banner && isset($shoes_banner['link_url']) ? $shoes_banner['link_url'] : '/category/shoes';
                 $shoes_bg_style = $shoes_bg ? "background-image: url('$shoes_bg');" : "background: linear-gradient(45deg, #8B4513 0%, #D2691E 100%);";
                 ?>
                 <div class="grid-card card-1-1 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
@@ -319,7 +319,7 @@ includeHeader($page_title);
                         <div class="card-content-wrapper">
                             <div class="text-content">
                                 <span class="small-tag"><?php echo h($shoes_title); ?></span>
-                                <?php if ($shoes_banner['fg_image_path'] || $shoes_banner['image_url']): ?>
+                                <?php if ($shoes_banner && (isset($shoes_banner['fg_image_path']) || isset($shoes_banner['image_url']))): ?>
                                     <div class="card-image-small">
                                         <img src="<?php echo h($shoes_banner['fg_image_path'] ?: $shoes_banner['image_url']); ?>" alt="<?php echo h($shoes_title); ?>" style="object-fit: cover;">
                                     </div>
