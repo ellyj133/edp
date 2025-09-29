@@ -1981,6 +1981,27 @@ INSERT INTO `homepage_sections` (`id`, `section_key`, `section_data`, `created_a
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `banners`
+--
+
+CREATE TABLE IF NOT EXISTS `banners` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `slot_key` VARCHAR(100) NOT NULL UNIQUE,
+  `title` VARCHAR(200), 
+  `subtitle` VARCHAR(255),
+  `link_url` VARCHAR(500),
+  `image_url` VARCHAR(500),        -- optional overlay/foreground URL
+  `bg_image_path` VARCHAR(500),    -- uploaded background file path
+  `fg_image_path` VARCHAR(500),    -- uploaded overlay file path
+  `width` INT, 
+  `height` INT,
+  `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `integrations`
 --
 

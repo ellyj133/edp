@@ -15,9 +15,8 @@
         </div>
         
         <form id="bannerEditForm" enctype="multipart/form-data">
-            <input type="hidden" id="editBannerId" name="banner_id" value="">
-            <input type="hidden" id="editBannerType" name="banner_type" value="">
-            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+            <input type="hidden" id="editSlotKey" name="slot_key" value="">
+            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><?
             
             <div class="modal-body">
                 <div class="form-row">
@@ -46,8 +45,8 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="bannerImage">Background Image</label>
-                        <input type="file" id="bannerImage" name="image" 
+                        <label for="bannerImage">Background Image (Upload)</label>
+                        <input type="file" id="bannerImage" name="bg_image" 
                                accept="image/jpeg,image/jpg,image/png,image/webp">
                         <small class="form-help">Supported formats: JPG, PNG, WebP. Max size: 5MB</small>
                         
@@ -56,6 +55,42 @@
                             <img id="currentImagePreview" class="current-image-preview" style="display: none;" alt="Current image">
                             <img id="imagePreview" class="image-preview" style="display: none;" alt="Image preview">
                         </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bannerImageUrl">Foreground/Overlay Image URL</label>
+                        <input type="url" id="bannerImageUrl" name="image_url" 
+                               placeholder="https://example.com/overlay.jpg">
+                        <small class="form-help">Optional overlay image URL</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bannerFgImage">Foreground/Overlay Image (Upload)</label>
+                        <input type="file" id="bannerFgImage" name="fg_image" 
+                               accept="image/jpeg,image/jpg,image/png,image/webp">
+                        <small class="form-help">Optional foreground/overlay image upload</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bannerWidth">Width (pixels)</label>
+                        <input type="number" id="bannerWidth" name="width" min="1" 
+                               placeholder="e.g., 1200">
+                        <small class="form-help">Optional width constraint</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bannerHeight">Height (pixels)</label>
+                        <input type="number" id="bannerHeight" name="height" min="1" 
+                               placeholder="e.g., 400">
+                        <small class="form-help">Optional height constraint</small>
                     </div>
                 </div>
                 
