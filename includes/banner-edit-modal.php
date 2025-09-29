@@ -16,6 +16,7 @@
         
         <form id="bannerEditForm" enctype="multipart/form-data">
             <input type="hidden" id="editSlotKey" name="slot_key" value="">
+            <input type="hidden" id="editBannerType" name="banner_type" value="">
             <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><?
             
             <div class="modal-body">
