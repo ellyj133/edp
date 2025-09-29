@@ -21,6 +21,32 @@ $userName = $currentUser ? ($currentUser['first_name'] ?? $currentUser['username
 $userRole = getCurrentUserRole();
 $cart_count = 0; // Implement your cart count logic here
 
+// Get categories from database for dropdown
+$categories = [];
+try {
+    // Try to get database connection first
+    if (function_exists('db') && db()) {
+        $categoryModel = new Category();
+        $categories = $categoryModel->getActive();
+    }
+} catch (Exception $e) {
+    error_log("Category loading failed: " . $e->getMessage());
+}
+
+// Fallback to static categories if database fails or no categories found
+if (empty($categories)) {
+    $categories = [
+        ['id' => 1, 'name' => 'Electronics', 'slug' => 'electronics'],
+        ['id' => 2, 'name' => 'Motors', 'slug' => 'motors'],
+        ['id' => 3, 'name' => 'Fashion', 'slug' => 'fashion'],
+        ['id' => 4, 'name' => 'Collectibles', 'slug' => 'collectibles'],
+        ['id' => 5, 'name' => 'Sports', 'slug' => 'sports'],
+        ['id' => 6, 'name' => 'Health & Beauty', 'slug' => 'health'],
+        ['id' => 7, 'name' => 'Industrial', 'slug' => 'industrial'],
+        ['id' => 8, 'name' => 'Home & Garden', 'slug' => 'home']
+    ];
+}
+
 $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
 ?>
 <!DOCTYPE html>
@@ -457,54 +483,221 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
         }
         <?php endif; ?>
         
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
-            .main-header-content {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-            
-            .search-container {
-                order: 3;
-                width: 100%;
-                max-width: none;
-            }
-            
-            .category-dropdown {
+        /* eBay-Style Mobile Responsive Design */
+        @media (max-width: 768px) {
+            /* Hide top header on mobile */
+            .top-header {
                 display: none;
             }
-        }
-        
-        /* Mobile menu toggle button */
-        .mobile-menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 18px;
-            color: #333;
-            cursor: pointer;
-            padding: 8px;
-        }
-        
-        @media (max-width: 768px) {
-            .top-header {
-                font-size: 12px;
+            
+            /* Mobile Header Layout - eBay Style */
+            .main-header-content {
+                flex-direction: column;
+                padding: 0.75rem;
+                gap: 0.75rem;
             }
             
-            .nav-links {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+            /* Top row: Hamburger - Logo - Cart/Profile */
+            .mobile-header-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                order: -2;
             }
             
             .logo {
-                font-size: 28px;
+                font-size: 24px;
+                margin: 0;
+                flex: 1;
+                text-align: center;
+            }
+            
+            .header-icons {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
             }
             
             .mobile-menu-toggle {
-                display: block;
+                display: block !important;
+                order: -1;
+                background: none;
+                border: none;
+                font-size: 20px;
+                color: #333;
+                cursor: pointer;
+                padding: 8px;
             }
             
+            /* Hide desktop header icons on mobile */
+            .desktop-header-icons {
+                display: none;
+            }
+            
+            /* Hide category dropdown on mobile */
+            .category-dropdown {
+                display: none;
+            }
+            
+            /* Mobile Search Bar - Large, centered, rounded */
+            .search-container {
+                margin: 0;
+                max-width: none;
+                width: 100%;
+                order: -1;
+                position: relative;
+            }
+            
+            .search-container form {
+                display: flex;
+                width: 100%;
+                background: #f7f7f7;
+                border-radius: 24px;
+                overflow: hidden;
+                border: 1px solid #ddd;
+            }
+            
+            .search-input {
+                flex: 1;
+                border: none;
+                background: transparent;
+                padding: 12px 16px;
+                font-size: 16px;
+                outline: none;
+            }
+            
+            .search-category-dropdown {
+                display: none; /* Hide category dropdown on mobile */
+            }
+            
+            .search-btn {
+                background: #0064d2;
+                border: none;
+                border-radius: 0 24px 24px 0;
+                color: white;
+                padding: 12px 16px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                min-width: 80px;
+            }
+            
+            /* Hide advanced link on mobile */
+            .advanced-link {
+                display: none;
+            }
+            
+            /* Hide navigation bar on mobile */
             .nav-bar {
+                display: none;
+            }
+            
+            /* Mobile Navigation Overlay */
+            .mobile-nav-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                display: none;
+            }
+            
+            .mobile-nav-overlay.active {
+                display: flex;
+            }
+            
+            .mobile-nav {
+                width: 80%;
+                max-width: 320px;
+                height: 100%;
+                background: white;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                overflow-y: auto;
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            }
+            
+            .mobile-nav-overlay.active .mobile-nav {
+                transform: translateX(0);
+            }
+            
+            .mobile-nav-header {
+                padding: 1rem;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #f8f9fa;
+            }
+            
+            .mobile-nav-header h3 {
+                margin: 0;
+                font-size: 1.2rem;
+                color: #374151;
+            }
+            
+            .mobile-nav-close {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                color: #6b7280;
+                cursor: pointer;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+            }
+            
+            .mobile-nav-close:hover {
+                background-color: #e5e7eb;
+            }
+            
+            .mobile-nav-content {
+                padding: 1rem 0;
+            }
+            
+            .mobile-nav-link {
+                display: block;
+                padding: 0.75rem 1rem;
+                color: #374151;
+                text-decoration: none;
+                font-size: 1rem;
+                border-bottom: 1px solid #f3f4f6;
+                transition: background-color 0.2s ease;
+            }
+            
+            .mobile-nav-link:hover {
+                background-color: #f8f9fa;
+                color: #0654ba;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-header-row {
+                display: none;
+            }
+            
+            .desktop-header-icons {
+                display: flex;
+            }
+            
+            .mobile-nav-overlay {
+                display: none;
+            }
+            
+            .main-header-content {
+                flex-direction: row;
+                align-items: center;
+                padding: 1rem 20px;
+                gap: 1rem;
+            }
+            
+            .mobile-menu-toggle {
                 display: none;
             }
         }
@@ -592,14 +785,11 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
             <div class="category-dropdown">
                 Shop by category ▼
                 <div class="category-dropdown-content">
-                    <a href="/category.php?cat=electronics">Electronics</a>
-                    <a href="/category.php?cat=motors">Motors</a>
-                    <a href="/category.php?cat=fashion">Fashion</a>
-                    <a href="/category.php?cat=collectibles">Collectibles & Art</a>
-                    <a href="/category.php?cat=sports">Sports</a>
-                    <a href="/category.php?cat=health">Health & Beauty</a>
-                    <a href="/category.php?cat=industrial">Industrial equipment</a>
-                    <a href="/category.php?cat=home">Home & Garden</a>
+                    <?php foreach (array_slice($categories, 0, 8) as $cat): ?>
+                        <a href="/category.php?cat=<?php echo urlencode($cat['slug'] ?? $cat['id']); ?>">
+                            <?php echo htmlspecialchars($cat['name']); ?>
+                        </a>
+                    <?php endforeach; ?>
                     <a href="/deals.php">Deals & Savings</a>
                 </div>
             </div>
@@ -618,14 +808,12 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
                     >
                     <select name="category" class="search-category-dropdown">
                         <option value="">All Categories</option>
-                        <option value="electronics">Electronics</option>
-                        <option value="motors">Motors</option>
-                        <option value="fashion">Fashion</option>
-                        <option value="collectibles">Collectibles</option>
-                        <option value="sports">Sports</option>
-                        <option value="health">Health & Beauty</option>
-                        <option value="industrial">Industrial</option>
-                        <option value="home">Home & Garden</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo htmlspecialchars($cat['slug'] ?? $cat['id']); ?>" 
+                                    <?php echo (isset($_GET['category']) && $_GET['category'] === ($cat['slug'] ?? $cat['id'])) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cat['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                     <button type="submit" class="search-btn">Search</button>
                 </form>
@@ -711,8 +899,33 @@ $page_title = $page_title ?? 'FezaMarket - Online Marketplace';
     <!-- JavaScript Files -->
     <script src="/js/fezamarket.js"></script>
     <script>
-        // Initialize FezaMarket JavaScript when DOM loads
+        // Mobile Menu Toggle Function - eBay Style
+        function toggleMobileMenu() {
+            const overlay = document.querySelector('.mobile-nav-overlay');
+            if (overlay) {
+                overlay.classList.toggle('active');
+            }
+        }
+        
+        // Close mobile menu when clicking on close button
         document.addEventListener('DOMContentLoaded', function() {
+            const closeBtn = document.querySelector('.mobile-nav-close');
+            const overlay = document.querySelector('.mobile-nav-overlay');
+            
+            if (closeBtn && overlay) {
+                closeBtn.addEventListener('click', function() {
+                    overlay.classList.remove('active');
+                });
+                
+                // Close when clicking on overlay (outside menu)
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) {
+                        overlay.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Initialize FezaMarket JavaScript when DOM loads
             if (typeof FezaMarket !== 'undefined') {
                 FezaMarket.init();
             }

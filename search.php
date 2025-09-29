@@ -10,6 +10,8 @@ $query = sanitizeInput($_GET['q'] ?? '');
 $category = sanitizeInput($_GET['category'] ?? '');
 $page = max(1, (int)($_GET['page'] ?? 1));
 $sort = sanitizeInput($_GET['sort'] ?? 'relevance');
+$limit = PRODUCTS_PER_PAGE ?? 20;
+$offset = ($page - 1) * $limit;
 
 // Redirect to products page if no query
 if (empty($query)) {
@@ -17,29 +19,45 @@ if (empty($query)) {
 }
 
 $product = new Product();
-$limit = PRODUCTS_PER_PAGE ?? 20;
-$offset = ($page - 1) * $limit;
+$products = [];
+$totalProducts = 0;
+$totalPages = 0;
 
-// Enhanced search with category filtering
+// Enhanced search with category filtering - with error handling
 $categoryId = null;
 if (!empty($category)) {
     try {
-        $categoryModel = new Category();
-        $categoryData = $categoryModel->findBySlug($category);
-        if ($categoryData) {
-            $categoryId = $categoryData['id'];
+        // Try to get database connection first
+        if (function_exists('db') && db()) {
+            $categoryModel = new Category();
+            $categoryData = $categoryModel->findBySlug($category);
+            if ($categoryData) {
+                $categoryId = $categoryData['id'];
+            }
         }
     } catch (Exception $e) {
-        // Ignore category errors
+        error_log("Category search failed: " . $e->getMessage());
+        // Continue without category filtering
     }
 }
 
-$products = $product->search($query, $categoryId, $limit, $offset);
-
-// Get total count for pagination
-$allResults = $product->search($query, $categoryId, 1000, 0);
-$totalProducts = count($allResults);
-$totalPages = ceil($totalProducts / $limit);
+try {
+    // Try to get database connection first
+    if (function_exists('db') && db()) {
+        $products = $product->search($query, $categoryId, $limit, $offset);
+        
+        // Get total count for pagination
+        $allResults = $product->search($query, $categoryId, 1000, 0);
+        $totalProducts = count($allResults);
+        $totalPages = ceil($totalProducts / $limit);
+    }
+} catch (Exception $e) {
+    error_log("Product search failed: " . $e->getMessage());
+    // Set empty results for graceful degradation
+    $products = [];
+    $totalProducts = 0;
+    $totalPages = 0;
+}
 
 $page_title = "Search Results for \"$query\"";
 $meta_description = "Find $query at FezaMarket. Shop from thousands of products with free shipping and great prices.";
