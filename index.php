@@ -2563,4 +2563,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<?php if ($is_admin_logged_in): ?>
+    <!-- Include Banner Edit Modal for Admin Users -->
+    <?php include __DIR__ . '/includes/banner-edit-modal.php'; ?>
+    <script src="/js/banner-admin.js"></script>
+<?php endif; ?>
+
 <?php includeFooter(); ?>
