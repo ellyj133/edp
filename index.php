@@ -69,6 +69,50 @@ if (!function_exists('safeNormalizeProduct')) {
     }
 }
 
+/* ---------- Safe Fallback Product Generator ---------- */
+if (!function_exists('createSampleProducts')) {
+    function createSampleProducts($count = 12): array {
+        $sample_products = [];
+        $product_names = [
+            'Wireless Bluetooth Headphones',
+            'Smartphone Case with Card Holder',
+            'Portable Power Bank 10000mAh',
+            'LED Desk Lamp with USB Charging',
+            'Water Resistant Fitness Tracker',
+            'Premium Coffee Mug Set',
+            'Ergonomic Laptop Stand',
+            'Wireless Charging Pad',
+            'Bluetooth Speaker Waterproof',
+            'USB-C Cable 6ft Braided',
+            'Phone Car Mount Magnetic',
+            'Laptop Backpack Professional'
+        ];
+        
+        for ($i = 0; $i < $count; $i++) {
+            $price = rand(15, 199);
+            $original_price = rand($price + 10, $price + 50);
+            $discount = round((($original_price - $price) / $original_price) * 100);
+            
+            $sample_products[] = [
+                'id' => $i + 1,
+                'title' => $product_names[$i % count($product_names)],
+                'price' => '$' . number_format($price, 2),
+                'original_price' => '$' . number_format($original_price, 2),
+                'discount_percent' => $discount,
+                'image' => '/images/placeholder-product.jpg',
+                'url' => '/product/' . ($i + 1),
+                'store_name' => 'FezaMarket',
+                'seller_name' => 'FezaMarket',
+                'rating' => 4 + (rand(0, 10) / 10),
+                'reviews_count' => rand(15, 250),
+                'featured' => true
+            ];
+        }
+        
+        return $sample_products;
+    }
+}
+
 /* ---------- Real Product Fetcher from Database ---------- */
 if (!function_exists('fetchRealProducts')) {
     function fetchRealProducts($limit = 12, $category_id = null): array {
@@ -111,7 +155,7 @@ if (!function_exists('fetchRealProducts')) {
                     'price' => '$' . number_format((float)$product['price'], 2),
                     'original_price' => $product['original_price'] ? '$' . number_format((float)$product['original_price'], 2) : null,
                     'discount_percent' => $product['discount_percent'] ? (int)$product['discount_percent'] : null,
-                    'image' => $product['image'] ?: 'https://picsum.photos/400/400?random=' . $product['id'],
+                    'image' => $product['image'] ?: '/images/placeholder-product.jpg',
                     'url' => '/product/' . ($product['slug'] ?: $product['id']),
                     'store_name' => 'FezaMarket',
                     'seller_name' => 'FezaMarket',
@@ -125,7 +169,8 @@ if (!function_exists('fetchRealProducts')) {
             
         } catch (Exception $e) {
             error_log("Error fetching real products: " . $e->getMessage());
-            return []; // Return empty array on database error
+            // Fallback to sample products when database is unavailable
+            return createSampleProducts($limit);
         }
     }
 }
@@ -1069,8 +1114,12 @@ body {
     transform: scale(1.1);
 }
 
-/* Enhanced Image Handling */
-.card-bg {
+/* Enhanced Image Handling - Apply to ALL banners */
+.card-bg,
+.hero-content,
+.assembly-banner-content,
+.prettygarden-content,
+.halloween-content {
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
@@ -1079,10 +1128,32 @@ body {
 .product-image-container img,
 .card-image-small img,
 .bedding-img,
-.tech-image-small img {
+.tech-image-small img,
+.assembly-hero-image,
+.pg-model {
     object-fit: cover !important;
     width: 100%;
     height: 100%;
+}
+
+/* Placeholder image handling */
+.product-image-container img[src="/images/placeholder-product.jpg"],
+.product-image-container img[src*="placeholder"] {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+}
+
+.product-image-container img[src="/images/placeholder-product.jpg"]:before {
+    content: "Product Image";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 /* Hero Banner Styles */
@@ -1093,7 +1164,7 @@ body {
 .hero-banner {
     position: relative;
     width: 100%;
-    min-height: 400px;
+    height: 400px;
     margin-bottom: 20px;
     border-radius: 8px;
     overflow: hidden;
@@ -1103,12 +1174,14 @@ body {
 .hero-content {
     width: 100%;
     height: 100%;
-    min-height: 400px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     padding: 40px;
     position: relative;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .hero-content::before {
@@ -2277,7 +2350,7 @@ function editBanner(bannerId, bannerType) {
                     <h3>Edit Banner</h3>
                     <button onclick="closeEditModal()" class="close-btn">&times;</button>
                 </div>
-                <form id="edit-banner-form" onsubmit="saveBanner(event, '${bannerId}', '${bannerType}')">
+                <form id="edit-banner-form" onsubmit="saveBanner(event, '${bannerId}', '${bannerType}')" enctype="multipart/form-data">
                     <div class="form-group">
                         <label>Title:</label>
                         <input type="text" name="title" id="banner-title" required>
@@ -2287,8 +2360,19 @@ function editBanner(bannerId, bannerType) {
                         <textarea name="description" id="banner-description"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Image URL:</label>
-                        <input type="url" name="image_url" id="banner-image">
+                        <label>Background Image:</label>
+                        <div class="image-upload-options">
+                            <div class="upload-option">
+                                <label for="banner-image-file">Upload Image File:</label>
+                                <input type="file" name="banner_image" id="banner-image-file" accept="image/*">
+                                <small>Max size: 5MB. Supports JPEG, PNG, GIF, WebP</small>
+                            </div>
+                            <div class="upload-divider">OR</div>
+                            <div class="upload-option">
+                                <label for="banner-image-url">Image URL:</label>
+                                <input type="url" name="image_url" id="banner-image-url" placeholder="https://example.com/image.jpg">
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Link URL:</label>
@@ -2298,6 +2382,8 @@ function editBanner(bannerId, bannerType) {
                         <label>Button Text:</label>
                         <input type="text" name="button_text" id="banner-button">
                     </div>
+                    <input type="hidden" name="banner_id" value="${bannerId}">
+                    <input type="hidden" name="banner_type" value="${bannerType}">
                     <div class="modal-actions">
                         <button type="button" onclick="closeEditModal()">Cancel</button>
                         <button type="submit">Save Changes</button>
@@ -2314,12 +2400,16 @@ function editBanner(bannerId, bannerType) {
         styles.textContent = `
             .admin-edit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; }
             .modal-overlay { background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-            .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+            .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
             .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
             .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
             .form-group { margin-bottom: 15px; }
             .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
             .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+            .image-upload-options { border: 1px solid #e0e0e0; padding: 15px; border-radius: 4px; background: #f9f9f9; }
+            .upload-option { margin-bottom: 10px; }
+            .upload-divider { text-align: center; margin: 15px 0; font-weight: bold; color: #666; }
+            .upload-option small { color: #666; font-size: 12px; display: block; margin-top: 4px; }
             .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
             .modal-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
             .modal-actions button[type="submit"] { background: #0071ce; color: white; }
@@ -2342,24 +2432,28 @@ function saveBanner(event, bannerId, bannerType) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
-    const data = {
-        banner_id: bannerId,
-        banner_type: bannerType,
-        title: formData.get('title'),
-        description: formData.get('description'),
-        image_url: formData.get('image_url'),
-        link_url: formData.get('link_url'),
-        button_text: formData.get('button_text')
-    };
+    
+    // Add banner ID and type if not already in form
+    if (!formData.has('banner_id')) {
+        formData.append('banner_id', bannerId);
+    }
+    if (!formData.has('banner_type')) {
+        formData.append('banner_type', bannerType);
+    }
+    
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
     
     // Send AJAX request to save banner
     fetch('/admin/save-banner.php', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify(data)
+        body: formData
     })
     .then(response => response.json())
     .then(result => {
@@ -2375,6 +2469,11 @@ function saveBanner(event, bannerId, bannerType) {
     .catch(error => {
         console.error('Error:', error);
         alert('Error updating banner. Please try again.');
+    })
+    .finally(() => {
+        // Restore button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     });
 }
 
