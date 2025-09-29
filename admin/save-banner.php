@@ -2,6 +2,7 @@
 /**
  * Admin Banner Save Handler
  * Handles AJAX requests to update banner content from homepage inline editing
+ * Enhanced with file upload support and better validation
  */
 
 require_once __DIR__ . '/../includes/init.php';
@@ -27,44 +28,91 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    // Get JSON input
-    $input = file_get_contents('php://input');
-    $data = json_decode($input, true);
+    $image_url = '';
     
-    if (!$data) {
-        throw new Exception('Invalid JSON data');
+    // Handle file upload if present
+    if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = __DIR__ . '/../uploads/banners/';
+        
+        // Create directory if it doesn't exist
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        $file = $_FILES['banner_image'];
+        $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        
+        // Validate file type
+        if (!in_array($file['type'], $allowed_types)) {
+            throw new Exception('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
+        }
+        
+        // Validate file size (max 5MB)
+        if ($file['size'] > 5 * 1024 * 1024) {
+            throw new Exception('File size too large. Maximum size is 5MB.');
+        }
+        
+        // Generate unique filename
+        $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = 'banner_' . time() . '_' . uniqid() . '.' . $file_extension;
+        $file_path = $upload_dir . $filename;
+        
+        // Move uploaded file
+        if (move_uploaded_file($file['tmp_name'], $file_path)) {
+            $image_url = '/uploads/banners/' . $filename;
+        } else {
+            throw new Exception('Failed to upload file');
+        }
+    } else {
+        // Get JSON input for regular updates
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true);
+        
+        if (!$data) {
+            throw new Exception('Invalid JSON data');
+        }
+        
+        $image_url = sanitizeInput($data['image_url'] ?? '');
+    }
+    
+    // Get form data (either from JSON or form data)
+    if (isset($data)) {
+        // JSON request
+        $banner_id = sanitizeInput($data['banner_id']);
+        $banner_type = sanitizeInput($data['banner_type']);
+        $title = sanitizeInput($data['title'] ?? '');
+        $description = sanitizeInput($data['description'] ?? '');
+        $link_url = sanitizeInput($data['link_url'] ?? '');
+        $button_text = sanitizeInput($data['button_text'] ?? '');
+    } else {
+        // Form request (file upload)
+        $banner_id = sanitizeInput($_POST['banner_id']);
+        $banner_type = sanitizeInput($_POST['banner_type']);
+        $title = sanitizeInput($_POST['title'] ?? '');
+        $description = sanitizeInput($_POST['description'] ?? '');
+        $link_url = sanitizeInput($_POST['link_url'] ?? '');
+        $button_text = sanitizeInput($_POST['button_text'] ?? '');
     }
     
     // Validate required fields
-    $required_fields = ['banner_id', 'banner_type'];
-    foreach ($required_fields as $field) {
-        if (empty($data[$field])) {
-            throw new Exception("Missing required field: $field");
-        }
+    if (empty($banner_id) || empty($banner_type)) {
+        throw new Exception('Missing required fields: banner_id or banner_type');
     }
-    
-    // Sanitize input data
-    $banner_id = sanitizeInput($data['banner_id']);
-    $banner_type = sanitizeInput($data['banner_type']);
-    $title = sanitizeInput($data['title'] ?? '');
-    $description = sanitizeInput($data['description'] ?? '');
-    $image_url = sanitizeInput($data['image_url'] ?? '');
-    $link_url = sanitizeInput($data['link_url'] ?? '');
-    $button_text = sanitizeInput($data['button_text'] ?? '');
     
     // Get database connection
     $pdo = db();
     
     // Check if banner exists, if not create it
-    $check_sql = "SELECT id FROM homepage_banners WHERE id = ? OR (title LIKE ? AND position = 'top')";
+    $check_sql = "SELECT id FROM homepage_banners WHERE id = ? OR (title LIKE ? AND position = ?)";
     $check_stmt = $pdo->prepare($check_sql);
-    $check_stmt->execute([$banner_id, "%$banner_id%"]);
+    $check_stmt->execute([$banner_id, "%$banner_id%", $banner_type === 'hero' ? 'hero' : 'top']);
     $existing_banner = $check_stmt->fetch();
     
     if ($existing_banner) {
         // Update existing banner
         $update_sql = "UPDATE homepage_banners 
-                       SET title = ?, subtitle = ?, description = ?, image_url = ?, 
+                       SET title = ?, subtitle = ?, description = ?, 
+                           image_url = CASE WHEN ? != '' THEN ? ELSE image_url END,
                            link_url = ?, button_text = ?, updated_at = NOW()
                        WHERE id = ?";
         $update_stmt = $pdo->prepare($update_sql);
@@ -72,6 +120,7 @@ try {
             $title,
             $description, // Use description as subtitle for now
             $description,
+            $image_url,
             $image_url,
             $link_url,
             $button_text,
@@ -82,7 +131,7 @@ try {
         $insert_sql = "INSERT INTO homepage_banners 
                        (title, subtitle, description, image_url, link_url, button_text, 
                         position, status, created_by, created_at, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, 'top', 'active', ?, NOW(), NOW())";
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, NOW(), NOW())";
         $insert_stmt = $pdo->prepare($insert_sql);
         $insert_stmt->execute([
             $title,
@@ -91,6 +140,7 @@ try {
             $image_url,
             $link_url,
             $button_text,
+            $banner_type === 'hero' ? 'hero' : 'top',
             Session::getUserId()
         ]);
     }
@@ -103,7 +153,8 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'Banner updated successfully',
-        'banner_id' => $banner_id
+        'banner_id' => $banner_id,
+        'image_url' => $image_url
     ]);
 
 } catch (Exception $e) {
