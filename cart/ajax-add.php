@@ -12,8 +12,7 @@ header('Content-Type: application/json');
 session_start();
 
 // Adjust the path based on your file structure
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/init.php';
 
 /**
  * Sends a JSON response.
@@ -30,7 +29,7 @@ function json_response($success, $data = []) {
 }
 
 // 1. Check if user is logged in
-if (!is_logged_in()) {
+if (!Session::isLoggedIn()) {
     json_response(false, ['message' => 'User not logged in.', 'login_required' => true]);
 }
 
@@ -54,14 +53,14 @@ if ($product_id <= 0 || $quantity <= 0) {
 }
 
 // 5. Get user ID from session
-$user_id = $_SESSION['user_id'];
+$user_id = Session::getUserId();
 
 // Get database connection
-$pdo = get_db_connection();
+$pdo = db();
 
 try {
-    // 6. Fetch product details (including price) from the database
-    $stmt = $pdo->prepare("SELECT price FROM products WHERE id = ?");
+    // 6. Fetch product details (including price and stock) from the database
+    $stmt = $pdo->prepare("SELECT price, stock_quantity, status FROM products WHERE id = ?");
     $stmt->execute([$product_id]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -69,28 +68,38 @@ try {
         json_response(false, ['message' => 'Product not found.']);
     }
 
+    // Check if product is active
+    if ($product['status'] !== 'active') {
+        json_response(false, ['message' => 'Product is not available.']);
+    }
+
+    // Check stock availability
+    if ($product['stock_quantity'] < $quantity) {
+        json_response(false, ['message' => 'Insufficient stock available.']);
+    }
+
     $price = $product['price'];
 
     // 7. Check if the item is already in the cart
-    $stmt = $pdo->prepare("SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?");
+    $stmt = $pdo->prepare("SELECT id, quantity FROM cart WHERE user_id = ? AND product_id = ?");
     $stmt->execute([$user_id, $product_id]);
     $cart_item = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($cart_item) {
         // If item exists, update the quantity
         $new_quantity = $cart_item['quantity'] + $quantity;
-        $update_stmt = $pdo->prepare("UPDATE cart_items SET quantity = ? WHERE id = ?");
+        $update_stmt = $pdo->prepare("UPDATE cart SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
         $update_stmt->execute([$new_quantity, $cart_item['id']]);
     } else {
         // If item does not exist, insert it with the fetched price
         $insert_stmt = $pdo->prepare(
-            "INSERT INTO cart_items (user_id, product_id, quantity, price) VALUES (?, ?, ?, ?)"
+            "INSERT INTO cart (user_id, product_id, quantity, price, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
         );
         $insert_stmt->execute([$user_id, $product_id, $quantity, $price]);
     }
 
     // 8. Calculate the new total cart count for the user
-    $count_stmt = $pdo->prepare("SELECT SUM(quantity) as total FROM cart_items WHERE user_id = ?");
+    $count_stmt = $pdo->prepare("SELECT SUM(quantity) as total FROM cart WHERE user_id = ?");
     $count_stmt->execute([$user_id]);
     $cart_count = $count_stmt->fetchColumn();
 

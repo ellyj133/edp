@@ -4,7 +4,7 @@
  */
 
 // Modal management
-function showBannerModal(bannerId, bannerType) {
+function showBannerModal(slotKey, bannerType) {
     const modal = document.getElementById('bannerEditModal');
     if (!modal) {
         console.error('Banner edit modal not found');
@@ -15,13 +15,13 @@ function showBannerModal(bannerId, bannerType) {
     const form = document.getElementById('bannerEditForm');
     form.reset();
     
-    // Set banner ID and type in hidden fields
-    document.getElementById('editBannerId').value = bannerId;
+    // Set slot key and banner type in hidden fields
+    document.getElementById('editSlotKey').value = slotKey;
     document.getElementById('editBannerType').value = bannerType;
     
     // Load current banner data if editing existing banner
-    if (bannerId && bannerId !== 'new') {
-        loadBannerData(bannerId);
+    if (slotKey && slotKey !== 'new') {
+        loadBannerData(slotKey);
     }
     
     // Show modal
@@ -38,14 +38,14 @@ function hideBannerModal() {
 }
 
 // Edit banner function called from HTML
-function editBanner(bannerId, bannerType) {
-    showBannerModal(bannerId, bannerType);
+function editBanner(slotKey, bannerType) {
+    showBannerModal(slotKey, bannerType);
 }
 
 // Load current banner data for editing
-async function loadBannerData(bannerId) {
+async function loadBannerData(slotKey) {
     try {
-        const response = await fetch(`/api/banners/get.php?id=${bannerId}`);
+        const response = await fetch(`/api/banners/get.php?slot_key=${encodeURIComponent(slotKey)}`);
         const data = await response.json();
         
         if (data.success && data.banner) {
@@ -57,12 +57,15 @@ async function loadBannerData(bannerId) {
             document.getElementById('bannerDescription').value = banner.description || '';
             document.getElementById('bannerLinkUrl').value = banner.link_url || '';
             document.getElementById('bannerButtonText').value = banner.button_text || '';
+            document.getElementById('bannerImageUrl').value = banner.image_url || '';
+            document.getElementById('bannerWidth').value = banner.width || '';
+            document.getElementById('bannerHeight').value = banner.height || '';
             
-            // Show current image preview if exists
-            if (banner.image_url) {
+            // Show current background image preview if exists
+            if (banner.bg_image_path) {
                 const preview = document.getElementById('currentImagePreview');
                 if (preview) {
-                    preview.src = banner.image_url;
+                    preview.src = banner.bg_image_path;
                     preview.style.display = 'block';
                 }
             }
@@ -87,14 +90,14 @@ async function saveBanner(event) {
     submitButton.disabled = true;
     
     try {
-        const response = await fetch('/api/banners/save.php', {
+        const response = await fetch('/admin/banner-save.php', {
             method: 'POST',
             body: formData
         });
         
         const data = await response.json();
         
-        if (data.success) {
+        if (data.ok) {
             showNotification('Banner saved successfully!', 'success');
             hideBannerModal();
             
@@ -103,7 +106,7 @@ async function saveBanner(event) {
                 window.location.reload();
             }, 1000);
         } else {
-            showNotification(data.message || 'Error saving banner', 'error');
+            showNotification(data.error || 'Error saving banner', 'error');
         }
     } catch (error) {
         console.error('Error saving banner:', error);

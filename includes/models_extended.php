@@ -826,4 +826,106 @@ class Recommendation extends BaseModel {
         };
     }
 }
+
+class Watchlist extends BaseModel {
+    protected $table = 'watchlist';
+    
+    public function getUserWatchlist($userId, $limit = null) {
+        $sql = "
+            SELECT w.*, p.name, p.price, p.status, p.stock_quantity,
+                   v.business_name as vendor_name, w.created_at as added_at
+            FROM {$this->table} w
+            JOIN products p ON w.product_id = p.id
+            LEFT JOIN vendors v ON p.vendor_id = v.id
+            WHERE w.user_id = ? AND p.status = 'active'
+            ORDER BY w.created_at DESC
+        ";
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function addToWatchlist($userId, $productId) {
+        try {
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)");
+            return $stmt->execute([$userId, $productId]);
+        } catch (PDOException $e) {
+            // Handle duplicate entry (already exists)
+            if (strpos($e->getMessage(), 'UNIQUE constraint failed') !== false || strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                return false; // Item already in watchlist
+            }
+            throw $e; // Re-throw other errors
+        }
+    }
+    
+    public function removeFromWatchlist($userId, $productId) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ? AND product_id = ?");
+        return $stmt->execute([$userId, $productId]);
+    }
+    
+    public function isInWatchlist($userId, $productId) {
+        $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE user_id = ? AND product_id = ?");
+        $stmt->execute([$userId, $productId]);
+        return $stmt->fetchColumn() !== false;
+    }
+}
+
+class Offer extends BaseModel {
+    protected $table = 'offers';
+    
+    public function createOffer($productId, $userId, $offerPrice, $message = null, $expiresAt = null) {
+        $stmt = $this->db->prepare("INSERT INTO {$this->table} (product_id, user_id, offer_price, message, expires_at, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+        return $stmt->execute([$productId, $userId, $offerPrice, $message, $expiresAt]);
+    }
+    
+    public function getUserOffers($userId, $limit = null) {
+        $sql = "
+            SELECT o.*, p.name as product_name, p.price as current_price
+            FROM {$this->table} o
+            JOIN products p ON o.product_id = p.id
+            WHERE o.user_id = ?
+            ORDER BY o.created_at DESC
+        ";
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getProductOffers($productId, $limit = null) {
+        $sql = "
+            SELECT o.*, u.username
+            FROM {$this->table} o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE o.product_id = ? AND o.status = 'pending'
+            ORDER BY o.offer_price DESC, o.created_at ASC
+        ";
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$productId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function acceptOffer($offerId) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        return $stmt->execute([$offerId]);
+    }
+    
+    public function rejectOffer($offerId) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = 'rejected', rejected_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        return $stmt->execute([$offerId]);
+    }
+    
+    public function expireOldOffers() {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE status = 'pending' AND expires_at < NOW()");
+        return $stmt->execute();
+    }
+}
 ?>
