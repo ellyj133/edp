@@ -81,6 +81,7 @@ $avgRating = 0;
 $reviewCount = 0;
 $relatedProducts = [];
 $isWishlisted = false;
+$isWatchlisted = false;
 $category = null;
 
 try {
@@ -102,9 +103,11 @@ try {
         });
     }
     
-    // Check if in user's wishlist
+    // Check if in user's wishlist and watchlist
     if ($userId) {
         $isWishlisted = $wishlistModel->isInWishlist($userId, $productId);
+        $watchlistModel = new Watchlist();
+        $isWatchlisted = $watchlistModel->isInWatchlist($userId, $productId);
     }
     
     // Get category
@@ -125,15 +128,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
     
+    // CSRF validation
+    if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid request. Please refresh the page and try again.']);
+        exit;
+    }
+    
     switch ($_POST['action']) {
         case 'add_to_cart':
             try {
                 $quantity = (int)($_POST['quantity'] ?? 1);
                 if ($quantity < 1) $quantity = 1;
                 
-                // Check stock
-                if (isset($product['stock_quantity']) && $product['stock_quantity'] < $quantity) {
-                    echo json_encode(['success' => false, 'message' => 'Insufficient stock']);
+                // Check stock - consider existing cart quantity
+                $existingCartItems = $cartModel->getCartItems($userId);
+                $existingQuantity = 0;
+                foreach ($existingCartItems as $item) {
+                    if ($item['product_id'] == $productId) {
+                        $existingQuantity = $item['quantity'];
+                        break;
+                    }
+                }
+                
+                $totalQuantity = $existingQuantity + $quantity;
+                if (isset($product['stock_quantity']) && $product['stock_quantity'] < $totalQuantity) {
+                    if ($existingQuantity > 0) {
+                        echo json_encode(['success' => false, 'message' => 'Cannot add more items. You already have ' . $existingQuantity . ' in cart and only ' . $product['stock_quantity'] . ' available.']);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Insufficient stock. Only ' . $product['stock_quantity'] . ' available.']);
+                    }
                     exit;
                 }
                 
@@ -169,6 +192,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } catch (Exception $e) {
                 error_log("Wishlist error: " . $e->getMessage());
                 echo json_encode(['success' => false, 'message' => 'Error updating wishlist']);
+            }
+            exit;
+            
+        case 'add_to_watchlist':
+            try {
+                $watchlistModel = new Watchlist();
+                $isInWatchlist = $watchlistModel->isInWatchlist($userId, $productId);
+                
+                if ($isInWatchlist) {
+                    $result = $watchlistModel->removeFromWatchlist($userId, $productId);
+                    $action = 'removed';
+                    $message = 'Item removed from watchlist';
+                } else {
+                    $result = $watchlistModel->addToWatchlist($userId, $productId);
+                    $action = 'added';
+                    $message = 'Item added to watchlist';
+                }
+                
+                if ($result !== false) {
+                    echo json_encode(['success' => true, 'message' => $message, 'action' => $action]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to update watchlist']);
+                }
+            } catch (Exception $e) {
+                error_log("Watchlist error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Error updating watchlist']);
             }
             exit;
             
@@ -658,7 +707,13 @@ if (file_exists(__DIR__ . '/templates/header.php')) {
             
             <div class="seller-info">
                 <span>Sold by </span>
-                <span><?= h($product['vendor_name'] ?? 'Feza Marketplace'); ?></span>
+                <?php if (!empty($product['vendor_id'])): ?>
+                    <a href="/seller.php?id=<?= $product['vendor_id']; ?>" style="color: var(--primary-color); text-decoration: none;">
+                        <?= h($product['vendor_name'] ?? 'Unknown Seller'); ?>
+                    </a>
+                <?php else: ?>
+                    <span><?= h($product['vendor_name'] ?? 'Feza Marketplace'); ?></span>
+                <?php endif; ?>
             </div>
             
             <div class="condition-section">
@@ -698,7 +753,10 @@ if (file_exists(__DIR__ . '/templates/header.php')) {
             <button class="btn btn-secondary" onclick="addToCart()">Add to cart</button>
             <button class="btn btn-outline" onclick="showOfferModal()">Make offer</button>
             <button class="btn btn-outline" onclick="toggleWishlist()">
-                <?= $isWishlisted ? '? Remove from Watchlist' : '? Add to Watchlist'; ?>
+                <?= $isWishlisted ? '❤️ Remove from Wishlist' : '🤍 Add to Wishlist'; ?>
+            </button>
+            <button class="btn btn-outline" onclick="toggleWatchlist()">
+                <?= $isWatchlisted ? '👁️ Remove from Watchlist' : '👁️ Add to Watchlist'; ?>
             </button>
             
             <div class="stock-status">
@@ -778,7 +836,9 @@ if (file_exists(__DIR__ . '/templates/header.php')) {
 // Global variables
 const productId = <?= $productId; ?>;
 const isLoggedIn = <?= $isLoggedIn ? 'true' : 'false'; ?>;
+const csrfToken = '<?= csrfToken(); ?>';
 let isWishlisted = <?= $isWishlisted ? 'true' : 'false'; ?>;
+let isWatchlisted = <?= $isWatchlisted ? 'true' : 'false'; ?>;
 
 // Image gallery functions
 function changeMainImage(imageUrl, index) {
@@ -804,7 +864,7 @@ async function addToCart() {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `action=add_to_cart&quantity=${quantity}`
+            body: `action=add_to_cart&quantity=${quantity}&csrf_token=${encodeURIComponent(csrfToken)}`
         });
         
         const data = await response.json();
@@ -836,7 +896,7 @@ async function buyNow() {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `action=buy_now&quantity=${quantity}`
+            body: `action=buy_now&quantity=${quantity}&csrf_token=${encodeURIComponent(csrfToken)}`
         });
         
         const data = await response.json();
@@ -857,6 +917,39 @@ async function buyNow() {
 // Wishlist functionality
 async function toggleWishlist() {
     if (!isLoggedIn) {
+        alert('Please login to use wishlist');
+        window.location.href = '/login.php';
+        return;
+    }
+    
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=add_to_wishlist&csrf_token=${encodeURIComponent(csrfToken)}`
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            isWishlisted = data.action === 'added';
+            const btn = event.target;
+            btn.textContent = isWishlisted ? '❤️ Remove from Wishlist' : '🤍 Add to Wishlist';
+            alert(data.message);
+        } else {
+            alert(data.message || 'Failed to update wishlist');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating wishlist');
+    }
+}
+
+// Watchlist functionality
+async function toggleWatchlist() {
+    if (!isLoggedIn) {
         alert('Please login to use watchlist');
         window.location.href = '/login.php';
         return;
@@ -868,15 +961,15 @@ async function toggleWishlist() {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'action=add_to_wishlist'
+            body: `action=add_to_watchlist&csrf_token=${encodeURIComponent(csrfToken)}`
         });
         
         const data = await response.json();
         
         if (data.success) {
-            isWishlisted = data.action === 'added';
+            isWatchlisted = data.action === 'added';
             const btn = event.target;
-            btn.textContent = isWishlisted ? '? Remove from Watchlist' : '? Add to Watchlist';
+            btn.textContent = isWatchlisted ? '👁️ Remove from Watchlist' : '👁️ Add to Watchlist';
             alert(data.message);
         } else {
             alert(data.message || 'Failed to update watchlist');
@@ -923,7 +1016,7 @@ document.getElementById('offerForm').addEventListener('submit', async function(e
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `action=make_offer&offer_amount=${offerAmount}&message=${encodeURIComponent(offerMessage)}`
+            body: `action=make_offer&offer_amount=${offerAmount}&offer_message=${encodeURIComponent(offerMessage)}&csrf_token=${encodeURIComponent(csrfToken)}`
         });
         
         const data = await response.json();
