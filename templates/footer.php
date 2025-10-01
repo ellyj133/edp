@@ -43,6 +43,8 @@
                     <h3>FezaMarket companies</h3>
                     <ul>
                         <li><a href="/tcgplayer.php">TCGplayer</a></li>
+                        <li><a href="/logistics.php">Feza Logistics</a></li>
+                        <li><a href="/partnerships.php">Partnerships</a></li>
                     </ul>
                     
                     <h4>Stay connected</h4>
@@ -88,12 +90,15 @@
                     </ul>
                     
                     <h4>FezaMarket Sites</h4>
+                    <ul>
+                        <li><a href="/regional-sites.php">International Sites</a></li>
+                    </ul>
                     <div class="country-selector">
                         <select class="country-dropdown">
-                            <option value="US" selected>?? United States</option>
-                            <option value="CA">?? Canada</option>
-                            <option value="UK">?? United Kingdom</option>
-                            <option value="AU">?? Australia</option>
+                            <option value="US" selected>🇺🇸 United States</option>
+                            <option value="CA">🇨🇦 Canada</option>
+                            <option value="UK">🇬🇧 United Kingdom</option>
+                            <option value="AU">🇦🇺 Australia</option>
                         </select>
                     </div>
                 </div>
