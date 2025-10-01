@@ -65,7 +65,7 @@ includeHeader($page_title);
                             <p>Configure how you receive payments from sales</p>
                         </div>
                         <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
+                            <a href="/seller/payment-settings.php" class="btn btn-outline">Configure</a>
                         </div>
                     </div>
                     
@@ -75,7 +75,7 @@ includeHeader($page_title);
                             <p>Set up shipping rates and policies for your products</p>
                         </div>
                         <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
+                            <a href="/seller/shipping-settings.php" class="btn btn-outline">Configure</a>
                         </div>
                     </div>
                     
@@ -85,7 +85,7 @@ includeHeader($page_title);
                             <p>Configure tax collection for your sales</p>
                         </div>
                         <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
+                            <a href="/seller/tax-settings.php" class="btn btn-outline">Configure</a>
                         </div>
                     </div>
                 </div>
@@ -101,7 +101,7 @@ includeHeader($page_title);
                             <p>Customize your store's look with logos and banners</p>
                         </div>
                         <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
+                            <a href="/seller/store-appearance.php" class="btn btn-outline">Customize</a>
                         </div>
                     </div>
                     
@@ -111,7 +111,7 @@ includeHeader($page_title);
                             <p>Set return, exchange, and customer service policies</p>
                         </div>
                         <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
+                            <a href="/seller/store-policies.php" class="btn btn-outline">Edit Policies</a>
                         </div>
                     </div>
                 </div>
@@ -123,21 +123,11 @@ includeHeader($page_title);
                 <div class="settings-options">
                     <div class="setting-item">
                         <div class="setting-info">
-                            <h3>Email Notifications</h3>
-                            <p>Choose which email notifications you want to receive</p>
+                            <h3>Notification Settings</h3>
+                            <p>Manage email and SMS notifications for orders and alerts</p>
                         </div>
                         <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <h3>Order Alerts</h3>
-                            <p>Get notified about new orders and customer messages</p>
-                        </div>
-                        <div class="setting-action">
-                            <span class="coming-soon-badge">Coming Soon</span>
+                            <a href="/seller/notification-settings.php" class="btn btn-outline">Configure</a>
                         </div>
                     </div>
                 </div>
