@@ -16,6 +16,35 @@ $isLoggedIn = class_exists('Session') ? Session::isLoggedIn() : false;
 $userRole = getCurrentUserRole();
 $userName = $isLoggedIn ? (Session::get('user_name') ?? Session::get('email')) : null;
 
+// Get badge counts for logged in users
+$cartCount = 0;
+$wishlistCount = 0;
+$watchlistCount = 0;
+
+if ($isLoggedIn && function_exists('db')) {
+    try {
+        $pdo = db();
+        $userId = Session::getUserId();
+        
+        // Get cart count (sum of quantities)
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(quantity), 0) as count FROM cart WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $cartCount = (int)$stmt->fetchColumn();
+        
+        // Get wishlist count
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $wishlistCount = (int)$stmt->fetchColumn();
+        
+        // Get watchlist count
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM watchlist WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $watchlistCount = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        error_log("Header badge count error: " . $e->getMessage());
+    }
+}
+
 $page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & More | eBay';
 ?>
 <!DOCTYPE html>
@@ -694,19 +723,27 @@ $page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & 
                     <i class="far fa-bell"></i>
                     <?php 
                     // Check for unread notifications
-                    $unreadCount = 0; // Replace with actual count from database
+                    $unreadCount = 0; // TODO: Implement unread notifications count
                     if ($unreadCount > 0): 
                     ?>
                         <span class="ebay-notification-badge"><?php echo min($unreadCount, 99); ?></span>
                     <?php endif; ?>
                 </a>
+                <a href="/wishlist.php" class="ebay-header-icon" title="Wishlist">
+                    <i class="far fa-heart"></i>
+                    <?php if ($wishlistCount > 0): ?>
+                        <span class="ebay-notification-badge"><?php echo min($wishlistCount, 99); ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="/watchlist.php" class="ebay-header-icon" title="Watchlist">
+                    <i class="far fa-eye"></i>
+                    <?php if ($watchlistCount > 0): ?>
+                        <span class="ebay-notification-badge"><?php echo min($watchlistCount, 99); ?></span>
+                    <?php endif; ?>
+                </a>
                 <a href="/cart.php" class="ebay-header-icon" title="Shopping Cart">
                     <i class="fas fa-shopping-cart"></i>
-                    <?php 
-                    // Check for cart items
-                    $cartCount = 0; // Replace with actual count from database/session
-                    if ($cartCount > 0): 
-                    ?>
+                    <?php if ($cartCount > 0): ?>
                         <span class="ebay-notification-badge"><?php echo min($cartCount, 99); ?></span>
                     <?php endif; ?>
                 </a>
