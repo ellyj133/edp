@@ -2065,7 +2065,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-
+<style>
+.stats-container {
     text-align: center;
 }
 
