@@ -58,8 +58,33 @@ $wallet = new Wallet();
 // Get cart items
 $cartItems = $cart->getCartItems($userId);
 
+// Validate cart is not empty before proceeding
 if (empty($cartItems)) {
     redirect('/cart.php?error=empty_cart');
+}
+
+// Additional validation: ensure all cart items are still available
+foreach ($cartItems as $item) {
+    $product = new Product();
+    $productData = $product->find($item['product_id']);
+    
+    if (!$productData) {
+        // Remove invalid item from cart
+        $cart->removeItem($userId, $item['product_id']);
+        redirect('/cart.php?error=product_unavailable');
+    }
+    
+    if ($productData['status'] !== 'active') {
+        // Remove inactive product from cart
+        $cart->removeItem($userId, $item['product_id']);
+        redirect('/cart.php?error=product_inactive');
+    }
+    
+    if ($productData['stock_quantity'] < $item['quantity']) {
+        // Update cart quantity to available stock
+        $cart->updateQuantity($userId, $item['product_id'], $productData['stock_quantity']);
+        redirect('/cart.php?error=insufficient_stock');
+    }
 }
 
 // Get user data and addresses

@@ -512,18 +512,28 @@ class Cart extends BaseModel {
     }
     
     public function addItem($userId, $productId, $quantity = 1) {
-        // Fix #4: Check if item already exists and update quantity
+        // Get product price for cart item
+        $product = new Product();
+        $productData = $product->find($productId);
+        
+        if (!$productData) {
+            return false;
+        }
+        
+        $price = $productData['price'];
+        
+        // Check if item already exists and update quantity
         $stmt = $this->db->prepare("SELECT id, quantity FROM {$this->table} WHERE user_id = ? AND product_id = ?");
         $stmt->execute([$userId, $productId]);
         $existing = $stmt->fetch();
         
         if ($existing) {
             $newQuantity = $existing['quantity'] + $quantity;
-            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-            return $stmt->execute([$newQuantity, $existing['id']]);
+            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, price = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            return $stmt->execute([$newQuantity, $price, $existing['id']]);
         } else {
-            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
-            return $stmt->execute([$userId, $productId, $quantity]);
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity, price, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            return $stmt->execute([$userId, $productId, $quantity, $price]);
         }
     }
     
