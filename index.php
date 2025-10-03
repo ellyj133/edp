@@ -478,7 +478,18 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Flash Deal - Small Right -->
-                <div class="grid-card card-2-4" style="grid-area: 3 / 5 / 4 / 7;">
+                <div class="grid-card card-2-4 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 3 / 5 / 4 / 7;"
+                     data-banner-type="grid" data-slot-key="flash-deal-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('flash-deal-banner', 'grid')" title="Edit Flash Deal Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="card-bg" style="background: #fff9c4;">
                         <div class="flash-item-content">
                             <?php 
@@ -496,7 +507,18 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Miss Mouth's - Small Left -->
-                <div class="grid-card card-3-1" style="grid-area: 4 / 1 / 5 / 2;">
+                <div class="grid-card card-3-1 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 4 / 1 / 5 / 2;"
+                     data-banner-type="grid" data-slot-key="messy-eater-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('messy-eater-banner', 'grid')" title="Edit Messy Eater Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="card-bg" style="background: linear-gradient(45deg, #e3f2fd 0%, #bbdefb 100%);">
                         <div class="messy-eater-content">
                             <span class="product-tag-small">Miss Mouth's Messy Eater</span>
@@ -509,7 +531,18 @@ includeHeader($page_title);
                 </div>
 
                 <!-- New for Him & Her - Large Right -->
-                <div class="grid-card card-3-2" style="grid-area: 4 / 5 / 5 / 7;">
+                <div class="grid-card card-3-2 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" style="grid-area: 4 / 5 / 5 / 7;">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-manage-btn" onclick="manageHimHerSection()" title="Manage Products">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                Manage
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="card-bg" style="background: #fce4ec;">
                         <div class="him-her-content">
                             <h3 class="section-title-small">New for him & her</h3>
@@ -551,7 +584,18 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Burger King Partnership - Medium Center -->
-                <div class="grid-card card-3-3" style="grid-area: 4 / 2 / 5 / 5;">
+                <div class="grid-card card-3-3 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 4 / 2 / 5 / 5;"
+                     data-banner-type="grid" data-slot-key="fezamarket-members-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('fezamarket-members-banner', 'grid')" title="Edit FezaMarket+ Members Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="card-bg" style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
                         <div class="burger-king-content">
                             <div class="bk-text">
@@ -2917,6 +2961,70 @@ function manageCategoryScroller() {
 }
 
 function closeCategoryModal() {
+    const modal = document.querySelector('.admin-edit-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function manageHimHerSection() {
+    // Add modal styles if not already present
+    if (!document.getElementById('modal-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'modal-styles';
+        styles.textContent = `
+            .admin-edit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; }
+            .modal-overlay { background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+            .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+            .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+            .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+            .form-group { margin-bottom: 15px; }
+            .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+            .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+            .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+            .modal-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+            .modal-actions button[type="submit"] { background: #0071ce; color: white; }
+            .modal-actions button[type="button"] { background: #ccc; }
+        `;
+        document.head.appendChild(styles);
+    }
+    
+    // Create modal for managing "New for him & her" section
+    const modal = document.createElement('div');
+    modal.className = 'admin-edit-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeHimHerModal()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3>Manage "New for him & her" Section</h3>
+                    <button onclick="closeHimHerModal()" class="close-btn">&times;</button>
+                </div>
+                <div class="him-her-manager">
+                    <p>Product section management interface coming soon. This will allow you to:</p>
+                    <ul style="margin: 15px 0; padding-left: 30px;">
+                        <li>Select which products to display in this section</li>
+                        <li>Choose a category to pull products from</li>
+                        <li>Set the number of products to display</li>
+                        <li>Reorder products by drag and drop</li>
+                        <li>Manually add specific products</li>
+                    </ul>
+                    <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                        For now, this section displays products from the fashion category. 
+                        Products can be managed in the database table <code>homepage_sections</code> 
+                        with section_key = 'him_her_products'. The data is stored as JSON.
+                    </p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeHimHerModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closeHimHerModal() {
     const modal = document.querySelector('.admin-edit-modal');
     if (modal) {
         modal.remove();
