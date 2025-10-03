@@ -890,7 +890,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
             </div>
             <div class="mobile-nav-content">
                 <a href="/" class="mobile-nav-link">Home</a>
-                <a href="/live.php" class="mobile-nav-link">eBay Live</a>
+                <a href="/live.php" class="mobile-nav-link">Fezamarket Live</a>
                 <a href="/saved.php" class="mobile-nav-link">Saved</a>
                 <a href="/category.php?cat=electronics" class="mobile-nav-link">Electronics</a>
                 <a href="/category.php?cat=motors" class="mobile-nav-link">Motors</a>
