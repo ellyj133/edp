@@ -333,7 +333,7 @@ includeHeader($page_title);
                         <?php foreach ($cartItems as $item): ?>
                             <div class="d-flex justify-content-between mb-2">
                                 <div>
-                                    <?php echo htmlspecialchars($item['product_name']); ?> × <?php echo $item['quantity']; ?>
+                                    <?php echo htmlspecialchars($item['product_name'] ?? ''); ?> × <?php echo $item['quantity']; ?>
                                 </div>
                                 <div>$<?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
                             </div>
@@ -383,11 +383,11 @@ includeHeader($page_title);
                 <div class="card-body">
                     <?php foreach ($cartItems as $item): ?>
                         <div class="d-flex mb-3">
-                            <img src="<?php echo getSafeProductImageUrl($item, getProductImageUrl($item['product_image'])); ?>" 
-                                 alt="<?php echo htmlspecialchars($item['product_name']); ?>"
+                            <img src="<?php echo getSafeProductImageUrl($item, getProductImageUrl($item['product_image'] ?? '')); ?>" 
+                                 alt="<?php echo htmlspecialchars($item['product_name'] ?? ''); ?>"
                                  class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                             <div class="flex-grow-1">
-                                <h6 class="mb-1"><?php echo htmlspecialchars($item['product_name']); ?></h6>
+                                <h6 class="mb-1"><?php echo htmlspecialchars($item['product_name'] ?? ''); ?></h6>
                                 <small class="text-muted">Qty: <?php echo $item['quantity']; ?></small>
                                 <div class="fw-bold">$<?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
                             </div>

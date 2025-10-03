@@ -504,7 +504,8 @@ class Cart extends BaseModel {
     public function getCartItems($userId) {
         // Fix #3: Handle missing product_images table gracefully and make sku optional
         $stmt = $this->db->prepare("
-            SELECT c.*, p.name, p.price, p.stock_quantity,
+            SELECT c.*, p.name as product_name, p.price, p.stock_quantity,
+                   p.image_url as product_image, p.sku,
                    v.business_name as vendor_name
             FROM {$this->table} c 
             JOIN products p ON c.product_id = p.id 
