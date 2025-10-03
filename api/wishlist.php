@@ -47,7 +47,7 @@ try {
                 $result = $wishlist->addToWishlist($userId, $productId);
                 
                 if ($result) {
-                    successResponse(['message' => 'Item added to wishlist']);
+                    successResponse([], 'Item added to wishlist');
                 } else {
                     errorResponse('Item already in wishlist or failed to add');
                 }
@@ -63,7 +63,7 @@ try {
                 $result = $wishlist->removeFromWishlist($userId, $productId);
                 
                 if ($result) {
-                    successResponse(['message' => 'Item removed from wishlist']);
+                    successResponse([], 'Item removed from wishlist');
                 } else {
                     errorResponse('Failed to remove item');
                 }

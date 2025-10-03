@@ -47,7 +47,7 @@ try {
                 $result = $watchlist->addToWatchlist($userId, $productId);
                 
                 if ($result) {
-                    successResponse(['message' => 'Item added to watchlist']);
+                    successResponse([], 'Item added to watchlist');
                 } else {
                     errorResponse('Item already in watchlist or failed to add');
                 }
@@ -63,7 +63,7 @@ try {
                 $result = $watchlist->removeFromWatchlist($userId, $productId);
                 
                 if ($result) {
-                    successResponse(['message' => 'Item removed from watchlist']);
+                    successResponse([], 'Item removed from watchlist');
                 } else {
                     errorResponse('Failed to remove item');
                 }
