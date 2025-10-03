@@ -601,18 +601,61 @@ includeHeader($page_title);
     <section class="mobile-promos-section">
         <div class="container">
             <div class="promo-cards">
-                <div class="promo-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
-                    <h3>Flash Sale</h3>
-                    <p>Up to 50% off electronics</p>
+                <?php 
+                // Fetch promo banners for each slot
+                for ($i = 1; $i <= 6; $i++):
+                    $slot_key = "promo-grid-$i";
+                    $promo_banner = fetchBannerBySlotKey($slot_key);
+                    
+                    // Default values
+                    $default_titles = ['Flash Sale', 'Free Shipping', 'New Arrivals', 'Daily Deals', 'Top Rated', 'Best Sellers'];
+                    $default_subtitles = [
+                        'Up to 50% off electronics',
+                        'On orders over $35',
+                        'Latest fashion trends',
+                        'Limited time offers',
+                        'Highly rated products',
+                        'Popular items'
+                    ];
+                    $default_backgrounds = [
+                        'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+                        'linear-gradient(135deg, #4834d4 0%, #686de0 100%)',
+                        'linear-gradient(135deg, #00d2d3 0%, #54a0ff 100%)',
+                        'linear-gradient(135deg, #26de81 0%, #20bf6b 100%)',
+                        'linear-gradient(135deg, #fd79a8 0%, #e84393 100%)',
+                        'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)'
+                    ];
+                    
+                    $title = $promo_banner && isset($promo_banner['title']) ? $promo_banner['title'] : $default_titles[$i-1];
+                    $subtitle = $promo_banner && isset($promo_banner['subtitle']) ? $promo_banner['subtitle'] : $default_subtitles[$i-1];
+                    $bg_style = $promo_banner && isset($promo_banner['bg_image_path']) 
+                        ? "background-image: url('" . h($promo_banner['bg_image_path']) . "'); background-size: cover; background-position: center;" 
+                        : "background: " . $default_backgrounds[$i-1] . ";";
+                    $link_url = $promo_banner && isset($promo_banner['link_url']) ? $promo_banner['link_url'] : '#';
+                ?>
+                <div class="promo-card <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="<?php echo $bg_style; ?>"
+                     data-banner-type="promo" data-slot-key="<?php echo $slot_key; ?>">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('<?php echo $slot_key; ?>', 'promo')" title="Edit Promo Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($link_url && $link_url !== '#'): ?>
+                        <a href="<?php echo h($link_url); ?>" class="promo-card-link">
+                            <h3><?php echo h($title); ?></h3>
+                            <p><?php echo h($subtitle); ?></p>
+                        </a>
+                    <?php else: ?>
+                        <h3><?php echo h($title); ?></h3>
+                        <p><?php echo h($subtitle); ?></p>
+                    <?php endif; ?>
                 </div>
-                <div class="promo-card" style="background: linear-gradient(135deg, #4834d4 0%, #686de0 100%);">
-                    <h3>Free Shipping</h3>
-                    <p>On orders over $35</p>
-                </div>
-                <div class="promo-card" style="background: linear-gradient(135deg, #00d2d3 0%, #54a0ff 100%);">
-                    <h3>New Arrivals</h3>
-                    <p>Latest fashion trends</p>
-                </div>
+                <?php endfor; ?>
             </div>
         </div>
     </section>
@@ -742,42 +785,61 @@ includeHeader($page_title);
     </section>
 
     <!-- Get it all right here -->
-    <section class="categories-row-section">
+    <section class="categories-row-section <?php echo $is_admin_logged_in ? 'admin-editable-section' : ''; ?>">
         <div class="container">
             <div class="row-header">
                 <h2>Get it all right here</h2>
-                <a href="/categories" class="shop-all-link">Shop all</a>
+                <div class="header-actions">
+                    <a href="/categories" class="shop-all-link">Shop all</a>
+                    <?php if ($is_admin_logged_in): ?>
+                        <button class="admin-manage-btn" onclick="manageCategoryScroller()" title="Manage Categories">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            Manage
+                        </button>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="categories-horizontal-container">
-                <div class="categories-track">
+                <div class="categories-track" id="category-scroller-track">
+                    <?php
+                    // Default categories
+                    $default_categories = [
+                        ['name' => 'Outdoor', 'image' => 'https://picsum.photos/120/120?random=outdoor1', 'url' => '/category/outdoor'],
+                        ['name' => 'Gaming', 'image' => 'https://picsum.photos/120/120?random=gaming1', 'url' => '/category/gaming'],
+                        ['name' => 'Auto', 'image' => 'https://picsum.photos/120/120?random=auto1', 'url' => '/category/auto'],
+                        ['name' => 'Electronics', 'image' => 'https://picsum.photos/120/120?random=electronics1', 'url' => '/category/electronics'],
+                        ['name' => 'Home', 'image' => 'https://picsum.photos/120/120?random=home1', 'url' => '/category/home'],
+                        ['name' => 'Fashion', 'image' => 'https://picsum.photos/120/120?random=fashion1', 'url' => '/category/fashion'],
+                        ['name' => 'Sports & outdoors', 'image' => 'https://picsum.photos/120/120?random=sports1', 'url' => '/category/sports']
+                    ];
+                    
+                    // Try to fetch from database
+                    try {
+                        $pdo = db();
+                        $stmt = $pdo->query("SELECT section_data FROM homepage_sections WHERE section_key = 'category_scroller' LIMIT 1");
+                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($result && !empty($result['section_data'])) {
+                            $custom_categories = json_decode($result['section_data'], true);
+                            if ($custom_categories && is_array($custom_categories)) {
+                                $default_categories = $custom_categories;
+                            }
+                        }
+                    } catch (Exception $e) {
+                        // Use defaults
+                    }
+                    
+                    foreach ($default_categories as $category):
+                    ?>
                     <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=outdoor1" alt="Outdoor" class="category-circle-img">
-                        <span class="category-name">Outdoor</span>
+                        <a href="<?php echo h($category['url']); ?>">
+                            <img src="<?php echo h($category['image']); ?>" alt="<?php echo h($category['name']); ?>" class="category-circle-img">
+                            <span class="category-name"><?php echo h($category['name']); ?></span>
+                        </a>
                     </div>
-                    <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=gaming1" alt="Gaming" class="category-circle-img">
-                        <span class="category-name">Gaming</span>
-                    </div>
-                    <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=auto1" alt="Auto" class="category-circle-img">
-                        <span class="category-name">Auto</span>
-                    </div>
-                    <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=electronics1" alt="Electronics" class="category-circle-img">
-                        <span class="category-name">Electronics</span>
-                    </div>
-                    <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=home1" alt="Home" class="category-circle-img">
-                        <span class="category-name">Home</span>
-                    </div>
-                    <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=fashion1" alt="Fashion" class="category-circle-img">
-                        <span class="category-name">Fashion</span>
-                    </div>
-                    <div class="category-circle-item">
-                        <img src="https://picsum.photos/120/120?random=sports1" alt="Sports" class="category-circle-img">
-                        <span class="category-name">Sports & outdoors</span>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
                 <button class="scroll-right-btn" onclick="scrollCategories('right')">›</button>
             </div>
@@ -1041,24 +1103,47 @@ includeHeader($page_title);
                 <h2>Trending on social</h2>
             </div>
             <div class="social-images-grid">
-                <div class="social-image-card">
-                    <img src="https://picsum.photos/400/400?random=social1" alt="Trending 1">
-                    <div class="social-overlay">
-                        <span class="shop-the-look">Shop the look</span>
-                    </div>
+                <?php 
+                for ($i = 1; $i <= 3; $i++):
+                    $slot_key = "trending-$i";
+                    $trending_banner = fetchBannerBySlotKey($slot_key);
+                    
+                    $image_url = $trending_banner && isset($trending_banner['bg_image_path']) 
+                        ? $trending_banner['bg_image_path'] 
+                        : "https://picsum.photos/400/400?random=social$i";
+                    $link_url = $trending_banner && isset($trending_banner['link_url']) 
+                        ? $trending_banner['link_url'] 
+                        : '#';
+                    $button_text = $trending_banner && isset($trending_banner['title']) 
+                        ? $trending_banner['title'] 
+                        : 'Shop the look';
+                ?>
+                <div class="social-image-card <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     data-banner-type="trending" data-slot-key="<?php echo $slot_key; ?>">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('<?php echo $slot_key; ?>', 'trending')" title="Edit Trending Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($link_url && $link_url !== '#'): ?>
+                        <a href="<?php echo h($link_url); ?>" class="social-card-link">
+                            <img src="<?php echo h($image_url); ?>" alt="Trending <?php echo $i; ?>">
+                            <div class="social-overlay">
+                                <span class="shop-the-look"><?php echo h($button_text); ?></span>
+                            </div>
+                        </a>
+                    <?php else: ?>
+                        <img src="<?php echo h($image_url); ?>" alt="Trending <?php echo $i; ?>">
+                        <div class="social-overlay">
+                            <span class="shop-the-look"><?php echo h($button_text); ?></span>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                <div class="social-image-card">
-                    <img src="https://picsum.photos/400/400?random=social2" alt="Trending 2">
-                    <div class="social-overlay">
-                        <span class="shop-the-look">Shop the look</span>
-                    </div>
-                </div>
-                <div class="social-image-card">
-                    <img src="https://picsum.photos/400/400?random=social3" alt="Trending 3">
-                    <div class="social-overlay">
-                        <span class="shop-the-look">Shop the look</span>
-                    </div>
-                </div>
+                <?php endfor; ?>
             </div>
         </div>
     </section>
@@ -1155,6 +1240,92 @@ body {
 .admin-edit-btn:hover {
     background: #0071ce;
     transform: scale(1.1);
+}
+
+/* Admin manage button for sections */
+.admin-manage-btn {
+    background: rgba(0, 113, 206, 0.9);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-left: 12px;
+}
+
+.admin-manage-btn:hover {
+    background: #0071ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 113, 206, 0.3);
+}
+
+.admin-manage-btn svg {
+    flex-shrink: 0;
+}
+
+.admin-editable-section {
+    position: relative;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Clickable banner links */
+.promo-card-link,
+.social-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    width: 100%;
+    height: 100%;
+}
+
+.promo-card-link:hover,
+.social-card-link:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+.promo-card {
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.promo-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.social-card-link {
+    position: relative;
+}
+
+.social-image-card {
+    transition: transform 0.2s ease;
+}
+
+.social-image-card:hover {
+    transform: translateY(-2px);
+}
+
+.category-circle-item a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.category-circle-item a:hover .category-circle-img {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
 }
 
 /* Enhanced Image Handling - Apply to ALL banners */
@@ -2432,6 +2603,7 @@ function editBanner(slotKey, bannerType) {
                         <label>Background Image (Upload):</label>
                         <input type="file" name="bg_image" id="banner-bg-image" accept="image/jpeg,image/jpg,image/png,image/webp">
                         <small>Max size: 5MB. Supports JPEG, PNG, WebP</small>
+                        <div id="current-bg-preview" style="margin-top: 10px;"></div>
                     </div>
                     <div class="form-group">
                         <label>Foreground/Overlay Image URL:</label>
@@ -2441,6 +2613,7 @@ function editBanner(slotKey, bannerType) {
                         <label>Foreground/Overlay Image (Upload):</label>
                         <input type="file" name="fg_image" id="banner-fg-image" accept="image/jpeg,image/jpg,image/png,image/webp">
                         <small>Optional overlay image upload</small>
+                        <div id="current-fg-preview" style="margin-top: 10px;"></div>
                     </div>
                     <div class="form-group">
                         <label>Link URL:</label>
@@ -2485,11 +2658,58 @@ function editBanner(slotKey, bannerType) {
             .modal-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
             .modal-actions button[type="submit"] { background: #0071ce; color: white; }
             .modal-actions button[type="button"] { background: #ccc; }
+            .current-image-preview { max-width: 200px; max-height: 150px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; }
         `;
         document.head.appendChild(styles);
     }
     
     document.body.appendChild(modal);
+    
+    // Load existing banner data
+    loadBannerData(slotKey);
+}
+
+function loadBannerData(slotKey) {
+    fetch(`/api/banners/get.php?slot_key=${encodeURIComponent(slotKey)}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && result.banner) {
+                const banner = result.banner;
+                
+                // Populate form fields
+                if (banner.title) document.getElementById('banner-title').value = banner.title;
+                if (banner.subtitle) document.getElementById('banner-subtitle').value = banner.subtitle;
+                if (banner.link_url) document.getElementById('banner-link').value = banner.link_url;
+                if (banner.image_url) document.getElementById('banner-image-url').value = banner.image_url;
+                if (banner.width) document.getElementById('banner-width').value = banner.width;
+                if (banner.height) document.getElementById('banner-height').value = banner.height;
+                
+                // Show current background image preview
+                if (banner.bg_image_path) {
+                    const bgPreview = document.getElementById('current-bg-preview');
+                    bgPreview.innerHTML = `
+                        <div style="margin-top: 10px;">
+                            <strong>Current Background:</strong><br>
+                            <img src="${banner.bg_image_path}" class="current-image-preview" alt="Current background">
+                        </div>
+                    `;
+                }
+                
+                // Show current foreground image preview
+                if (banner.fg_image_path) {
+                    const fgPreview = document.getElementById('current-fg-preview');
+                    fgPreview.innerHTML = `
+                        <div style="margin-top: 10px;">
+                            <strong>Current Overlay:</strong><br>
+                            <img src="${banner.fg_image_path}" class="current-image-preview" alt="Current overlay">
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading banner data:', error);
+        });
 }
 
 function closeEditModal() {
@@ -2620,6 +2840,48 @@ function scrollCategories(direction) {
         }
     } else {
         track.scrollLeft -= scrollAmount;
+    }
+}
+
+/* ---------- Category Scroller Management ---------- */
+function manageCategoryScroller() {
+    // Create modal for managing category scroller
+    const modal = document.createElement('div');
+    modal.className = 'admin-edit-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeCategoryModal()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3>Manage Category Scroller</h3>
+                    <button onclick="closeCategoryModal()" class="close-btn">&times;</button>
+                </div>
+                <div class="category-manager">
+                    <p>Category management interface coming soon. This will allow you to:</p>
+                    <ul style="margin: 15px 0; padding-left: 30px;">
+                        <li>Add new categories with images and links</li>
+                        <li>Edit existing categories</li>
+                        <li>Reorder categories by drag and drop</li>
+                        <li>Delete categories</li>
+                    </ul>
+                    <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                        For now, categories are managed in the database table <code>homepage_sections</code> 
+                        with section_key = 'category_scroller'. The data is stored as JSON.
+                    </p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeCategoryModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closeCategoryModal() {
+    const modal = document.querySelector('.admin-edit-modal');
+    if (modal) {
+        modal.remove();
     }
 }
 
