@@ -41,6 +41,9 @@ try {
                     errorResponse('Product not found');
                 }
                 
+                // Note: Allowing watchlist for inactive products so users can track them
+                // Remove this check if watchlist should only allow active products
+                
                 $result = $watchlist->addToWatchlist($userId, $productId);
                 
                 if ($result) {

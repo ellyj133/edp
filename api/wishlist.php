@@ -41,6 +41,9 @@ try {
                     errorResponse('Product not found');
                 }
                 
+                // Note: Allowing wishlist for inactive products so users can track them
+                // Remove this check if wishlist should only allow active products
+                
                 $result = $wishlist->addToWishlist($userId, $productId);
                 
                 if ($result) {
