@@ -20,13 +20,6 @@ try {
     error_log("Admin check fallback: " . ($is_admin_logged_in ? 'true' : 'false'));
 }
 
-// For demo purposes, enable admin mode when not logged in
-// This allows viewing/testing admin features without authentication
-if (!$is_admin_logged_in) {
-    $is_admin_logged_in = true; // Temporary demo mode - always show admin features for testing
-    error_log("Demo admin mode enabled");
-}
-
 /* ---------- Safe Helpers ---------- */
 if (!function_exists('h')) {
     function h($v): string { 

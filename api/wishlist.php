@@ -41,6 +41,11 @@ try {
                     errorResponse('Product not found');
                 }
                 
+                // Check if item is already in wishlist
+                if ($wishlist->isInWishlist($userId, $productId)) {
+                    errorResponse('Item already in wishlist');
+                }
+                
                 // Note: Allowing wishlist for inactive products so users can track them
                 // Remove this check if wishlist should only allow active products
                 
@@ -49,7 +54,7 @@ try {
                 if ($result) {
                     successResponse([], 'Item added to wishlist');
                 } else {
-                    errorResponse('Item already in wishlist or failed to add');
+                    errorResponse('Failed to add item to wishlist');
                 }
                 break;
                 

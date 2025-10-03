@@ -41,6 +41,11 @@ try {
                     errorResponse('Product not found');
                 }
                 
+                // Check if item is already in watchlist
+                if ($watchlist->isInWatchlist($userId, $productId)) {
+                    errorResponse('Item already in watchlist');
+                }
+                
                 // Note: Allowing watchlist for inactive products so users can track them
                 // Remove this check if watchlist should only allow active products
                 
@@ -49,7 +54,7 @@ try {
                 if ($result) {
                     successResponse([], 'Item added to watchlist');
                 } else {
-                    errorResponse('Item already in watchlist or failed to add');
+                    errorResponse('Failed to add item to watchlist');
                 }
                 break;
                 
