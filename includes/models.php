@@ -118,6 +118,11 @@ class User extends BaseModel {
         return $stmt->fetchAll();
     }
     
+    // Alias method for backward compatibility
+    public function getUserAddresses($userId) {
+        return $this->getAddresses($userId);
+    }
+    
     public function addAddress($userId, $addressData) {
         $addressData['user_id'] = $userId;
         $stmt = $this->db->prepare("INSERT INTO addresses (user_id, type, address_line1, address_line2, city, state, postal_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");

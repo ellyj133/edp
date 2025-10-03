@@ -30,6 +30,11 @@ RewriteRule ^account/security/?$ account-security.php [L]
 RewriteRule ^account/addresses/?$ account-addresses.php [L]
 RewriteRule ^account/payments/?$ account-payments.php [L]
 
+# Product routes - match /product/{id} or /product/{slug}
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^product/([^/]+)/?$ product.php?id=$1 [L,QSA]
+
 # 404 handler
 ErrorDocument 404 /404.php
 
