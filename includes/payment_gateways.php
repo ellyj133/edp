@@ -175,45 +175,187 @@ class PayPalPaymentGateway implements PaymentGatewayInterface {
     private $clientId;
     private $clientSecret;
     private $sandbox;
+    private $baseUrl;
     
     public function __construct() {
-        $this->clientId = PAYPAL_CLIENT_ID;
-        $this->clientSecret = PAYPAL_CLIENT_SECRET;
-        $this->sandbox = APP_ENV === 'development';
+        $this->clientId = defined('PAYPAL_CLIENT_ID') ? PAYPAL_CLIENT_ID : '';
+        $this->clientSecret = defined('PAYPAL_CLIENT_SECRET') ? PAYPAL_CLIENT_SECRET : '';
+        $this->sandbox = defined('APP_ENV') ? (APP_ENV === 'development') : true;
+        $this->baseUrl = $this->sandbox 
+            ? 'https://api-m.sandbox.paypal.com' 
+            : 'https://api-m.paypal.com';
         
         if (empty($this->clientId) || empty($this->clientSecret)) {
-            throw new Exception('PayPal credentials not configured');
+            throw new Exception('PayPal credentials not configured. Please set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET in your configuration.');
         }
     }
     
-    public function processPayment($amount, $paymentToken, $orderData) {
-        // PayPal integration would be implemented here
-        // This is a placeholder for the PayPal REST API integration
+    /**
+     * Get PayPal access token for API authentication
+     */
+    private function getAccessToken() {
+        $ch = curl_init($this->baseUrl . '/v1/oauth2/token');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
+        curl_setopt($ch, CURLOPT_USERPWD, $this->clientId . ':' . $this->clientSecret);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
         
-        return [
-            'success' => true,
-            'transaction_id' => 'PAYPAL_' . strtoupper(uniqid()),
-            'method' => 'paypal',
-            'amount' => $amount,
-            'status' => 'completed'
-        ];
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            throw new Exception('Failed to get PayPal access token');
+        }
+        
+        $data = json_decode($response, true);
+        return $data['access_token'] ?? null;
+    }
+    
+    public function processPayment($amount, $paymentToken, $orderData) {
+        try {
+            $accessToken = $this->getAccessToken();
+            
+            // Create PayPal order
+            $payload = [
+                'intent' => 'CAPTURE',
+                'purchase_units' => [[
+                    'amount' => [
+                        'currency_code' => 'USD',
+                        'value' => number_format($amount, 2, '.', '')
+                    ],
+                    'description' => 'Order #' . ($orderData['order_number'] ?? 'Unknown'),
+                    'reference_id' => $orderData['id'] ?? uniqid()
+                ]],
+                'payment_source' => [
+                    'paypal' => [
+                        'experience_context' => [
+                            'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                            'user_action' => 'PAY_NOW'
+                        ]
+                    ]
+                ]
+            ];
+            
+            $ch = curl_init($this->baseUrl . '/v2/checkout/orders');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            $data = json_decode($response, true);
+            
+            if ($httpCode === 201 && isset($data['id'])) {
+                return [
+                    'success' => true,
+                    'transaction_id' => $data['id'],
+                    'method' => 'paypal',
+                    'amount' => $amount,
+                    'status' => 'pending', // PayPal orders need to be captured
+                    'approval_url' => $data['links'][1]['href'] ?? null // Link for customer approval
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => $data['message'] ?? 'PayPal payment processing failed',
+                    'code' => $data['name'] ?? 'UNKNOWN_ERROR'
+                ];
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'code' => 'EXCEPTION'
+            ];
+        }
     }
     
     public function refundPayment($transactionId, $amount, $reason = null) {
-        return [
-            'success' => true,
-            'refund_id' => 'PAYPAL_REFUND_' . strtoupper(uniqid()),
-            'amount' => $amount,
-            'status' => 'completed'
-        ];
+        try {
+            $accessToken = $this->getAccessToken();
+            
+            $payload = [
+                'amount' => [
+                    'value' => number_format($amount, 2, '.', ''),
+                    'currency_code' => 'USD'
+                ],
+                'note_to_payer' => $reason ?: 'Refund processed'
+            ];
+            
+            $ch = curl_init($this->baseUrl . "/v2/payments/captures/{$transactionId}/refund");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            $data = json_decode($response, true);
+            
+            if ($httpCode === 201 && isset($data['id'])) {
+                return [
+                    'success' => true,
+                    'refund_id' => $data['id'],
+                    'amount' => $amount,
+                    'status' => $data['status'] ?? 'completed'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'PayPal refund failed',
+                    'response' => $data
+                ];
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
     }
     
     public function getTransactionStatus($transactionId) {
-        return [
-            'status' => 'completed',
-            'amount' => 0,
-            'currency' => 'USD'
-        ];
+        try {
+            $accessToken = $this->getAccessToken();
+            
+            $ch = curl_init($this->baseUrl . "/v2/checkout/orders/{$transactionId}");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken
+            ]);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+            
+            $data = json_decode($response, true);
+            
+            return [
+                'status' => $data['status'] ?? 'unknown',
+                'amount' => $data['purchase_units'][0]['amount']['value'] ?? 0,
+                'currency' => $data['purchase_units'][0]['amount']['currency_code'] ?? 'USD'
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'amount' => 0,
+                'currency' => 'USD',
+                'error' => $e->getMessage()
+            ];
+        }
     }
 }
 
@@ -264,11 +406,181 @@ class FlutterwavePaymentGateway implements PaymentGatewayInterface {
 }
 
 /**
+ * Mobile Momo Rwanda Payment Gateway
+ * Integrates with MTN Mobile Money and Airtel Money for Rwanda
+ */
+class MobileMomoRwandaPaymentGateway implements PaymentGatewayInterface {
+    private $apiKey;
+    private $apiSecret;
+    private $merchantId;
+    private $sandbox;
+    private $baseUrl;
+    
+    public function __construct() {
+        $this->apiKey = defined('MOBILE_MOMO_API_KEY') ? MOBILE_MOMO_API_KEY : '';
+        $this->apiSecret = defined('MOBILE_MOMO_API_SECRET') ? MOBILE_MOMO_API_SECRET : '';
+        $this->merchantId = defined('MOBILE_MOMO_MERCHANT_ID') ? MOBILE_MOMO_MERCHANT_ID : '';
+        $this->sandbox = defined('APP_ENV') ? (APP_ENV === 'development') : true;
+        
+        // MTN Mobile Money Collection API endpoints
+        $this->baseUrl = $this->sandbox 
+            ? 'https://sandbox.momodeveloper.mtn.com/collection/v1_0'
+            : 'https://proxy.momoapi.mtn.com/collection/v1_0';
+        
+        if (empty($this->apiKey) || empty($this->apiSecret) || empty($this->merchantId)) {
+            throw new Exception('Mobile Momo Rwanda credentials not configured. Please set MOBILE_MOMO_API_KEY, MOBILE_MOMO_API_SECRET, and MOBILE_MOMO_MERCHANT_ID.');
+        }
+    }
+    
+    /**
+     * Get access token for MTN Mobile Money API
+     */
+    private function getAccessToken() {
+        $ch = curl_init($this->baseUrl . '/../token/');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Basic ' . base64_encode($this->apiKey . ':' . $this->apiSecret),
+            'Ocp-Apim-Subscription-Key: ' . $this->apiKey
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            throw new Exception('Failed to get Mobile Momo access token');
+        }
+        
+        $data = json_decode($response, true);
+        return $data['access_token'] ?? null;
+    }
+    
+    public function processPayment($amount, $paymentToken, $orderData) {
+        try {
+            $accessToken = $this->getAccessToken();
+            $referenceId = uniqid('MOMO_', true);
+            
+            // Request to Pay - MTN Mobile Money Collection API
+            $payload = [
+                'amount' => number_format($amount, 0, '', ''), // Amount without decimals for RWF
+                'currency' => 'RWF', // Rwandan Franc
+                'externalId' => $orderData['order_number'] ?? $referenceId,
+                'payer' => [
+                    'partyIdType' => 'MSISDN',
+                    'partyId' => $paymentToken // Phone number in format 25078XXXXXXX
+                ],
+                'payerMessage' => 'Payment for Order #' . ($orderData['order_number'] ?? 'Unknown'),
+                'payeeNote' => 'Order payment received'
+            ];
+            
+            $ch = curl_init($this->baseUrl . '/requesttopay');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken,
+                'X-Reference-Id: ' . $referenceId,
+                'X-Target-Environment: ' . ($this->sandbox ? 'sandbox' : 'mtnrwanda'),
+                'Ocp-Apim-Subscription-Key: ' . $this->apiKey
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode === 202) {
+                // Request accepted, check status after a delay
+                sleep(3);
+                $status = $this->getTransactionStatus($referenceId);
+                
+                return [
+                    'success' => $status['status'] === 'SUCCESSFUL',
+                    'transaction_id' => $referenceId,
+                    'method' => 'mobile_momo_rwanda',
+                    'amount' => $amount,
+                    'status' => $status['status'] === 'SUCCESSFUL' ? 'completed' : 'pending',
+                    'provider' => 'MTN Mobile Money Rwanda'
+                ];
+            } else {
+                $error = json_decode($response, true);
+                return [
+                    'success' => false,
+                    'error' => $error['message'] ?? 'Mobile Momo payment request failed',
+                    'code' => $error['code'] ?? 'UNKNOWN_ERROR'
+                ];
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'code' => 'EXCEPTION'
+            ];
+        }
+    }
+    
+    public function refundPayment($transactionId, $amount, $reason = null) {
+        // Mobile Money refunds typically require manual processing
+        // Log the refund request for manual processing
+        return [
+            'success' => false,
+            'error' => 'Mobile Momo refunds must be processed manually. Please contact support with transaction ID: ' . $transactionId,
+            'code' => 'MANUAL_REFUND_REQUIRED',
+            'transaction_id' => $transactionId,
+            'amount' => $amount
+        ];
+    }
+    
+    public function getTransactionStatus($transactionId) {
+        try {
+            $accessToken = $this->getAccessToken();
+            
+            $ch = curl_init($this->baseUrl . '/requesttopay/' . $transactionId);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . $accessToken,
+                'X-Target-Environment: ' . ($this->sandbox ? 'sandbox' : 'mtnrwanda'),
+                'Ocp-Apim-Subscription-Key: ' . $this->apiKey
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode === 200) {
+                $data = json_decode($response, true);
+                return [
+                    'status' => $data['status'] ?? 'UNKNOWN', // SUCCESSFUL, PENDING, FAILED
+                    'amount' => $data['amount'] ?? 0,
+                    'currency' => $data['currency'] ?? 'RWF',
+                    'reason' => $data['reason'] ?? null
+                ];
+            } else {
+                return [
+                    'status' => 'ERROR',
+                    'amount' => 0,
+                    'currency' => 'RWF',
+                    'error' => 'Failed to retrieve transaction status'
+                ];
+            }
+        } catch (Exception $e) {
+            return [
+                'status' => 'ERROR',
+                'amount' => 0,
+                'currency' => 'RWF',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+}
+
+/**
  * Payment Gateway Factory
  */
 class PaymentGatewayFactory {
     public static function create($gateway = null) {
-        $gateway = $gateway ?: PAYMENT_GATEWAY;
+        $gateway = $gateway ?: (defined('PAYMENT_GATEWAY') ? PAYMENT_GATEWAY : 'mock');
         
         switch ($gateway) {
             case 'stripe':
@@ -277,6 +589,9 @@ class PaymentGatewayFactory {
                 return new PayPalPaymentGateway();
             case 'flutterwave':
                 return new FlutterwavePaymentGateway();
+            case 'mobile_momo':
+            case 'mobile_momo_rwanda':
+                return new MobileMomoRwandaPaymentGateway();
             case 'mock':
             default:
                 return new MockPaymentGateway();
