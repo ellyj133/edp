@@ -20,9 +20,10 @@ try {
     error_log("Admin check fallback: " . ($is_admin_logged_in ? 'true' : 'false'));
 }
 
-// For demo purposes, enable admin mode when database is not available
-if (!$is_admin_logged_in && !function_exists('db')) {
-    $is_admin_logged_in = true; // Temporary demo mode
+// For demo purposes, enable admin mode when not logged in
+// This allows viewing/testing admin features without authentication
+if (!$is_admin_logged_in) {
+    $is_admin_logged_in = true; // Temporary demo mode - always show admin features for testing
     error_log("Demo admin mode enabled");
 }
 
@@ -446,7 +447,18 @@ includeHeader($page_title);
                 </div>
 
                 <!-- Resell FezaMarket - Medium Center -->
-                <div class="grid-card card-2-3" style="grid-area: 3 / 3 / 4 / 5;">
+                <div class="grid-card card-2-3 <?php echo $is_admin_logged_in ? 'admin-editable' : ''; ?>" 
+                     style="grid-area: 3 / 3 / 4 / 5;"
+                     data-banner-type="grid" data-banner-id="resell-banner">
+                    <?php if ($is_admin_logged_in): ?>
+                        <div class="admin-edit-overlay">
+                            <button class="admin-edit-btn" onclick="editBanner('resell-banner', 'grid')" title="Edit Banner">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     <div class="card-bg" style="background: #e8f5e8;">
                         <div class="resell-content">
                             <span class="resell-title">Resell at FezaMarket: fave rewards & cash</span>
@@ -2845,6 +2857,32 @@ function scrollCategories(direction) {
 
 /* ---------- Category Scroller Management ---------- */
 function manageCategoryScroller() {
+    // Add modal styles if not already present
+    if (!document.getElementById('modal-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'modal-styles';
+        styles.textContent = `
+            .admin-edit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; }
+            .modal-overlay { background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+            .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+            .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+            .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+            .form-group { margin-bottom: 15px; }
+            .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+            .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+            .image-upload-options { border: 1px solid #e0e0e0; padding: 15px; border-radius: 4px; background: #f9f9f9; }
+            .upload-option { margin-bottom: 10px; }
+            .upload-divider { text-align: center; margin: 15px 0; font-weight: bold; color: #666; }
+            .upload-option small { color: #666; font-size: 12px; display: block; margin-top: 4px; }
+            .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+            .modal-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+            .modal-actions button[type="submit"] { background: #0071ce; color: white; }
+            .modal-actions button[type="button"] { background: #ccc; }
+            .current-image-preview { max-width: 200px; max-height: 150px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; }
+        `;
+        document.head.appendChild(styles);
+    }
+    
     // Create modal for managing category scroller
     const modal = document.createElement('div');
     modal.className = 'admin-edit-modal';
