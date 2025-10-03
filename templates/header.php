@@ -544,12 +544,14 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
             
             .feza-main-header {
                 height: auto;
-                padding: 8px 0;
+                padding: 0;
+                margin: 0;
             }
             
             .feza-main-content {
                 flex-direction: column;
-                gap: 12px;
+                gap: 0;
+                padding: 0;
             }
             
             .mobile-header-row {
@@ -558,12 +560,13 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
                 justify-content: space-between;
                 width: 100%;
                 order: -1;
+                padding: 12px 16px;
             }
             
             .feza-logo {
                 font-size: 28px;
-                flex: 1;
-                text-align: center;
+                flex: 0;
+                text-align: left;
             }
             
             .mobile-menu-toggle {
@@ -578,6 +581,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
             .feza-search-container {
                 width: 100%;
                 order: 2;
+                padding: 0 16px 12px 16px;
             }
             
             .feza-search-form {
@@ -778,22 +782,13 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
         <div class="feza-main-content">
             <!-- Mobile Header Row -->
             <div class="mobile-header-row">
-                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
-                    <i class="fas fa-bars"></i>
-                </button>
-                
                 <a href="/" class="feza-logo">
                     <span class="f">F</span><span class="e">e</span><span class="z">z</span><span class="a">a</span>
                 </a>
                 
-                <div class="feza-header-icons">
-                    <a href="/cart.php" class="feza-header-icon" title="Shopping Cart">
-                        <i class="fas fa-shopping-cart"></i>
-                        <?php if ($cart_count > 0): ?>
-                            <span class="feza-notification-badge"><?php echo min($cart_count, 99); ?></span>
-                        <?php endif; ?>
-                    </a>
-                </div>
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
             
             <!-- Desktop Logo -->

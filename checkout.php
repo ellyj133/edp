@@ -196,8 +196,14 @@ $page_title = 'Checkout';
 includeHeader($page_title);
 ?>
 
-<div class="container">
-    <div class="row">
+<style>
+body {
+    background: #f5f5f5;
+}
+</style>
+
+<div class="container checkout-container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <div class="row" style="display: flex; justify-content: center; gap: 20px;">
         <div class="col-md-8">
             <h1 class="mb-4">Checkout</h1>
             
