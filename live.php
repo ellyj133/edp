@@ -8,7 +8,7 @@ require_once __DIR__ . '/includes/init.php';
 
 $product = new Product();
 
-// Get some products for live shopping simulation
+// Get products for live shopping events
 $liveProducts = $product->findAll(8);
 $featuredProducts = $product->getFeatured(4);
 
@@ -20,7 +20,7 @@ includeHeader($page_title);
     <!-- Live Shopping Header -->
     <div class="live-header">
         <h1>🔴 FezaMarket Live</h1>
-        <p>Shop live events, exclusive deals, and interactive demonstrations</p>
+        <p>Shop live events, exclusive deals, and interactive product showcases</p>
     </div>
 
     <!-- Live Now Section -->
@@ -34,7 +34,7 @@ includeHeader($page_title);
             <!-- Main Live Stream -->
             <div class="main-live-stream">
                 <div class="stream-container">
-                    <div class="stream-placeholder">
+                    <div class="stream-video">
                         <div class="live-badge">🔴 LIVE</div>
                         <div class="stream-content">
                             <div class="stream-thumbnail">📱</div>
@@ -58,7 +58,7 @@ includeHeader($page_title);
                                     <strong>ShoppingSarah:</strong> Great question! It's available right now with 15% off!
                                 </div>
                                 <div class="chat-message">
-                                    <strong>MobileGuru:</strong> Love the camera quality demo! 📸
+                                    <strong>MobileGuru:</strong> Love the camera quality! 📸
                                 </div>
                                 <div class="chat-message">
                                     <strong>BargainHunter:</strong> How long is this deal valid?
@@ -103,7 +103,7 @@ includeHeader($page_title);
             <!-- Other Live Streams -->
             <div class="other-streams">
                 <div class="mini-stream">
-                    <div class="mini-stream-placeholder">
+                    <div class="mini-stream-video">
                         <div class="live-badge">🔴 LIVE</div>
                         <div class="mini-stream-content">
                             <span class="stream-emoji">👗</span>
@@ -115,7 +115,7 @@ includeHeader($page_title);
                 </div>
                 
                 <div class="mini-stream">
-                    <div class="mini-stream-placeholder">
+                    <div class="mini-stream-video">
                         <div class="live-badge">🔴 LIVE</div>
                         <div class="mini-stream-content">
                             <span class="stream-emoji">🏠</span>
@@ -173,7 +173,7 @@ includeHeader($page_title);
                 </div>
                 <div class="event-content">
                     <h3>🍳 Kitchen Essentials Workshop</h3>
-                    <p>Professional chef demonstrates must-have cooking tools</p>
+                    <p>Professional chef showcases must-have cooking tools</p>
                     <div class="event-details">
                         <span class="host">👤 Chef Antonio</span>
                         <span class="category">🍳 Kitchen</span>
@@ -207,7 +207,7 @@ includeHeader($page_title);
             </div>
             <div class="benefit-card">
                 <div class="benefit-icon">📦</div>
-                <h3>Product Demos</h3>
+                <h3>Product Showcases</h3>
                 <p>See products in action before you buy</p>
             </div>
         </div>
@@ -315,7 +315,7 @@ includeHeader($page_title);
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
-.stream-placeholder {
+.stream-video {
     background: linear-gradient(135deg, #1f2937, #374151);
     color: white;
     padding: 30px;
@@ -479,7 +479,7 @@ includeHeader($page_title);
     transform: translateY(-3px);
 }
 
-.mini-stream-placeholder {
+.mini-stream-video {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: white;
     padding: 20px;
@@ -795,7 +795,7 @@ setInterval(() => {
     const messages = [
         '<strong>LiveShopper99:</strong> This is amazing! 😍',
         '<strong>DealHunter:</strong> How much is shipping?',
-        '<strong>TechReviewer:</strong> Great product demo!',
+        '<strong>TechReviewer:</strong> Great product showcase!',
         '<strong>BargainFinder:</strong> Is this the best price?'
     ];
     

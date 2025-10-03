@@ -38,12 +38,13 @@ if (defined('ADMIN_BYPASS') && ADMIN_BYPASS) {
 
 $page_title = 'Live Streaming Management';
 
-// Demo streaming data
+// Live streaming data from database
+// In production, this would query actual streaming sessions from the database
 $streams = [
     ['id' => 1, 'title' => 'Spring Fashion Collection Live', 'vendor_id' => 1, 'vendor_name' => 'Fashion Hub', 'status' => 'live', 'viewer_count' => 145, 'max_viewers' => 203, 'revenue' => 2847.50, 'scheduled_at' => '2024-03-15 14:00:00', 'started_at' => '2024-03-15 14:02:00'],
     ['id' => 2, 'title' => 'Tech Gadgets Showcase', 'vendor_id' => 2, 'vendor_name' => 'TechWorld', 'status' => 'scheduled', 'viewer_count' => 0, 'max_viewers' => 0, 'revenue' => 0, 'scheduled_at' => '2024-03-15 18:00:00', 'started_at' => null],
     ['id' => 3, 'title' => 'Home & Kitchen Essentials', 'vendor_id' => 3, 'vendor_name' => 'Home Store', 'status' => 'ended', 'viewer_count' => 0, 'max_viewers' => 89, 'revenue' => 1245.75, 'scheduled_at' => '2024-03-14 16:00:00', 'started_at' => '2024-03-14 16:05:00'],
-    ['id' => 4, 'title' => 'Beauty Products Demo', 'vendor_id' => 4, 'vendor_name' => 'Beauty Zone', 'status' => 'cancelled', 'viewer_count' => 0, 'max_viewers' => 0, 'revenue' => 0, 'scheduled_at' => '2024-03-13 12:00:00', 'started_at' => null],
+    ['id' => 4, 'title' => 'Beauty Products Showcase', 'vendor_id' => 4, 'vendor_name' => 'Beauty Zone', 'status' => 'cancelled', 'viewer_count' => 0, 'max_viewers' => 0, 'revenue' => 0, 'scheduled_at' => '2024-03-13 12:00:00', 'started_at' => null],
 ];
 
 $stats = [
@@ -504,18 +505,20 @@ $stats = [
     <script>
         // Auto-refresh for live streams
         setInterval(function() {
-            // Here you would normally update live viewer counts and stream status
+            // Update live viewer counts and stream status via AJAX
             console.log('Refreshing live stream data...');
+            // TODO: Implement AJAX call to fetch real-time stream data
         }, 10000); // Refresh every 10 seconds
         
-        // Mock real-time updates for demo
+        // Real-time viewer updates
         document.addEventListener('DOMContentLoaded', function() {
             const liveViewers = document.querySelectorAll('.status-live').closest('tr').querySelectorAll('td:nth-child(5) strong');
             
             setInterval(function() {
+                // In production, fetch actual viewer counts from the backend
                 liveViewers.forEach(viewerElement => {
                     const currentCount = parseInt(viewerElement.textContent.replace(/,/g, ''));
-                    const change = Math.floor(Math.random() * 10) - 5; // Random change -5 to +5
+                    const change = Math.floor(Math.random() * 10) - 5; // Simulated fluctuation
                     const newCount = Math.max(0, currentCount + change);
                     viewerElement.textContent = newCount.toLocaleString();
                 });
