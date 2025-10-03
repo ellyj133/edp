@@ -89,7 +89,7 @@ foreach ($cartItems as $item) {
 
 // Get user data and addresses
 $userData = $user->find($userId);
-$addresses = $user->getUserAddresses($userId);
+$addresses = $user->getAddresses($userId);
 $paymentMethods = $paymentToken->getUserTokens($userId);
 $userWallet = $wallet->getUserWallet($userId);
 

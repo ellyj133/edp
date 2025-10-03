@@ -792,7 +792,7 @@ includeHeader($page_title);
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
-                                <button class="wishlist-heart">♡</button>
+                                <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                             </div>
                             <div class="product-details">
                                 <div class="price-section">
@@ -949,7 +949,7 @@ includeHeader($page_title);
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
-                                <button class="wishlist-heart">♡</button>
+                                <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                                 <?php if ($index < 2): ?>
                                     <div class="rollback-badge">Rollback</div>
                                 <?php endif; ?>
@@ -1004,7 +1004,7 @@ includeHeader($page_title);
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
-                                <button class="wishlist-heart">♡</button>
+                                <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                             </div>
                             <div class="product-details">
                                 <div class="price-section">
@@ -1144,7 +1144,7 @@ includeHeader($page_title);
                         <div class="walmart-product-card">
                             <div class="product-image-container">
                                 <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
-                                <button class="wishlist-heart">♡</button>
+                                <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                             </div>
                             <div class="product-details">
                                 <div class="price-section">
@@ -3063,6 +3063,15 @@ function closeHimHerModal() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Homepage with admin editing and add to cart functionality loaded');
 });
+</script>
+
+<!-- Purchase Flows Scripts -->
+<script src="/assets/js/ui.js"></script>
+<script src="/assets/js/purchase-flows.js"></script>
+<script>
+    // Initialize purchase flows with globals
+    window.isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+    window.csrfToken = '<?php echo csrfToken(); ?>';
 </script>
 
 <?php if ($is_admin_logged_in): ?>
