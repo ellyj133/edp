@@ -316,23 +316,25 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="<?php echo $shoes_bg_style; ?> background-size: cover;">
-                        <div class="card-content-wrapper">
-                            <div class="text-content">
-                                <span class="small-tag"><?php echo h($shoes_title); ?></span>
-                                <?php if ($shoes_banner && (isset($shoes_banner['fg_image_path']) || isset($shoes_banner['image_url']))): ?>
-                                    <div class="card-image-small">
-                                        <img src="<?php echo h($shoes_banner['fg_image_path'] ?: $shoes_banner['image_url']); ?>" alt="<?php echo h($shoes_title); ?>" style="object-fit: cover;">
-                                    </div>
-                                <?php else: ?>
-                                    <div class="card-image-small">
-                                        <img src="https://picsum.photos/200/150?random=shoes1" alt="Fall Shoes" style="object-fit: cover;">
-                                    </div>
-                                <?php endif; ?>
-                                <a href="<?php echo h($shoes_link); ?>" class="shop-now-link">Shop now</a>
+                    <a href="<?php echo h($shoes_link); ?>" class="grid-card-link">
+                        <div class="card-bg" style="<?php echo $shoes_bg_style; ?> background-size: cover;">
+                            <div class="card-content-wrapper">
+                                <div class="text-content">
+                                    <span class="small-tag"><?php echo h($shoes_title); ?></span>
+                                    <?php if ($shoes_banner && (isset($shoes_banner['fg_image_path']) || isset($shoes_banner['image_url']))): ?>
+                                        <div class="card-image-small">
+                                            <img src="<?php echo h($shoes_banner['fg_image_path'] ?: $shoes_banner['image_url']); ?>" alt="<?php echo h($shoes_title); ?>" style="object-fit: cover;">
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="card-image-small">
+                                            <img src="https://picsum.photos/200/150?random=shoes1" alt="Fall Shoes" style="object-fit: cover;">
+                                        </div>
+                                    <?php endif; ?>
+                                    <span class="shop-now-link">Shop now</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- FezaMarket Cash Back - Medium Center -->
@@ -348,26 +350,28 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: linear-gradient(135deg, #004c91 0%, #0071ce 100%); background-size: cover;">
-                        <div class="cashback-content">
-                            <div class="cashback-text">
-                                <span class="cashback-small">FezaMarket members earn</span>
-                                <div class="cashback-big">
-                                    <span class="percent">5%</span> <span class="cashback-desc">cash back at<br><strong>FezaMarket</strong></span>
+                    <a href="/membership" class="grid-card-link">
+                        <div class="card-bg" style="background: linear-gradient(135deg, #004c91 0%, #0071ce 100%); background-size: cover;">
+                            <div class="cashback-content">
+                                <div class="cashback-text">
+                                    <span class="cashback-small">FezaMarket members earn</span>
+                                    <div class="cashback-big">
+                                        <span class="percent">5%</span> <span class="cashback-desc">cash back at<br><strong>FezaMarket</strong></span>
+                                    </div>
+                                    <span class="learn-link">Learn how</span>
                                 </div>
-                                <a href="/membership" class="learn-link">Learn how</a>
-                            </div>
-                            <div class="card-visual-right">
-                                <div class="credit-card-visual">
-                                    <div class="card-inner">
-                                        <div class="card-chip"></div>
-                                        <div class="card-brand">FezaPay</div>
-                                        <div class="card-logo">★</div>
+                                <div class="card-visual-right">
+                                    <div class="credit-card-visual">
+                                        <div class="card-inner">
+                                            <div class="card-chip"></div>
+                                            <div class="card-brand">FezaPay</div>
+                                            <div class="card-logo">★</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Leaf Blowers - Small Right -->
@@ -383,15 +387,17 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%); background-size: cover;">
-                        <div class="small-promo-content">
-                            <span class="promo-tag-small">Leaf blowers, mowers & more</span>
-                            <div class="promo-image-small">
-                                <img src="https://picsum.photos/120/80?random=garden1" alt="Garden Tools" style="object-fit: cover;">
+                    <a href="/category/garden" class="grid-card-link">
+                        <div class="card-bg" style="background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%); background-size: cover;">
+                            <div class="small-promo-content">
+                                <span class="promo-tag-small">Leaf blowers, mowers & more</span>
+                                <div class="promo-image-small">
+                                    <img src="https://picsum.photos/120/80?random=garden1" alt="Garden Tools" style="object-fit: cover;">
+                                </div>
+                                <span class="shop-now-link">Shop now</span>
                             </div>
-                            <a href="/category/garden" class="shop-now-link">Shop now</a>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Dreamy Bedding - Medium Left -->
@@ -407,19 +413,21 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: #f8f9fa; background-size: cover;">
-                        <div class="bedding-content">
-                            <span class="promo-text">Save on dreamy bedding</span>
-                            <div class="product-showcase-inline">
-                                <?php 
-                                $bedding_product = !empty($home_garden) ? safeNormalizeProduct($home_garden[0]) : safeNormalizeProduct(null);
-                                ?>
-                                <img src="<?php echo h($bedding_product['image']); ?>" alt="Bedding" class="bedding-img" style="object-fit: cover;">
-                                <div class="price-tag">from $50</div>
+                    <a href="/category/bedding" class="grid-card-link">
+                        <div class="card-bg" style="background: #f8f9fa; background-size: cover;">
+                            <div class="bedding-content">
+                                <span class="promo-text">Save on dreamy bedding</span>
+                                <div class="product-showcase-inline">
+                                    <?php 
+                                    $bedding_product = !empty($home_garden) ? safeNormalizeProduct($home_garden[0]) : safeNormalizeProduct(null);
+                                    ?>
+                                    <img src="<?php echo h($bedding_product['image']); ?>" alt="Bedding" class="bedding-img" style="object-fit: cover;">
+                                    <div class="price-tag">from $50</div>
+                                </div>
+                                <span class="shop-now-link">Shop now</span>
                             </div>
-                            <a href="/category/bedding" class="shop-now-link">Shop now</a>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Tech Savings - Small Right -->
@@ -435,15 +443,17 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: #fff3e0; background-size: cover;">
-                        <div class="tech-savings-content">
-                            <span class="savings-tag">Savings on tech—delivered fast</span>
-                            <div class="tech-image-small">
-                                <img src="https://picsum.photos/120/80?random=laptop1" alt="Tech" style="object-fit: cover;">
+                    <a href="/category/electronics" class="grid-card-link">
+                        <div class="card-bg" style="background: #fff3e0; background-size: cover;">
+                            <div class="tech-savings-content">
+                                <span class="savings-tag">Savings on tech—delivered fast</span>
+                                <div class="tech-image-small">
+                                    <img src="https://picsum.photos/120/80?random=laptop1" alt="Tech" style="object-fit: cover;">
+                                </div>
+                                <span class="shop-now-small">Shop now</span>
                             </div>
-                            <a href="/category/electronics" class="shop-now-small">Shop now</a>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Resell FezaMarket - Medium Center -->
@@ -459,22 +469,24 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: #e8f5e8;">
-                        <div class="resell-content">
-                            <span class="resell-title">Resell at FezaMarket: fave rewards & cash</span>
-                            <div class="resell-product">
-                                <div class="watch-container">
-                                    <?php 
-                                    $watch_product = !empty($electronics) ? safeNormalizeProduct($electronics[0]) : safeNormalizeProduct(null);
-                                    ?>
-                                    <img src="<?php echo h($watch_product['image']); ?>" alt="Smart Watch" class="watch-img">
-                                    <div class="discount-badge-yellow">Up to 65% off</div>
+                    <a href="/resell" class="grid-card-link">
+                        <div class="card-bg" style="background: #e8f5e8;">
+                            <div class="resell-content">
+                                <span class="resell-title">Resell at FezaMarket: fave rewards & cash</span>
+                                <div class="resell-product">
+                                    <div class="watch-container">
+                                        <?php 
+                                        $watch_product = !empty($electronics) ? safeNormalizeProduct($electronics[0]) : safeNormalizeProduct(null);
+                                        ?>
+                                        <img src="<?php echo h($watch_product['image']); ?>" alt="Smart Watch" class="watch-img">
+                                        <div class="discount-badge-yellow">Up to 65% off</div>
+                                    </div>
+                                    <div class="flash-deal-badge">Flash Deal</div>
                                 </div>
-                                <div class="flash-deal-badge">Flash Deal</div>
+                                <span class="learn-more-link">Learn more</span>
                             </div>
-                            <a href="/resell" class="learn-more-link">Learn more</a>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Flash Deal - Small Right -->
@@ -490,20 +502,22 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: #fff9c4;">
-                        <div class="flash-item-content">
-                            <?php 
-                            $flash_product = !empty($electronics) && count($electronics) > 1 ? 
-                                safeNormalizeProduct($electronics[1]) : safeNormalizeProduct(null);
-                            ?>
-                            <div class="flash-item-image">
-                                <img src="<?php echo h($flash_product['image']); ?>" alt="Flash Deal">
-                            </div>
-                            <div class="flash-deal-text">
-                                <div class="flash-badge">Flash Deal</div>
+                    <a href="/deals/flash" class="grid-card-link">
+                        <div class="card-bg" style="background: #fff9c4;">
+                            <div class="flash-item-content">
+                                <?php 
+                                $flash_product = !empty($electronics) && count($electronics) > 1 ? 
+                                    safeNormalizeProduct($electronics[1]) : safeNormalizeProduct(null);
+                                ?>
+                                <div class="flash-item-image">
+                                    <img src="<?php echo h($flash_product['image']); ?>" alt="Flash Deal">
+                                </div>
+                                <div class="flash-deal-text">
+                                    <div class="flash-badge">Flash Deal</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Miss Mouth's - Small Left -->
@@ -519,15 +533,17 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: linear-gradient(45deg, #e3f2fd 0%, #bbdefb 100%);">
-                        <div class="messy-eater-content">
-                            <span class="product-tag-small">Miss Mouth's Messy Eater</span>
-                            <div class="product-image-container">
-                                <img src="https://picsum.photos/100/120?random=baby1" alt="Baby Product">
+                    <a href="/category/baby" class="grid-card-link">
+                        <div class="card-bg" style="background: linear-gradient(45deg, #e3f2fd 0%, #bbdefb 100%);">
+                            <div class="messy-eater-content">
+                                <span class="product-tag-small">Miss Mouth's Messy Eater</span>
+                                <div class="product-image-container">
+                                    <img src="https://picsum.photos/100/120?random=baby1" alt="Baby Product">
+                                </div>
+                                <span class="shop-now-tiny">Shop now</span>
                             </div>
-                            <a href="/category/baby" class="shop-now-tiny">Shop now</a>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- New for Him & Her - Large Right -->
@@ -596,17 +612,19 @@ includeHeader($page_title);
                             </button>
                         </div>
                     <?php endif; ?>
-                    <div class="card-bg" style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
-                        <div class="burger-king-content">
-                            <div class="bk-text">
-                                <span class="bk-title">FezaMarket+ Members get 25% off Burger King®</span>
-                                <a href="/partnership" class="learn-more-btn-orange">Learn more</a>
-                            </div>
-                            <div class="bk-food-image">
-                                <img src="https://picsum.photos/180/120?random=burger1" alt="Food">
+                    <a href="/partnership" class="grid-card-link">
+                        <div class="card-bg" style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
+                            <div class="burger-king-content">
+                                <div class="bk-text">
+                                    <span class="bk-title">FezaMarket+ Members get 25% off Burger King®</span>
+                                    <span class="learn-more-btn-orange">Learn more</span>
+                                </div>
+                                <div class="bk-food-image">
+                                    <img src="https://picsum.photos/180/120?random=burger1" alt="Food">
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
             </div>
@@ -707,8 +725,10 @@ includeHeader($page_title);
                             <p><?php echo h($subtitle); ?></p>
                         </a>
                     <?php else: ?>
-                        <h3><?php echo h($title); ?></h3>
-                        <p><?php echo h($subtitle); ?></p>
+                        <div class="promo-card-content">
+                            <h3><?php echo h($title); ?></h3>
+                            <p><?php echo h($subtitle); ?></p>
+                        </div>
                     <?php endif; ?>
                 </div>
                 <?php endfor; ?>
@@ -1271,7 +1291,8 @@ body {
     right: 8px;
     opacity: 0;
     transition: opacity 0.3s ease;
-    z-index: 100;
+    z-index: 1000;
+    pointer-events: auto;
 }
 
 .admin-editable:hover .admin-edit-overlay {
@@ -1337,7 +1358,8 @@ body {
 
 /* Clickable banner links */
 .promo-card-link,
-.social-card-link {
+.social-card-link,
+.grid-card-link {
     display: block;
     text-decoration: none;
     color: inherit;
@@ -1346,7 +1368,8 @@ body {
 }
 
 .promo-card-link:hover,
-.social-card-link:hover {
+.social-card-link:hover,
+.grid-card-link:hover {
     transform: translateY(-2px);
     transition: transform 0.2s ease;
 }
@@ -1363,6 +1386,11 @@ body {
 
 .social-card-link {
     position: relative;
+}
+
+.grid-card-link {
+    position: relative;
+    display: block;
 }
 
 .social-image-card {
