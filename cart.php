@@ -48,18 +48,18 @@ includeHeader($page_title);
                             <div class="cart-item" style="display: flex; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid #eee;">
                                 <div class="item-image" style="width: 100px; height: 100px; margin-right: 1rem;">
                                     <img src="<?php echo getSafeProductImageUrl($item); ?>" 
-                                         alt="<?php echo htmlspecialchars($item['name']); ?>"
+                                         alt="<?php echo htmlspecialchars($item['product_name'] ?? ''); ?>"
                                          style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
                                 </div>
                                 
                                 <div class="item-info" style="flex: 1;">
                                     <h4 style="margin-bottom: 0.5rem;">
                                         <a href="/product.php?id=<?php echo $item['product_id']; ?>">
-                                            <?php echo htmlspecialchars($item['name']); ?>
+                                            <?php echo htmlspecialchars($item['product_name'] ?? ''); ?>
                                         </a>
                                     </h4>
                                     <p class="text-muted">by <?php echo htmlspecialchars($item['vendor_name'] ?? 'Unknown Vendor'); ?></p>
-                                    <p class="text-muted">SKU: <?php echo htmlspecialchars($item['sku']); ?></p>
+                                    <p class="text-muted">SKU: <?php echo htmlspecialchars($item['sku'] ?? ''); ?></p>
                                     <p><strong><?php echo formatPrice($item['price']); ?></strong></p>
                                 </div>
                                 
