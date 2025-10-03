@@ -337,29 +337,46 @@ class Order extends BaseModel {
             if (!empty($orderData['items'])) {
                 $itemStmt = $this->db->prepare("
                     INSERT INTO order_items 
-                    (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name, product_sku, product_image) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (order_id, product_id, vendor_id, qty, price, subtotal, product_name, sku) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
+                $productModel = new Product();
                 foreach ($orderData['items'] as $item) {
+                    // Decrement stock for each item
+                    $stockDecreased = $productModel->decreaseStock($item['product_id'], $item['quantity']);
+                    if (!$stockDecreased) {
+                        throw new Exception("Insufficient stock for product ID: {$item['product_id']}");
+                    }
+                    
                     $itemStmt->execute([
                         $orderId,
                         $item['product_id'],
                         $item['vendor_id'] ?? null,
                         $item['quantity'],
                         $item['unit_price'],
-                        $item['total_price'],
+                        $item['quantity'] * $item['unit_price'],
                         $item['product_name'],
-                        $item['product_sku'] ?? null,
-                        $item['product_image'] ?? null
+                        $item['product_sku'] ?? null
                     ]);
                 }
             } else {
                 $cart = new Cart();
                 $cartItems = $cart->getCartItems($userId);
+                
+                // Validate cart is not empty
+                if (empty($cartItems)) {
+                    throw new Exception('Cart is empty');
+                }
+                
+                $productModel = new Product();
                 foreach ($cartItems as $item) {
+                    // Decrement stock for each item - this will fail if insufficient stock
+                    $stockDecreased = $productModel->decreaseStock($item['product_id'], $item['quantity']);
+                    if (!$stockDecreased) {
+                        throw new Exception("Insufficient stock for product: {$item['name']}");
+                    }
+                    
                     $this->addOrderItem($orderId, $item);
-                    $product = new Product();
-                    $product->decreaseStock($item['product_id'], $item['quantity']);
                 }
                 $cart->clearCart($userId);
             }
@@ -371,11 +388,11 @@ class Order extends BaseModel {
         }
     }
     private function addOrderItem($orderId, $item) {
-        // Fix #11: Handle missing sku column gracefully
+        // Insert order item with correct column names matching schema
         $stmt = $this->db->prepare("
             INSERT INTO order_items 
-            (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (order_id, product_id, vendor_id, qty, price, subtotal, product_name, sku) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $product = new Product();
         $productData = $product->find($item['product_id']);
@@ -386,7 +403,8 @@ class Order extends BaseModel {
             $item['quantity'],
             $item['price'],
             $item['quantity'] * $item['price'],
-            $item['name'] ?? $productData['name']
+            $item['name'] ?? $productData['name'],
+            $productData['sku'] ?? null
         ]);
     }
     public function getOrderWithItems($orderId, $userId = null) {
