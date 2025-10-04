@@ -350,11 +350,58 @@ include __DIR__ . '/../templates/seller-header.php';
                     <div class="stats-grid">
                         <div class="stat-item">
                             <div class="stat-value" id="viewerCount">0</div>
-                            <div class="stat-label">Viewers</div>
+                            <div class="stat-label">Current Viewers</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value" id="duration">00:00</div>
                             <div class="stat-label">Duration</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="likesCount">0</div>
+                            <div class="stat-label">👍 Likes</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="dislikesCount">0</div>
+                            <div class="stat-label">👎 Dislikes</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="commentsCount">0</div>
+                            <div class="stat-label">💬 Comments</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="ordersCount">0</div>
+                            <div class="stat-label">🛒 Orders</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="revenueAmount">$0.00</div>
+                            <div class="stat-label">💰 Revenue</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>👥 Active Viewers</h3>
+                    <div id="viewersList" style="max-height: 150px; overflow-y: auto; font-size: 13px;">
+                        <div style="text-align: center; color: #6b7280; padding: 10px;">
+                            No viewers yet
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>💬 Live Comments</h3>
+                    <div id="commentsFeed" style="max-height: 200px; overflow-y: auto; font-size: 13px;">
+                        <div style="text-align: center; color: #6b7280; padding: 10px;">
+                            No comments yet
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🛍️ Stream Orders</h3>
+                    <div id="ordersList" style="max-height: 150px; overflow-y: auto; font-size: 13px;">
+                        <div style="text-align: center; color: #6b7280; padding: 10px;">
+                            No orders yet
                         </div>
                     </div>
                 </div>
@@ -372,16 +419,65 @@ include __DIR__ . '/../templates/seller-header.php';
     </div>
 </div>
 
+<!-- End Stream Modal -->
+<div id="endStreamModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%;">
+        <h2 style="margin-bottom: 20px; color: #1f2937;">End Your Live Stream</h2>
+        
+        <div id="streamSummary" style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <div style="font-size: 12px; color: #6b7280;">Duration</div>
+                    <div style="font-size: 20px; font-weight: 600; color: #1f2937;" id="finalDuration">00:00</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #6b7280;">Total Viewers</div>
+                    <div style="font-size: 20px; font-weight: 600; color: #1f2937;" id="finalViewers">0</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #6b7280;">Likes</div>
+                    <div style="font-size: 20px; font-weight: 600; color: #1f2937;" id="finalLikes">0</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #6b7280;">Orders</div>
+                    <div style="font-size: 20px; font-weight: 600; color: #1f2937;" id="finalOrders">0</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: #6b7280;">Revenue</div>
+                <div style="font-size: 24px; font-weight: 700; color: #10b981;" id="finalRevenue">$0.00</div>
+            </div>
+        </div>
+        
+        <p style="margin-bottom: 20px; color: #6b7280;">Would you like to save this stream for viewers to watch later?</p>
+        
+        <div style="display: flex; gap: 10px;">
+            <button onclick="endStreamWithAction('save')" style="flex: 1; padding: 12px; background: #dc2626; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                💾 Save Stream
+            </button>
+            <button onclick="endStreamWithAction('delete')" style="flex: 1; padding: 12px; background: #6b7280; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                🗑️ Delete Stream
+            </button>
+        </div>
+        
+        <button onclick="cancelEndStream()" style="width: 100%; padding: 12px; background: white; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 10px; cursor: pointer;">
+            Cancel
+        </button>
+    </div>
+</div>
+
 <script>
 // Global variables
 let localStream = null;
 let isStreaming = false;
 let streamStartTime = null;
 let durationInterval = null;
+let statsInterval = null;
 let audioContext = null;
 let analyser = null;
 let cameraEnabled = true;
 let micEnabled = true;
+let currentStreamId = null;  // Will be set when stream starts
 
 // Initialize stream setup
 async function initializeStream() {
@@ -601,6 +697,11 @@ function startStreaming() {
         return;
     }
 
+    // In production, this would create a stream record in the database
+    // For now, we'll simulate with a placeholder stream ID
+    // This should be replaced with an API call to create the stream
+    currentStreamId = Date.now(); // Placeholder - should come from API
+    
     isStreaming = true;
     streamStartTime = Date.now();
     
@@ -612,14 +713,186 @@ function startStreaming() {
     // Start duration counter
     durationInterval = setInterval(updateDuration, 1000);
     
-    // Simulate viewer count (in production, this would come from a real-time connection)
-    simulateViewers();
+    // Start fetching stream stats
+    statsInterval = setInterval(updateStreamStats, 5000); // Every 5 seconds
+    updateStreamStats(); // Initial fetch
     
     // In a real implementation, this would connect to a streaming server
     console.log('Stream started with title:', streamTitle);
     
     // Show success message
     showNotification('🎉 You are now LIVE! Your stream is broadcasting to customers.');
+}
+
+function stopStreaming() {
+    // Show end stream modal instead of immediate confirmation
+    showEndStreamModal();
+}
+
+function showEndStreamModal() {
+    if (!currentStreamId) {
+        alert('No active stream found');
+        return;
+    }
+    
+    // Fetch final stats
+    fetch(`/api/live/stats.php?stream_id=${currentStreamId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update modal with final stats
+                document.getElementById('finalDuration').textContent = formatDuration(data.stats.duration);
+                document.getElementById('finalViewers').textContent = data.stats.viewers;
+                document.getElementById('finalLikes').textContent = data.stats.likes;
+                document.getElementById('finalOrders').textContent = data.stats.orders;
+                document.getElementById('finalRevenue').textContent = '$' + data.stats.revenue.toFixed(2);
+            }
+        })
+        .catch(error => console.error('Error fetching final stats:', error));
+    
+    // Show modal
+    document.getElementById('endStreamModal').style.display = 'flex';
+}
+
+function endStreamWithAction(action) {
+    fetch('/api/live/end-stream.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            stream_id: currentStreamId,
+            action: action,
+            video_url: 'placeholder_video_url' // In production, this would be the actual stream recording URL
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Clean up
+            isStreaming = false;
+            clearInterval(durationInterval);
+            clearInterval(statsInterval);
+            
+            // Update UI
+            document.getElementById('goLiveBtn').textContent = 'Go Live';
+            document.getElementById('goLiveBtn').style.background = '#dc2626';
+            updateStatus('ready', 'Stream Ended');
+            
+            // Hide modal
+            document.getElementById('endStreamModal').style.display = 'none';
+            
+            // Show success message
+            if (action === 'save') {
+                showNotification('✅ Stream saved successfully! Viewers can watch it on-demand.');
+            } else {
+                showNotification('✅ Stream ended successfully!');
+            }
+            
+            // Redirect to dashboard after a moment
+            setTimeout(() => {
+                window.location.href = '/seller/live.php';
+            }, 2000);
+        } else {
+            alert('Error ending stream: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to end stream. Please try again.');
+    });
+}
+
+function cancelEndStream() {
+    document.getElementById('endStreamModal').style.display = 'none';
+}
+
+function updateStreamStats() {
+    if (!isStreaming || !currentStreamId) return;
+    
+    fetch(`/api/live/stats.php?stream_id=${currentStreamId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update stats display
+                document.getElementById('viewerCount').textContent = data.stats.current_viewers;
+                document.getElementById('likesCount').textContent = data.stats.likes;
+                document.getElementById('dislikesCount').textContent = data.stats.dislikes;
+                document.getElementById('commentsCount').textContent = data.stats.comments;
+                document.getElementById('ordersCount').textContent = data.stats.orders;
+                document.getElementById('revenueAmount').textContent = '$' + data.stats.revenue.toFixed(2);
+                
+                // Update viewers list
+                const viewersList = document.getElementById('viewersList');
+                if (data.viewers && data.viewers.length > 0) {
+                    viewersList.innerHTML = data.viewers.map(viewer => `
+                        <div style="padding: 5px 10px; border-bottom: 1px solid #e5e7eb;">
+                            👤 ${viewer.username}
+                        </div>
+                    `).join('');
+                } else {
+                    viewersList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 10px;">No viewers yet</div>';
+                }
+                
+                // Update comments feed
+                const commentsFeed = document.getElementById('commentsFeed');
+                if (data.comments && data.comments.length > 0) {
+                    commentsFeed.innerHTML = data.comments.map(comment => `
+                        <div style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb;">
+                            <strong style="color: #0654ba;">${comment.username}:</strong>
+                            <div style="color: #4b5563; margin-top: 2px;">${escapeHtml(comment.text)}</div>
+                            <div style="color: #9ca3af; font-size: 11px; margin-top: 2px;">${formatTimestamp(comment.created_at)}</div>
+                        </div>
+                    `).join('');
+                    commentsFeed.scrollTop = commentsFeed.scrollHeight;
+                } else {
+                    commentsFeed.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 10px;">No comments yet</div>';
+                }
+                
+                // Update orders list
+                const ordersList = document.getElementById('ordersList');
+                if (data.orders && data.orders.length > 0) {
+                    ordersList.innerHTML = data.orders.map(order => `
+                        <div style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb;">
+                            <div style="font-weight: 600; color: #1f2937;">${order.product_name}</div>
+                            <div style="color: #6b7280; font-size: 12px;">
+                                ${order.username} • $${order.amount.toFixed(2)}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    ordersList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 10px;">No orders yet</div>';
+                }
+            }
+        })
+        .catch(error => console.error('Error updating stats:', error));
+}
+
+function formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return date.toLocaleDateString();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function stopStreaming() {

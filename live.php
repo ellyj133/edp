@@ -7,6 +7,10 @@
 require_once __DIR__ . '/includes/init.php';
 
 $product = new Product();
+$liveStream = new LiveStream();
+
+// Get active live streams from database
+$activeStreams = $liveStream->getActiveStreams(10);
 
 // Get products for live shopping events
 $liveProducts = $product->findAll(8);
@@ -27,23 +31,42 @@ includeHeader($page_title);
     <section class="live-now-section">
         <div class="section-header">
             <h2>🔴 Live Now</h2>
-            <span class="live-count">3 live events</span>
+            <span class="live-count"><?php echo count($activeStreams); ?> live events</span>
         </div>
         
+        <?php if (count($activeStreams) > 0): ?>
         <div class="live-streams-grid">
             <!-- Main Live Stream -->
-            <div class="main-live-stream">
+            <?php 
+            $mainStream = $activeStreams[0] ?? null;
+            if ($mainStream):
+                $streamProducts = $liveStream->getStreamProducts($mainStream['id']);
+                $streamStats = $liveStream->getStreamStats($mainStream['id']);
+            ?>
+            <div class="main-live-stream" data-stream-id="<?php echo $mainStream['id']; ?>">
                 <div class="stream-container">
                     <div class="stream-video">
                         <div class="live-badge">🔴 LIVE</div>
                         <div class="stream-content">
                             <div class="stream-thumbnail">📱</div>
-                            <h3>Tech Tuesday: Latest Smartphones</h3>
-                            <p>Join Sarah as she showcases the newest smartphone releases with exclusive live pricing!</p>
+                            <h3><?php echo htmlspecialchars($mainStream['title']); ?></h3>
+                            <p><?php echo htmlspecialchars($mainStream['description'] ?? 'Join us for exclusive deals!'); ?></p>
                         </div>
                         <div class="stream-stats">
-                            <span class="viewer-count">👥 2,347 watching</span>
-                            <span class="live-timer">⏰ 23:45</span>
+                            <span class="viewer-count" id="viewer-count-<?php echo $mainStream['id']; ?>">
+                                👥 <span class="count"><?php echo $mainStream['current_viewers'] ?? 0; ?></span> watching
+                            </span>
+                            <span class="live-timer" id="live-timer-<?php echo $mainStream['id']; ?>">⏰ 00:00</span>
+                        </div>
+                        
+                        <!-- Interaction Buttons -->
+                        <div class="stream-actions" style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+                            <button class="btn-icon like-btn" data-stream-id="<?php echo $mainStream['id']; ?>" onclick="handleLike(this)">
+                                👍 <span class="count"><?php echo $streamStats['likes_count'] ?? 0; ?></span>
+                            </button>
+                            <button class="btn-icon dislike-btn" data-stream-id="<?php echo $mainStream['id']; ?>" onclick="handleDislike(this)">
+                                👎 <span class="count"><?php echo $streamStats['dislikes_count'] ?? 0; ?></span>
+                            </button>
                         </div>
                     </div>
                     
@@ -51,24 +74,13 @@ includeHeader($page_title);
                         <div class="chat-section">
                             <h4>Live Chat</h4>
                             <div class="chat-messages" id="chatMessages">
-                                <div class="chat-message">
-                                    <strong>TechFan23:</strong> When will the iPhone be available?
-                                </div>
-                                <div class="chat-message">
-                                    <strong>ShoppingSarah:</strong> Great question! It's available right now with 15% off!
-                                </div>
-                                <div class="chat-message">
-                                    <strong>MobileGuru:</strong> Love the camera quality! 📸
-                                </div>
-                                <div class="chat-message">
-                                    <strong>BargainHunter:</strong> How long is this deal valid?
-                                </div>
+                                <!-- Comments will be loaded here -->
                             </div>
                             
                             <?php if (Session::isLoggedIn()): ?>
                                 <div class="chat-input">
                                     <input type="text" placeholder="Join the conversation..." id="chatInput">
-                                    <button onclick="sendMessage()" class="btn btn-sm">Send</button>
+                                    <button onclick="sendMessage(<?php echo $mainStream['id']; ?>)" class="btn btn-sm">Send</button>
                                 </div>
                             <?php else: ?>
                                 <div class="chat-login">
@@ -79,19 +91,30 @@ includeHeader($page_title);
                         
                         <div class="featured-products">
                             <h4>Featured in Stream</h4>
-                            <?php foreach (array_slice($liveProducts, 0, 2) as $product): ?>
+                            <?php foreach (array_slice($streamProducts, 0, 2) as $streamProduct): 
+                                // Get full product details
+                                $productDetails = $product->findById($streamProduct['product_id']);
+                                if (!$productDetails) continue;
+                            ?>
                                 <div class="stream-product">
-                                    <img src="<?php echo getSafeProductImageUrl($product); ?>" 
-                                         alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                    <img src="<?php echo getSafeProductImageUrl($productDetails); ?>" 
+                                         alt="<?php echo htmlspecialchars($productDetails['name']); ?>">
                                     <div class="product-info">
-                                        <h5><?php echo htmlspecialchars(substr($product['name'], 0, 30)); ?>...</h5>
+                                        <h5><?php echo htmlspecialchars(substr($productDetails['name'], 0, 30)); ?>...</h5>
                                         <div class="live-price">
-                                            <span class="current-price"><?php echo formatPrice($product['price']); ?></span>
-                                            <span class="original-price"><?php echo formatPrice($product['price'] * 1.2); ?></span>
+                                            <span class="current-price"><?php echo formatPrice($streamProduct['special_price'] ?? $productDetails['price']); ?></span>
+                                            <?php if ($streamProduct['special_price']): ?>
+                                            <span class="original-price"><?php echo formatPrice($productDetails['price']); ?></span>
+                                            <?php endif; ?>
                                         </div>
-                                        <button class="btn btn-sm live-buy-btn" onclick="addToCart(<?php echo $product['id']; ?>)">
-                                            Buy Now
-                                        </button>
+                                        <div class="product-buttons" style="display: flex; gap: 5px; margin-top: 10px;">
+                                            <button class="btn btn-sm btn-primary live-buy-btn" onclick="buyNow(<?php echo $productDetails['id']; ?>)">
+                                                Buy Now
+                                            </button>
+                                            <button class="btn btn-sm btn-outline live-cart-btn" onclick="addToCart(<?php echo $productDetails['id']; ?>)">
+                                                Add to Cart
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -99,34 +122,33 @@ includeHeader($page_title);
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- Other Live Streams -->
             <div class="other-streams">
-                <div class="mini-stream">
-                    <div class="mini-stream-video">
-                        <div class="live-badge">🔴 LIVE</div>
-                        <div class="mini-stream-content">
-                            <span class="stream-emoji">👗</span>
-                            <h4>Fashion Flash Sale</h4>
-                            <p>Designer pieces up to 70% off</p>
-                            <span class="mini-viewers">👥 892 watching</span>
+                <?php foreach (array_slice($activeStreams, 1, 2) as $stream): ?>
+                <div class="mini-stream" data-stream-id="<?php echo $stream['id']; ?>">
+                    <a href="#" onclick="switchStream(<?php echo $stream['id']; ?>); return false;">
+                        <div class="mini-stream-video">
+                            <div class="live-badge">🔴 LIVE</div>
+                            <div class="mini-stream-content">
+                                <span class="stream-emoji">🛍️</span>
+                                <h4><?php echo htmlspecialchars($stream['title']); ?></h4>
+                                <p><?php echo htmlspecialchars(substr($stream['description'] ?? '', 0, 40)); ?>...</p>
+                                <span class="mini-viewers">👥 <?php echo $stream['current_viewers'] ?? 0; ?> watching</span>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
-                
-                <div class="mini-stream">
-                    <div class="mini-stream-video">
-                        <div class="live-badge">🔴 LIVE</div>
-                        <div class="mini-stream-content">
-                            <span class="stream-emoji">🏠</span>
-                            <h4>Home Makeover Hour</h4>
-                            <p>Transform your space on a budget</p>
-                            <span class="mini-viewers">👥 634 watching</span>
-                        </div>
-                    </div>
-                </div>
+                <?php endforeach; ?>
             </div>
         </div>
+        <?php else: ?>
+        <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px;">
+            <h3 style="color: #6b7280; margin-bottom: 10px;">No Live Streams Right Now</h3>
+            <p style="color: #9ca3af;">Check back soon for exciting live shopping events!</p>
+        </div>
+        <?php endif; ?>
     </section>
 
     <!-- Upcoming Events -->
@@ -411,6 +433,44 @@ includeHeader($page_title);
 
 .chat-login {
     text-align: center;
+}
+
+.btn-icon {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-icon:hover {
+    background: white;
+    transform: scale(1.05);
+}
+
+.btn-icon.active {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-outline {
+    border: 1px solid #d1d5db;
+    background: white;
+}
+
+.btn-outline:hover {
+    background: #f3f4f6;
+}
+
+.product-buttons {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
 }
 
 .stream-product {
@@ -721,63 +781,266 @@ includeHeader($page_title);
 }
 </style>
 
+<!-- Include purchase flows JS -->
+<script src="/assets/js/purchase-flows.js"></script>
+
 <script>
-function addToCart(productId) {
-    // Simulate adding to cart during live shopping
-    fetch('/api/cart.php', {
+// Current stream ID (for main stream)
+let currentStreamId = null;
+let viewerId = null;
+let isLoggedIn = <?php echo Session::isLoggedIn() ? 'true' : 'false'; ?>;
+
+// Initialize stream when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const mainStream = document.querySelector('.main-live-stream');
+    if (mainStream) {
+        currentStreamId = parseInt(mainStream.dataset.streamId);
+        joinStream(currentStreamId);
+        loadComments(currentStreamId);
+        
+        // Update viewer count and comments periodically
+        setInterval(() => {
+            updateViewerCount(currentStreamId);
+            loadComments(currentStreamId);
+        }, 10000); // Every 10 seconds
+        
+        // Update stream timer
+        updateStreamTimer(currentStreamId);
+        setInterval(() => updateStreamTimer(currentStreamId), 1000);
+    }
+});
+
+// Before leaving page, mark viewer as left
+window.addEventListener('beforeunload', function() {
+    if (viewerId && currentStreamId) {
+        leaveStream(currentStreamId, viewerId);
+    }
+});
+
+function joinStream(streamId) {
+    fetch('/api/live/viewers.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            action: 'add',
-            product_id: productId,
-            quantity: 1
+            action: 'join',
+            stream_id: streamId
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const button = event.target;
-            button.textContent = 'Added! ✓';
-            button.style.background = '#10b981';
-            setTimeout(() => {
-                button.textContent = 'Buy Now';
-                button.style.background = '#dc2626';
-            }, 2000);
-        } else {
-            alert('Error adding to cart: ' + data.error);
+            viewerId = data.viewer_id;
+            updateViewerCountDisplay(streamId, data.viewer_count);
         }
     })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+    .catch(error => console.error('Error joining stream:', error));
 }
 
-function sendMessage() {
+function leaveStream(streamId, viewerId) {
+    navigator.sendBeacon('/api/live/viewers.php', JSON.stringify({
+        action: 'leave',
+        stream_id: streamId,
+        viewer_id: viewerId
+    }));
+}
+
+function updateViewerCount(streamId) {
+    fetch(`/api/live/viewers.php?action=count&stream_id=${streamId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateViewerCountDisplay(streamId, data.count);
+        }
+    })
+    .catch(error => console.error('Error updating viewer count:', error));
+}
+
+function updateViewerCountDisplay(streamId, count) {
+    const countElement = document.querySelector(`#viewer-count-${streamId} .count`);
+    if (countElement) {
+        countElement.textContent = count;
+    }
+}
+
+function updateStreamTimer(streamId) {
+    // This would be calculated from stream start time
+    // For now, just incrementing
+    const timerElement = document.getElementById(`live-timer-${streamId}`);
+    if (timerElement && timerElement.dataset.startTime) {
+        const startTime = new Date(timerElement.dataset.startTime);
+        const now = new Date();
+        const diff = Math.floor((now - startTime) / 1000);
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        const seconds = diff % 60;
+        timerElement.textContent = `⏰ ${hours > 0 ? hours + ':' : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+}
+
+function handleLike(button) {
+    if (!isLoggedIn) {
+        window.location.href = '/login.php?return=/live.php';
+        return;
+    }
+    
+    const streamId = parseInt(button.dataset.streamId);
+    const isActive = button.classList.contains('active');
+    const action = isActive ? 'unlike' : 'like';
+    
+    fetch('/api/live/interact.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: action,
+            stream_id: streamId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (isActive) {
+                button.classList.remove('active');
+                const count = parseInt(button.querySelector('.count').textContent);
+                button.querySelector('.count').textContent = Math.max(0, count - 1);
+            } else {
+                button.classList.add('active');
+                const count = parseInt(button.querySelector('.count').textContent);
+                button.querySelector('.count').textContent = count + 1;
+                
+                // Remove dislike if present
+                const dislikeBtn = document.querySelector(`.dislike-btn[data-stream-id="${streamId}"]`);
+                if (dislikeBtn && dislikeBtn.classList.contains('active')) {
+                    dislikeBtn.classList.remove('active');
+                    const dislikeCount = parseInt(dislikeBtn.querySelector('.count').textContent);
+                    dislikeBtn.querySelector('.count').textContent = Math.max(0, dislikeCount - 1);
+                }
+            }
+        } else if (data.error === 'Authentication required') {
+            window.location.href = data.redirect;
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function handleDislike(button) {
+    if (!isLoggedIn) {
+        window.location.href = '/login.php?return=/live.php';
+        return;
+    }
+    
+    const streamId = parseInt(button.dataset.streamId);
+    const isActive = button.classList.contains('active');
+    const action = isActive ? 'undislike' : 'dislike';
+    
+    fetch('/api/live/interact.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: action,
+            stream_id: streamId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (isActive) {
+                button.classList.remove('active');
+                const count = parseInt(button.querySelector('.count').textContent);
+                button.querySelector('.count').textContent = Math.max(0, count - 1);
+            } else {
+                button.classList.add('active');
+                const count = parseInt(button.querySelector('.count').textContent);
+                button.querySelector('.count').textContent = count + 1;
+                
+                // Remove like if present
+                const likeBtn = document.querySelector(`.like-btn[data-stream-id="${streamId}"]`);
+                if (likeBtn && likeBtn.classList.contains('active')) {
+                    likeBtn.classList.remove('active');
+                    const likeCount = parseInt(likeBtn.querySelector('.count').textContent);
+                    likeBtn.querySelector('.count').textContent = Math.max(0, likeCount - 1);
+                }
+            }
+        } else if (data.error === 'Authentication required') {
+            window.location.href = data.redirect;
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function sendMessage(streamId) {
     const input = document.getElementById('chatInput');
     const message = input.value.trim();
     
-    if (message) {
-        const chatMessages = document.getElementById('chatMessages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message';
-        messageDiv.innerHTML = `<strong>You:</strong> ${message}`;
-        
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        input.value = '';
-        
-        // Simulate host response
-        setTimeout(() => {
-            const responseDiv = document.createElement('div');
-            responseDiv.className = 'chat-message';
-            responseDiv.innerHTML = `<strong>Host:</strong> Thanks for joining the chat!`;
-            chatMessages.appendChild(responseDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 2000);
-    }
+    if (!message) return;
+    
+    fetch('/api/live/interact.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'comment',
+            stream_id: streamId,
+            comment: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            input.value = '';
+            loadComments(streamId);
+        } else {
+            alert('Error posting comment: ' + data.error);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function loadComments(streamId) {
+    fetch('/api/live/interact.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'get_comments',
+            stream_id: streamId,
+            limit: 50
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.comments) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) {
+                chatMessages.innerHTML = data.comments.map(comment => `
+                    <div class="chat-message">
+                        <strong>${escapeHtml(comment.username || 'Guest')}:</strong> 
+                        ${escapeHtml(comment.comment_text)}
+                    </div>
+                `).join('');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+    })
+    .catch(error => console.error('Error loading comments:', error));
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function switchStream(streamId) {
+    // This would switch the main stream to another stream
+    window.location.href = `/live.php?stream=${streamId}`;
 }
 
 function setReminder(eventId) {
