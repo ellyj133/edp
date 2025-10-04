@@ -113,8 +113,10 @@ class PurchaseFlowUI {
 
             if (data.success) {
                 this.showToast(data.message || 'Item added to cart!', 'success');
-                if (data.data?.count) {
-                    this.updateCartBadge(data.data.count);
+                // Handle both response formats: data.data.count and data.count
+                const count = data.data?.count || data.count;
+                if (count) {
+                    this.updateCartBadge(count);
                 }
             } else {
                 this.showToast(data.error || 'Failed to add item to cart', 'error');
