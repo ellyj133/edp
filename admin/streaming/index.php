@@ -386,7 +386,7 @@ if ($database_available) {
                                         </td>
                                         <td>
                                             <div>
-                                                <strong><?php echo number_format($stream['viewer_count']); ?></strong>
+                                                <strong><?php echo number_format($stream['current_viewers'] ?? 0); ?></strong>
                                                 <?php if ($stream['max_viewers'] > 0): ?>
                                                 <br><small class="text-muted">Peak: <?php echo number_format($stream['max_viewers']); ?></small>
                                                 <?php endif; ?>
@@ -878,7 +878,7 @@ if ($database_available) {
         });
         
         // Schedule stream
-        document.getElementById('saveScheduleBtn').addEventListener('click', function() {
+        document.getElementById('saveScheduleBtn').addEventListener('click', async function() {
             const form = document.getElementById('scheduleStreamForm');
             const formData = new FormData(form);
             
@@ -891,11 +891,40 @@ if ($database_available) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Scheduling...';
             
-            // In a real implementation, this would call an API
-            alert('Stream scheduling functionality will be implemented with proper API endpoint');
+            const data = {
+                vendor_id: formData.get('vendor_id'),
+                title: formData.get('title'),
+                description: formData.get('description'),
+                scheduled_at: formData.get('scheduled_at')
+            };
             
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-1"></i> Schedule Stream';
+            try {
+                const response = await fetch('/api/admin/streams/schedule.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Stream scheduled successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('scheduleStreamModal')).hide();
+                    form.reset();
+                    loadStreams();
+                    loadStats();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to schedule stream. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i> Schedule Stream';
+            }
         });
         
         // Generate stream key
@@ -992,6 +1021,30 @@ if ($database_available) {
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-save me-1"></i> Save Settings';
+            }
+        });
+        
+        // Load settings when modal opens
+        document.getElementById('streamSettingsModal').addEventListener('show.bs.modal', async function() {
+            try {
+                const response = await fetch('/api/admin/streams/settings.php?action=get');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const form = document.getElementById('streamSettingsForm');
+                    for (let [key, value] of Object.entries(data.settings)) {
+                        const input = form.querySelector(`[name="${key}"]`);
+                        if (input) {
+                            if (input.type === 'checkbox') {
+                                input.checked = value === '1';
+                            } else {
+                                input.value = value;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
             }
         });
         
