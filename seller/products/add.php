@@ -68,6 +68,9 @@ $form = [
     // Classification
     'category_id' => '', 'brand_id' => '', 'tags' => '',
 
+    // Digital Product
+    'is_digital' => 0, 'digital_delivery_info' => '', 'download_limit' => '', 'expiry_days' => '',
+
     // Shipping
     'weight' => '', 'length' => '', 'width' => '', 'height' => '',
     'shipping_class' => 'standard', 'handling_time' => '1',
@@ -219,6 +222,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $meta_keywords   = trim((string)$form['meta_keywords']);
             $focus_keyword   = trim((string)$form['focus_keyword']);
 
+            // Digital product fields
+            $is_digital      = toBool($form['is_digital'] ?? 0);
+            $digital_delivery_info = trim((string)($form['digital_delivery_info'] ?? ''));
+
             try {
                 Database::beginTransaction();
 
@@ -240,6 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'hs_code' => $hs_code, 'country_of_origin' => $origin,
                     'meta_title' => $meta_title, 'meta_description' => $meta_desc,
                     'meta_keywords' => $meta_keywords, 'focus_keyword' => $focus_keyword,
+                    'is_digital' => $is_digital, 'digital_delivery_info' => $digital_delivery_info,
                     'created_at' => $now, 'updated_at' => $now,
                 ];
 
@@ -834,6 +842,48 @@ includeHeader($page_title);
             </div>
         </div>
 
+        <!-- Digital Product -->
+        <div class="seller-form-card">
+            <div class="card-header">
+                <i class="fas fa-download me-2"></i>Digital/Downloadable Product
+            </div>
+            <div class="card-body">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="is_digital" value="1" id="isDigital" onchange="toggleDigitalFields(this.checked)">
+                    <label class="form-check-label" for="isDigital">
+                        <strong>This is a digital/downloadable product</strong>
+                        <small class="d-block text-muted">No physical shipping required</small>
+                    </label>
+                </div>
+                
+                <div id="digitalProductFields" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Upload your digital files after creating the product using the "Manage Digital Files" option in the product details page.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Digital Delivery Instructions</label>
+                        <textarea name="digital_delivery_info" class="form-control" rows="3" placeholder="Provide instructions for customers on how to use the digital product..."><?= h($form['digital_delivery_info'] ?? '') ?></textarea>
+                        <small class="form-text text-muted">This will be displayed on the download page</small>
+                    </div>
+                    
+                    <div class="form-row cols-2">
+                        <div>
+                            <label class="form-label">Download Limit</label>
+                            <input type="number" name="download_limit" class="form-control" value="<?= h($form['download_limit'] ?? '') ?>" placeholder="Leave empty for unlimited">
+                            <small class="form-text text-muted">Number of times customer can download</small>
+                        </div>
+                        <div>
+                            <label class="form-label">Link Expiry (days)</label>
+                            <input type="number" name="expiry_days" class="form-control" value="<?= h($form['expiry_days'] ?? '') ?>" placeholder="Leave empty for no expiry">
+                            <small class="form-text text-muted">Days until download link expires</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Shipping -->
         <div class="seller-form-card">
             <div class="card-header">
@@ -1173,6 +1223,45 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 })();
+</script>
+
+<!-- Digital Product Toggle -->
+<script>
+function toggleDigitalFields(isDigital) {
+    const digitalFields = document.getElementById('digitalProductFields');
+    const shippingSection = document.querySelector('.seller-form-card:has([name="weight"])');
+    
+    if (isDigital) {
+        digitalFields.style.display = 'block';
+        if (shippingSection) {
+            shippingSection.style.opacity = '0.5';
+            shippingSection.style.pointerEvents = 'none';
+            const shippingHeader = shippingSection.querySelector('.card-header');
+            if (shippingHeader && !shippingHeader.querySelector('.digital-note')) {
+                const note = document.createElement('small');
+                note.className = 'digital-note ms-2 text-muted';
+                note.textContent = '(Not applicable for digital products)';
+                shippingHeader.appendChild(note);
+            }
+        }
+    } else {
+        digitalFields.style.display = 'none';
+        if (shippingSection) {
+            shippingSection.style.opacity = '1';
+            shippingSection.style.pointerEvents = 'auto';
+            const note = shippingSection.querySelector('.digital-note');
+            if (note) note.remove();
+        }
+    }
+}
+
+// Check on page load if digital checkbox is checked
+document.addEventListener('DOMContentLoaded', function() {
+    const isDigitalCheckbox = document.getElementById('isDigital');
+    if (isDigitalCheckbox && isDigitalCheckbox.checked) {
+        toggleDigitalFields(true);
+    }
+});
 </script>
 
 <?php includeFooter();
