@@ -791,7 +791,9 @@ includeHeader($page_title);
                             $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
-                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
+                                <a href="<?php echo h($product['url']); ?>" aria-label="View <?php echo h($product['title']); ?>">
+                                    <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
+                                </a>
                                 <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                             </div>
                             <div class="product-details">
@@ -801,7 +803,9 @@ includeHeader($page_title);
                                         <span class="crossed-price"><?php echo h($product['original_price']); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <p class="product-name"><?php echo h($product['title']); ?></p>
+                                <a href="<?php echo h($product['url']); ?>" class="product-name-link">
+                                    <p class="product-name"><?php echo h($product['title']); ?></p>
+                                </a>
                                 <div class="star-rating">
                                     <span class="stars">★★★★★</span>
                                     <span class="review-number"><?php echo $product['reviews_count']; ?></span>
@@ -948,7 +952,9 @@ includeHeader($page_title);
                             $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
-                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
+                                <a href="<?php echo h($product['url']); ?>" aria-label="View <?php echo h($product['title']); ?>">
+                                    <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>" style="object-fit: cover;">
+                                </a>
                                 <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                                 <?php if ($index < 2): ?>
                                     <div class="rollback-badge">Rollback</div>
@@ -962,7 +968,9 @@ includeHeader($page_title);
                                         <span class="crossed-price"><?php echo h($product['original_price']); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <p class="product-name"><?php echo h($product['title']); ?></p>
+                                <a href="<?php echo h($product['url']); ?>" class="product-name-link">
+                                    <p class="product-name"><?php echo h($product['title']); ?></p>
+                                </a>
                                 <div class="action-buttons">
                                     <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['id']; ?>)">Add to Cart</button>
                                     <a href="<?php echo h($product['url']); ?>" class="options-button">Options</a>
@@ -1003,7 +1011,9 @@ includeHeader($page_title);
                             $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
-                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
+                                <a href="<?php echo h($product['url']); ?>" aria-label="View <?php echo h($product['title']); ?>">
+                                    <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
+                                </a>
                                 <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                             </div>
                             <div class="product-details">
@@ -1014,7 +1024,9 @@ includeHeader($page_title);
                                         <span class="crossed-price"><?php echo h($product['original_price']); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <p class="product-name"><?php echo h($product['title']); ?></p>
+                                <a href="<?php echo h($product['url']); ?>" class="product-name-link">
+                                    <p class="product-name"><?php echo h($product['title']); ?></p>
+                                </a>
                                 <div class="star-rating">
                                     <span class="stars">★★★★★</span>
                                     <span class="review-number"><?php echo $product['reviews_count']; ?></span>
@@ -1144,7 +1156,9 @@ includeHeader($page_title);
                             $product = safeNormalizeProduct($product); ?>
                         <div class="walmart-product-card">
                             <div class="product-image-container">
-                                <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
+                                <a href="<?php echo h($product['url']); ?>" aria-label="View <?php echo h($product['title']); ?>">
+                                    <img src="<?php echo h($product['image']); ?>" alt="<?php echo h($product['title']); ?>">
+                                </a>
                                 <button class="wishlist-heart" onclick="toggleWishlist(<?php echo $product['id']; ?>)">♡</button>
                             </div>
                             <div class="product-details">
@@ -1154,7 +1168,9 @@ includeHeader($page_title);
                                         <span class="crossed-price"><?php echo h($product['original_price']); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <p class="product-name"><?php echo h($product['title']); ?></p>
+                                <a href="<?php echo h($product['url']); ?>" class="product-name-link">
+                                    <p class="product-name"><?php echo h($product['title']); ?></p>
+                                </a>
                                 <div class="action-buttons">
                                     <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['id']; ?>)">Add to Cart</button>
                                     <a href="<?php echo h($product['url']); ?>" class="options-button">Options</a>
@@ -2234,6 +2250,32 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
     min-height: 36px;
+}
+
+/* Product name link wrapper */
+.product-name-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.product-name-link:hover .product-name {
+    color: #0654ba;
+    text-decoration: underline;
+}
+
+/* Product image link */
+.product-image-container a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.product-image-container a img {
+    transition: transform 0.3s ease;
+}
+
+.product-image-container a:hover img {
+    transform: scale(1.05);
 }
 
 .star-rating {

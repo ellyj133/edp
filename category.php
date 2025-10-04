@@ -270,6 +270,13 @@ includeHeader($page_title);
 </div>
 
 <style>
+/* Category page specific container spacing - prevent overlap with sticky header */
+body .container {
+    padding-top: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
 .category-header {
     margin-bottom: 30px;
 }
@@ -377,8 +384,9 @@ includeHeader($page_title);
 
 .filters-sidebar {
     position: sticky;
-    top: 20px;
+    top: 100px; /* Adjusted to account for header height */
     height: fit-content;
+    z-index: 10; /* Below header but above regular content */
 }
 
 .filters-card {
@@ -622,16 +630,27 @@ includeHeader($page_title);
 }
 
 @media (max-width: 768px) {
+    /* Adjust container padding for mobile */
+    body .container {
+        padding-top: 15px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
     .category-content {
         grid-template-columns: 1fr;
     }
     
     .filters-sidebar {
         order: 2;
+        position: relative;
+        top: 0;
+        z-index: 1;
     }
     
     .products-section {
         order: 1;
+        z-index: 2;
     }
     
     .products-toolbar {
