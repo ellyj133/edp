@@ -956,7 +956,7 @@ class LiveStream extends BaseModel {
                    COUNT(DISTINCT sv.id) as current_viewers
             FROM {$this->table} ls
             JOIN vendors v ON ls.vendor_id = v.id
-            LEFT JOIN stream_viewers sv ON ls.id = sv.stream_id AND sv.is_active = 1
+            LEFT JOIN stream_viewers sv ON ls.id = sv.stream_id
             WHERE ls.status = 'live'
             GROUP BY ls.id
             ORDER BY current_viewers DESC, ls.started_at DESC
