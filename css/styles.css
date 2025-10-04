@@ -1880,7 +1880,6 @@ footer {
     
     .mobile-menu-toggle {
         display: block !important;
-        order: -1;
     }
     
     /* Hide category dropdown on mobile */
