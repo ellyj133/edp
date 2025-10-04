@@ -94,7 +94,7 @@ class PlatformDataFetcher {
     }
     
     /**
-     * Get trending products (most recently added)
+     * Get trending products (based on recent sales and views)
      */
     public function getTrendingProducts($limit = 8) {
         if (!$this->isDatabaseAvailable()) {
@@ -102,17 +102,24 @@ class PlatformDataFetcher {
         }
         
         try {
+            // Get products with most sales in the last 7 days
             $sql = "SELECT p.*, 
                            c.name as category_name,
                            c.slug as category_slug,
                            u.username as seller_name,
                            u.first_name,
-                           u.last_name
+                           u.last_name,
+                           COALESCE(SUM(oi.quantity), 0) AS sold
                     FROM products p 
                     LEFT JOIN categories c ON p.category_id = c.id
                     LEFT JOIN users u ON p.seller_id = u.id
+                    LEFT JOIN order_items oi ON oi.product_id = p.id
+                    LEFT JOIN orders o ON o.id = oi.order_id 
+                        AND o.created_at >= date('now', '-7 days')
+                        AND o.status IN ('paid','shipped','delivered')
                     WHERE p.status = 'active'
-                    ORDER BY p.created_at DESC
+                    GROUP BY p.id, p.name, p.price, c.name, c.slug, u.username, u.first_name, u.last_name
+                    ORDER BY sold DESC, p.created_at DESC
                     LIMIT :limit";
             
             $stmt = $this->db->prepare($sql);
@@ -120,11 +127,18 @@ class PlatformDataFetcher {
             $stmt->execute();
             
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // If no products with sales, fall back to newest products
+            if (empty($products)) {
+                return $this->fetchPlatformProducts(null, $limit);
+            }
+            
             return $this->normalizeProducts($products);
             
         } catch (Exception $e) {
             error_log("Error fetching trending products: " . $e->getMessage());
-            return [];
+            // Fallback to newest products
+            return $this->fetchPlatformProducts(null, $limit);
         }
     }
     
