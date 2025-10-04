@@ -32,6 +32,9 @@ include __DIR__ . '/header.php';
                 <a href="/seller/orders.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'orders.php' ? 'active' : ''; ?>">
                     <i class="fas fa-shopping-cart"></i> Orders
                 </a>
+                <a href="/seller/live.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'live.php' ? 'active' : ''; ?>">
+                    <i class="fas fa-video"></i> Live
+                </a>
                 <a href="/seller/analytics.php" class="seller-nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'analytics.php' ? 'active' : ''; ?>">
                     <i class="fas fa-chart-line"></i> Analytics
                 </a>
