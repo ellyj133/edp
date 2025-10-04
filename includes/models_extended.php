@@ -946,4 +946,301 @@ class Offer extends BaseModel {
         return $stmt->execute();
     }
 }
+
+class LiveStream extends BaseModel {
+    protected $table = 'live_streams';
+    
+    public function getActiveStreams($limit = 10) {
+        $sql = "
+            SELECT ls.*, v.business_name as vendor_name, v.id as vendor_id,
+                   COUNT(DISTINCT sv.id) as current_viewers
+            FROM {$this->table} ls
+            JOIN vendors v ON ls.vendor_id = v.id
+            LEFT JOIN stream_viewers sv ON ls.id = sv.stream_id AND sv.is_active = 1
+            WHERE ls.status = 'live'
+            GROUP BY ls.id
+            ORDER BY current_viewers DESC, ls.started_at DESC
+            LIMIT ?
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$limit]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getStreamById($streamId) {
+        $sql = "
+            SELECT ls.*, v.business_name as vendor_name, v.id as vendor_id
+            FROM {$this->table} ls
+            JOIN vendors v ON ls.vendor_id = v.id
+            WHERE ls.id = ?
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$streamId]);
+        return $stmt->fetch();
+    }
+    
+    public function createStream($vendorId, $data) {
+        $stmt = $this->db->prepare("
+            INSERT INTO {$this->table} 
+            (vendor_id, title, description, thumbnail_url, stream_url, chat_enabled, status, scheduled_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        return $stmt->execute([
+            $vendorId,
+            $data['title'],
+            $data['description'] ?? null,
+            $data['thumbnail_url'] ?? null,
+            $data['stream_url'] ?? null,
+            $data['chat_enabled'] ?? 1,
+            $data['status'] ?? 'scheduled',
+            $data['scheduled_at'] ?? null
+        ]);
+    }
+    
+    public function startStream($streamId) {
+        $stmt = $this->db->prepare("
+            UPDATE {$this->table} 
+            SET status = 'live', started_at = CURRENT_TIMESTAMP 
+            WHERE id = ? AND status = 'scheduled'
+        ");
+        return $stmt->execute([$streamId]);
+    }
+    
+    public function endStream($streamId) {
+        $stmt = $this->db->prepare("
+            UPDATE {$this->table} 
+            SET status = 'ended', ended_at = CURRENT_TIMESTAMP 
+            WHERE id = ? AND status = 'live'
+        ");
+        return $stmt->execute([$streamId]);
+    }
+    
+    public function updateViewerCount($streamId, $count) {
+        $stmt = $this->db->prepare("
+            UPDATE {$this->table} 
+            SET viewer_count = ?, max_viewers = GREATEST(max_viewers, ?)
+            WHERE id = ?
+        ");
+        return $stmt->execute([$count, $count, $streamId]);
+    }
+    
+    public function getStreamStats($streamId) {
+        $sql = "
+            SELECT 
+                ls.*,
+                COUNT(DISTINCT CASE WHEN si.interaction_type = 'like' THEN si.id END) as likes_count,
+                COUNT(DISTINCT CASE WHEN si.interaction_type = 'dislike' THEN si.id END) as dislikes_count,
+                COUNT(DISTINCT CASE WHEN si.interaction_type = 'comment' THEN si.id END) as comments_count,
+                COUNT(DISTINCT sv.id) as total_viewers,
+                COUNT(DISTINCT so.id) as orders_count,
+                COALESCE(SUM(so.amount), 0) as total_revenue
+            FROM {$this->table} ls
+            LEFT JOIN stream_interactions si ON ls.id = si.stream_id
+            LEFT JOIN stream_viewers sv ON ls.id = sv.stream_id
+            LEFT JOIN stream_orders so ON ls.id = so.stream_id
+            WHERE ls.id = ?
+            GROUP BY ls.id
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$streamId]);
+        return $stmt->fetch();
+    }
+    
+    public function getStreamProducts($streamId) {
+        $sql = "
+            SELECT p.*, lsp.special_price, lsp.discount_percentage
+            FROM live_stream_products lsp
+            JOIN products p ON lsp.product_id = p.id
+            WHERE lsp.stream_id = ?
+            ORDER BY lsp.display_order
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$streamId]);
+        return $stmt->fetchAll();
+    }
+}
+
+class SavedStream extends BaseModel {
+    protected $table = 'saved_streams';
+    
+    public function saveStream($streamData) {
+        $stmt = $this->db->prepare("
+            INSERT INTO {$this->table} 
+            (stream_id, vendor_id, title, description, video_url, thumbnail_url, 
+             duration, viewer_count, total_revenue, streamed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        return $stmt->execute([
+            $streamData['stream_id'],
+            $streamData['vendor_id'],
+            $streamData['title'],
+            $streamData['description'] ?? null,
+            $streamData['video_url'],
+            $streamData['thumbnail_url'] ?? null,
+            $streamData['duration'],
+            $streamData['viewer_count'] ?? 0,
+            $streamData['total_revenue'] ?? 0.00,
+            $streamData['streamed_at']
+        ]);
+    }
+    
+    public function getVendorSavedStreams($vendorId, $limit = null) {
+        $sql = "
+            SELECT * FROM {$this->table}
+            WHERE vendor_id = ?
+            ORDER BY saved_at DESC
+        ";
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$vendorId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getSavedStreamById($id) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+    
+    public function deleteSavedStream($id) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+}
+
+class StreamInteraction extends BaseModel {
+    protected $table = 'stream_interactions';
+    
+    public function addInteraction($streamId, $userId, $type, $commentText = null) {
+        if (in_array($type, ['like', 'dislike'])) {
+            // Remove previous like/dislike
+            $stmt = $this->db->prepare("
+                DELETE FROM {$this->table} 
+                WHERE stream_id = ? AND user_id = ? 
+                AND interaction_type IN ('like', 'dislike')
+            ");
+            $stmt->execute([$streamId, $userId]);
+        }
+        
+        $stmt = $this->db->prepare("
+            INSERT INTO {$this->table} 
+            (stream_id, user_id, interaction_type, comment_text)
+            VALUES (?, ?, ?, ?)
+        ");
+        return $stmt->execute([$streamId, $userId, $type, $commentText]);
+    }
+    
+    public function removeInteraction($streamId, $userId, $type) {
+        $stmt = $this->db->prepare("
+            DELETE FROM {$this->table} 
+            WHERE stream_id = ? AND user_id = ? AND interaction_type = ?
+        ");
+        return $stmt->execute([$streamId, $userId, $type]);
+    }
+    
+    public function getStreamComments($streamId, $limit = 100) {
+        $sql = "
+            SELECT si.*, u.username, u.email
+            FROM {$this->table} si
+            LEFT JOIN users u ON si.user_id = u.id
+            WHERE si.stream_id = ? AND si.interaction_type = 'comment'
+            ORDER BY si.created_at DESC
+        ";
+        if ($limit) {
+            $sql .= " LIMIT $limit";
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$streamId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getUserInteraction($streamId, $userId) {
+        $stmt = $this->db->prepare("
+            SELECT interaction_type 
+            FROM {$this->table} 
+            WHERE stream_id = ? AND user_id = ? 
+            AND interaction_type IN ('like', 'dislike')
+        ");
+        $stmt->execute([$streamId, $userId]);
+        $result = $stmt->fetch();
+        return $result ? $result['interaction_type'] : null;
+    }
+}
+
+class StreamViewer extends BaseModel {
+    protected $table = 'stream_viewers';
+    
+    public function addViewer($streamId, $userId = null, $sessionId = null, $ipAddress = null, $userAgent = null) {
+        $stmt = $this->db->prepare("
+            INSERT INTO {$this->table} 
+            (stream_id, user_id, session_id, ip_address, user_agent, joined_at, is_active)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+        ");
+        return $stmt->execute([$streamId, $userId, $sessionId, $ipAddress, $userAgent]);
+    }
+    
+    public function markViewerLeft($viewerId) {
+        $stmt = $this->db->prepare("
+            UPDATE {$this->table} 
+            SET is_active = 0, left_at = CURRENT_TIMESTAMP,
+                watch_duration = TIMESTAMPDIFF(SECOND, joined_at, CURRENT_TIMESTAMP)
+            WHERE id = ?
+        ");
+        return $stmt->execute([$viewerId]);
+    }
+    
+    public function getActiveViewers($streamId) {
+        $sql = "
+            SELECT sv.*, u.username, u.email
+            FROM {$this->table} sv
+            LEFT JOIN users u ON sv.user_id = u.id
+            WHERE sv.stream_id = ? AND sv.is_active = 1
+            ORDER BY sv.joined_at ASC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$streamId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function cleanupInactiveViewers($streamId, $inactiveMinutes = 5) {
+        $stmt = $this->db->prepare("
+            UPDATE {$this->table} 
+            SET is_active = 0, left_at = CURRENT_TIMESTAMP,
+                watch_duration = TIMESTAMPDIFF(SECOND, joined_at, CURRENT_TIMESTAMP)
+            WHERE stream_id = ? AND is_active = 1 
+            AND joined_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)
+        ");
+        return $stmt->execute([$streamId, $inactiveMinutes]);
+    }
+}
+
+class StreamOrder extends BaseModel {
+    protected $table = 'stream_orders';
+    
+    public function recordStreamOrder($streamId, $orderId, $productId, $vendorId, $amount) {
+        $stmt = $this->db->prepare("
+            INSERT INTO {$this->table} 
+            (stream_id, order_id, product_id, vendor_id, amount)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        return $stmt->execute([$streamId, $orderId, $productId, $vendorId, $amount]);
+    }
+    
+    public function getStreamOrders($streamId) {
+        $sql = "
+            SELECT so.*, p.name as product_name, o.status as order_status, u.username
+            FROM {$this->table} so
+            JOIN orders o ON so.order_id = o.id
+            JOIN products p ON so.product_id = p.id
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE so.stream_id = ?
+            ORDER BY so.created_at DESC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$streamId]);
+        return $stmt->fetchAll();
+    }
+}
 ?>
