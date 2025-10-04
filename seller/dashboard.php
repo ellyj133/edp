@@ -24,7 +24,7 @@ $vendorId = $vendorInfo['id'];
 
 // Get wallet information
 $walletQuery = "SELECT * FROM seller_wallets WHERE vendor_id = ?";
-$walletStmt = $db->prepare($walletQuery);
+$walletStmt = db()->prepare($walletQuery);
 $walletStmt->execute([$vendorId]);
 $wallet = $walletStmt->fetch();
 
@@ -35,7 +35,7 @@ $analyticsQuery = "
     ORDER BY metric_date DESC 
     LIMIT 30
 ";
-$analyticsStmt = $db->prepare($analyticsQuery);
+$analyticsStmt = db()->prepare($analyticsQuery);
 $analyticsStmt->execute([$vendorId]);
 $analytics = $analyticsStmt->fetchAll();
 
@@ -51,7 +51,7 @@ $monthlyStatsQuery = "
     AND DATE_FORMAT(created_at, '%Y-%m') = ?
     AND status IN ('approved', 'paid')
 ";
-$monthlyStatsStmt = $db->prepare($monthlyStatsQuery);
+$monthlyStatsStmt = db()->prepare($monthlyStatsQuery);
 $monthlyStatsStmt->execute([$vendorId, $currentMonth]);
 $monthlyStats = $monthlyStatsStmt->fetch();
 
@@ -66,7 +66,7 @@ $productStatsQuery = "
     FROM products 
     WHERE vendor_id = ?
 ";
-$productStatsStmt = $db->prepare($productStatsQuery);
+$productStatsStmt = db()->prepare($productStatsQuery);
 $productStatsStmt->execute([$vendorId]);
 $productStats = $productStatsStmt->fetch();
 
@@ -83,7 +83,7 @@ $recentOrdersQuery = "
     ORDER BY o.created_at DESC
     LIMIT 10
 ";
-$recentOrdersStmt = $db->prepare($recentOrdersQuery);
+$recentOrdersStmt = db()->prepare($recentOrdersQuery);
 $recentOrdersStmt->execute([$vendorId]);
 $recentOrders = $recentOrdersStmt->fetchAll();
 
@@ -100,7 +100,7 @@ $topProductsQuery = "
     ORDER BY p.purchase_count DESC, p.view_count DESC
     LIMIT 5
 ";
-$topProductsStmt = $db->prepare($topProductsQuery);
+$topProductsStmt = db()->prepare($topProductsQuery);
 $topProductsStmt->execute([$vendorId, $vendorId]);
 $topProducts = $topProductsStmt->fetchAll();
 
@@ -111,7 +111,7 @@ $notificationsQuery = "
     ORDER BY created_at DESC 
     LIMIT 5
 ";
-$notificationsStmt = $db->prepare($notificationsQuery);
+$notificationsStmt = db()->prepare($notificationsQuery);
 $notificationsStmt->execute([Session::getUserId()]);
 $notifications = $notificationsStmt->fetchAll();
 
