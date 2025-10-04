@@ -376,16 +376,22 @@ body .container {
     font-size: 14px;
 }
 
-.category-content {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: 30px;
+/* Override global styles for category page - use specific selector */
+.container > .category-content {
+    display: grid !important;
+    grid-template-columns: 250px 1fr !important;
+    gap: 30px !important;
+    position: static !important;
+    margin-top: 0 !important;
+    z-index: auto !important;
 }
 
 .filters-sidebar {
     position: sticky;
     top: 100px; /* Adjusted to account for header height */
     height: fit-content;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
     z-index: 10; /* Below header but above regular content */
 }
 
@@ -637,14 +643,15 @@ body .container {
         padding-right: 15px;
     }
     
-    .category-content {
-        grid-template-columns: 1fr;
+    .container > .category-content {
+        grid-template-columns: 1fr !important;
     }
     
     .filters-sidebar {
         order: 2;
-        position: relative;
-        top: 0;
+        position: relative !important;
+        top: 0 !important;
+        max-height: none !important;
         z-index: 1;
     }
     

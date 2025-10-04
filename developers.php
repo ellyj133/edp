@@ -18,16 +18,16 @@ includeHeader($page_title);
         </section>
         <section><h2>Developer Tools</h2>
             <div class="tools-grid">
-                <div class="tool-card"><h3>📝 Documentation</h3><p>Comprehensive API reference and guides</p><a href="#" class="btn btn-outline">View Docs</a></div>
-                <div class="tool-card"><h3>🧪 Sandbox Environment</h3><p>Test your integrations safely</p><a href="#" class="btn btn-outline">Access Sandbox</a></div>
-                <div class="tool-card"><h3>💻 Code Samples</h3><p>Examples in multiple languages</p><a href="#" class="btn btn-outline">Browse Samples</a></div>
-                <div class="tool-card"><h3>🎓 Tutorials</h3><p>Step-by-step integration guides</p><a href="#" class="btn btn-outline">Start Learning</a></div>
+                <div class="tool-card"><h3>🔑 Developer Portal</h3><p>Manage API keys and access your dashboard</p><a href="/developer-portal.php" class="btn btn-outline">Open Portal</a></div>
+                <div class="tool-card"><h3>📝 Documentation</h3><p>Comprehensive API reference and guides</p><a href="/developer-portal.php#docs" class="btn btn-outline">View Docs</a></div>
+                <div class="tool-card"><h3>🧪 Sandbox Environment</h3><p>Test your integrations safely</p><a href="/developer-portal.php" class="btn btn-outline">Access Sandbox</a></div>
+                <div class="tool-card"><h3>📊 Usage Analytics</h3><p>Monitor your API usage and performance</p><a href="/developer-portal.php#usage" class="btn btn-outline">View Analytics</a></div>
             </div>
         </section>
         <section><h2>Use Cases</h2>
             <ul class="use-cases"><li><strong>Inventory Management:</strong> Sync your inventory across multiple sales channels</li><li><strong>Price Monitoring:</strong> Track competitor prices and market trends</li><li><strong>Affiliate Marketing:</strong> Build product comparison and affiliate sites</li><li><strong>Mobile Apps:</strong> Create custom shopping experiences</li><li><strong>Business Tools:</strong> Build tools for sellers to manage their business</li><li><strong>Data Analysis:</strong> Analyze marketplace trends and opportunities</li></ul>
         </section>
-        <div class="cta-section"><h2>Ready to Build?</h2><p>Get your API credentials and start developing today</p><a href="/contact.php?subject=Developer" class="btn btn-primary btn-lg">Request API Access</a></div>
+        <div class="cta-section"><h2>Ready to Build?</h2><p>Get your API credentials and start developing today</p><?php if (Session::isLoggedIn()): ?><a href="/developer-portal.php" class="btn btn-primary btn-lg">Go to Developer Portal</a><?php else: ?><a href="/login.php?redirect=/developer-portal.php" class="btn btn-primary btn-lg">Login to Get Started</a><?php endif; ?></div>
     </div>
 </div>
 
