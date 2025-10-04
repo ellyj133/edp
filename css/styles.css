@@ -3069,7 +3069,8 @@ footer {
     background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%);
 }
 
-.category-content {
+/* Category card content overlay (for homepage category cards) */
+.category-card .category-content {
     position: absolute;
     bottom: 20px;
     left: 20px;
@@ -3078,13 +3079,22 @@ footer {
     z-index: 2;
 }
 
-.category-title {
+/* Category page main content area (for category.php page) */
+.container > .category-content {
+    position: relative;
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    z-index: 1;
+}
+
+.category-card .category-title {
     font-size: 18px;
     font-weight: 700;
     margin-bottom: 4px;
 }
 
-.category-subtitle {
+.category-card .category-subtitle {
     font-size: 14px;
     opacity: 0.9;
     margin-bottom: 12px;

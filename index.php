@@ -229,8 +229,10 @@ try {
     $featured_products = [];
 }
 
+// Use template helpers for curated product sections
 try {
-    $deals = fetchRealProducts(12); // Get deals products
+    // Flash Deals: Get products with significant discounts
+    $deals = get_deals_section(12);
 } catch (Exception $e) {
     $deals = [];
 }
@@ -254,13 +256,18 @@ try {
 }
 
 try {
-    $furniture = fetchRealProducts(10, 4); // Category ID 4 for furniture
+    // Furniture section: Use category-specific products
+    $furniture = get_furniture_section_content();
+    if (empty($furniture)) {
+        $furniture = fetchRealProducts(10, 4); // Fallback to category ID 4
+    }
 } catch (Exception $e) {
     $furniture = [];
 }
 
 try {
-    $trending_products = fetchRealProducts(10);
+    // Trending products: Use products based on recent sales/views
+    $trending_products = get_trending_products(10);
 } catch (Exception $e) {
     $trending_products = [];
 }
@@ -1124,8 +1131,9 @@ includeHeader($page_title);
             <div class="products-horizontal-container">
                 <div class="products-track" id="halloween-track">
                     <?php 
-                    $halloween_products = !empty($trending_products) ? array_slice($trending_products, 0, 6) : [];
-                    // Try to get real products for Halloween section
+                    // Use new arrivals for this section to show different products
+                    $halloween_products = get_new_arrivals(6);
+                    // Fallback if no products from helper
                     if (empty($halloween_products)) {
                         $halloween_products = fetchRealProducts(6); // Any products
                     }
