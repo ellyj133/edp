@@ -546,12 +546,21 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
                 height: auto;
                 padding: 0;
                 margin: 0;
+                position: sticky;
+                top: 0;
+                z-index: 1000;
             }
             
             .feza-main-content {
                 flex-direction: column;
                 gap: 0;
                 padding: 0;
+            }
+            
+            /* Remove any body padding that might cause white space */
+            body {
+                padding-top: 0 !important;
+                margin-top: 0 !important;
             }
             
             .mobile-header-row {
@@ -563,10 +572,28 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
                 padding: 12px 16px;
             }
             
+            /* Hide desktop logo and show mobile logo */
+            .feza-logo-desktop {
+                display: none;
+            }
+            
+            .feza-logo-mobile {
+                display: flex;
+            }
+            
             .feza-logo {
                 font-size: 28px;
                 flex: 0;
                 text-align: left;
+            }
+            
+            /* Hide desktop header icons on mobile */
+            .feza-header-icons-desktop {
+                display: none;
+            }
+            
+            .feza-category-dropdown {
+                display: none;
             }
             
             .mobile-menu-toggle {
@@ -700,6 +727,14 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
                 display: none;
             }
             
+            .feza-logo-mobile {
+                display: none;
+            }
+            
+            .feza-logo-desktop {
+                display: flex;
+            }
+            
             .mobile-menu-toggle {
                 display: none;
             }
@@ -782,7 +817,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
         <div class="feza-main-content">
             <!-- Mobile Header Row -->
             <div class="mobile-header-row">
-                <a href="/" class="feza-logo">
+                <a href="/" class="feza-logo feza-logo-mobile">
                     <span class="f">F</span><span class="e">e</span><span class="z">z</span><span class="a">a</span>
                 </a>
                 
@@ -792,7 +827,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
             </div>
             
             <!-- Desktop Logo -->
-            <a href="/" class="feza-logo">
+            <a href="/" class="feza-logo feza-logo-desktop">
                 <span class="f">F</span><span class="e">e</span><span class="z">z</span><span class="a">a</span>
             </a>
             
@@ -839,7 +874,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
             </div>
             
             <!-- Header Icons -->
-            <div class="feza-header-icons">
+            <div class="feza-header-icons feza-header-icons-desktop">
                 <a href="/notifications.php" class="feza-header-icon" title="Notifications">
                     <i class="far fa-bell"></i>
                     <?php 
