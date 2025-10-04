@@ -5,6 +5,18 @@ This fix addresses two critical issues in the e-commerce platform:
 1. Homepage product sections were displaying repetitive products
 2. Category page had a layout bug where products overlapped the header
 
+## ✅ Validation Results
+
+All changes have been validated:
+- ✓ CSS scoped to .category-card .category-content
+- ✓ CSS added for .container > .category-content
+- ✓ Flash Deals uses get_deals_section()
+- ✓ Trending section uses get_trending_products()
+- ✓ New arrivals section uses get_new_arrivals()
+- ✓ Using MySQL/MariaDB date syntax
+- ✓ No SQLite date syntax found
+- ✓ All PHP files have no syntax errors
+
 ## Changes Made
 
 ### Issue 1: Homepage Product Curation ✅
@@ -33,7 +45,7 @@ This fix addresses two critical issues in the e-commerce platform:
      FROM products p
      LEFT JOIN order_items oi ON oi.product_id = p.id
      LEFT JOIN orders o ON o.id = oi.order_id 
-       AND o.created_at >= date('now', '-7 days')
+       AND o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
        AND o.status IN ('paid','shipped','delivered')
      GROUP BY p.id
      ORDER BY sold DESC, p.created_at DESC
@@ -110,6 +122,7 @@ The `getTrendingProducts()` function now:
 3. Sums quantity sold per product
 4. Orders by sales volume DESC, then by creation date
 5. Falls back to newest products if no sales data exists
+6. Uses MySQL/MariaDB compatible date functions (`DATE_SUB(NOW(), INTERVAL 7 DAY)`)
 
 ### CSS Specificity Fix
 
@@ -146,7 +159,16 @@ By using more specific selectors (`.category-card .category-content` and `.conta
 ## Files Modified
 
 1. `css/styles.css` - 16 lines changed
-2. `includes/template-helpers.php` - 22 lines changed  
+2. `includes/template-helpers.php` - 23 lines changed  
 3. `index.php` - 18 lines changed
 
-**Total:** 56 lines changed across 3 files
+**Total:** 57 lines changed across 3 files
+
+## Database Compatibility
+
+All queries now use MySQL/MariaDB compatible syntax:
+- `NOW()` instead of SQLite's `date('now')`
+- `DATE_SUB(NOW(), INTERVAL 7 DAY)` instead of `date('now', '-7 days')`
+- `INTERVAL X DAY` syntax for date arithmetic
+
+This ensures compatibility with the MariaDB database configured in `config/config.php`.
