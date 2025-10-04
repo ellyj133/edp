@@ -206,14 +206,130 @@ function startLiveStream() {
 }
 
 function scheduleEvent() {
-    // In a real implementation, this would open a scheduling modal
-    alert('Schedule a live event!\n\nYou can set:\n• Event date and time\n• Featured products\n• Event title and description\n• Promotional banners');
+    document.getElementById('scheduleModal').style.display = 'flex';
+}
+
+function closeScheduleModal() {
+    document.getElementById('scheduleModal').style.display = 'none';
+}
+
+function saveScheduledEvent(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const data = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        scheduled_start: formData.get('scheduled_date') + ' ' + formData.get('scheduled_time'),
+        estimated_duration: formData.get('duration'),
+        featured_products: selectedProducts
+    };
+    
+    fetch('/api/live/schedule.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('✅ Stream scheduled successfully!');
+            closeScheduleModal();
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (result.message || 'Failed to schedule stream'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error scheduling stream. Please try again.');
+    });
 }
 
 function viewAnalytics() {
     // Redirect to analytics page
     window.location.href = '/seller/analytics.php?tab=live-streams';
 }
+</script>
+
+<!-- Schedule Event Modal -->
+<div id="scheduleModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #1f2937;">📅 Schedule Live Event</h2>
+            <button onclick="closeScheduleModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+        </div>
+        
+        <form onsubmit="saveScheduledEvent(event)">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 600;">Event Title *</label>
+                <input type="text" name="title" required 
+                       placeholder="e.g., Summer Fashion Sale Live Show"
+                       style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 600;">Description</label>
+                <textarea name="description" rows="3" 
+                          placeholder="Tell your audience what to expect..."
+                          style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; resize: vertical;"></textarea>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 600;">Date *</label>
+                    <input type="date" name="scheduled_date" required 
+                           min="<?php echo date('Y-m-d'); ?>"
+                           style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 600;">Time *</label>
+                    <input type="time" name="scheduled_time" required 
+                           style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #374151; font-weight: 600;">Estimated Duration (minutes)</label>
+                <input type="number" name="duration" min="15" max="480" value="60" 
+                       placeholder="60"
+                       style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+            </div>
+            
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                    <strong style="color: #374151;">Selected Products:</strong> 
+                    <span id="selectedProductsCount"><?php echo '0'; ?></span> product(s)
+                </p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #9ca3af;">
+                    Select products from the list above before scheduling
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeScheduleModal()" 
+                        style="padding: 10px 20px; border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        style="padding: 10px 20px; border: none; background: #3b82f6; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Schedule Event
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Update selected products count in modal
+setInterval(() => {
+    const countSpan = document.getElementById('selectedProductsCount');
+    if (countSpan) {
+        countSpan.textContent = selectedProducts.length;
+    }
+}, 500);
 </script>
 
 <?php
