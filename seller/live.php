@@ -201,8 +201,8 @@ function startLiveStream() {
         return;
     }
     
-    // In a real implementation, this would open the streaming interface
-    alert('Live streaming feature is being configured!\n\nSelected products: ' + selectedProducts.length + '\n\nThis will open the streaming interface where you can:\n• Set up your camera\n• Preview your stream\n• Go live to customers');
+    // Redirect to streaming interface with selected products
+    window.location.href = '/seller/stream-interface.php?products=' + selectedProducts.join(',');
 }
 
 function scheduleEvent() {
