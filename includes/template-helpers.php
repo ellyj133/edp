@@ -115,7 +115,7 @@ class PlatformDataFetcher {
                     LEFT JOIN users u ON p.seller_id = u.id
                     LEFT JOIN order_items oi ON oi.product_id = p.id
                     LEFT JOIN orders o ON o.id = oi.order_id 
-                        AND o.created_at >= date('now', '-7 days')
+                        AND o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                         AND o.status IN ('paid','shipped','delivered')
                     WHERE p.status = 'active'
                     GROUP BY p.id, p.name, p.price, c.name, c.slug, u.username, u.first_name, u.last_name
