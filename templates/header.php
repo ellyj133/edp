@@ -779,7 +779,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
                     </div>
                     <div class="feza-dropdown">
                         <div class="feza-dropdown-trigger">
-                            <a href="/account.php">My eBay</a>
+                            <a href="/account.php">My Feza</a>
                             <div class="feza-dropdown-arrow"></div>
                         </div>
                         <div class="feza-dropdown-content">
@@ -806,7 +806,7 @@ $page_title = $page_title ?? 'Feza - Electronics, Cars, Fashion, Collectibles & 
                     </div>
                 <?php else: ?>
                     <a href="/saved.php">Watchlist</a>
-                    <a href="/login.php">My eBay</a>
+                    <a href="/login.php">My Feza</a>
                 <?php endif; ?>
             </div>
         </div>

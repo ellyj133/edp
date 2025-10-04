@@ -794,6 +794,16 @@ if (file_exists(__DIR__ . '/templates/header.php')) {
     </div>
     <?php endif; ?>
     
+    <!-- AI Recommended Products -->
+    <div id="aiRecommendations" class="ai-recommended-products" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+            <h2 style="margin: 0;">🤖 AI Recommended for You</h2>
+            <span style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">POWERED BY AI</span>
+        </div>
+        <p style="color: #6b7280; margin-bottom: 20px; font-size: 14px;">Based on your browsing history and preferences</p>
+        <div class="products-grid" id="aiRecommendationsGrid"></div>
+    </div>
+    
     <!-- Related Products -->
     <?php if (!empty($relatedProducts)): ?>
     <div class="related-products">
@@ -1047,6 +1057,61 @@ window.onclick = function(event) {
         closeOfferModal();
     }
 }
+
+// Track product view for AI recommendations
+let viewStartTime = Date.now();
+window.addEventListener('beforeunload', function() {
+    const viewDuration = Math.floor((Date.now() - viewStartTime) / 1000);
+    
+    // Use sendBeacon for reliable tracking on page unload
+    if (navigator.sendBeacon) {
+        const data = JSON.stringify({
+            product_id: productId,
+            duration: viewDuration
+        });
+        navigator.sendBeacon('/api/track-view.php', data);
+    }
+});
+
+// Load AI recommendations
+fetch(`/api/ai-recommendations.php?product_id=${productId}&limit=8`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data.recommendations && data.data.recommendations.length > 0) {
+            const grid = document.getElementById('aiRecommendationsGrid');
+            const section = document.getElementById('aiRecommendations');
+            
+            grid.innerHTML = data.data.recommendations.map(product => `
+                <a href="/product/${product.id}" class="product-card">
+                    <img src="${product.image_url}" alt="${escapeHtml(product.name)}">
+                    <div>${escapeHtml(product.name)}</div>
+                    <div>$${formatPrice(product.price)}</div>
+                    ${product.sale_price ? `<div class="sale-badge">Sale</div>` : ''}
+                </a>
+            `).join('');
+            
+            section.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading AI recommendations:', error);
+    });
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function formatPrice(price) {
+    return parseFloat(price).toFixed(2);
+}
+
 </script>
 
 <?php

@@ -45,7 +45,7 @@ if ($isLoggedIn && function_exists('db')) {
     }
 }
 
-$page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & More | eBay';
+$page_title = $page_title ?? 'Fezamarket - Electronics, Cars, Fashion, Collectibles & More | Fezamarket';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,7 +55,7 @@ $page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & 
     <title><?php echo htmlspecialchars($page_title); ?></title>
     
     <!-- Meta Tags -->
-    <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'Buy & sell electronics, cars, clothes, collectibles & more on eBay, the world\'s online marketplace. Top brands, low prices & free shipping on many items.'); ?>">
+    <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'Buy & sell electronics, cars, clothes, collectibles & more on Fezamarket, the world\'s online marketplace. Top brands, low prices & free shipping on many items.'); ?>">
     <meta name="keywords" content="buy, sell, auction, online marketplace, electronics, fashion, home, garden, collectibles, cars, sporting goods">
     
     <!-- Favicon -->
@@ -636,7 +636,7 @@ $page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & 
                     </div>
                     <div class="ebay-dropdown">
                         <div class="ebay-dropdown-trigger">
-                            <a href="/account.php">My eBay</a>
+                            <a href="/account.php">My Feza</a>
                             <div class="ebay-dropdown-arrow"></div>
                         </div>
                         <div class="ebay-dropdown-content">
@@ -660,7 +660,7 @@ $page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & 
                     </div>
                 <?php else: ?>
                     <a href="/saved.php">Watchlist</a>
-                    <a href="/login.php">My eBay</a>
+                    <a href="/login.php">My Feza</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -755,7 +755,7 @@ $page_title = $page_title ?? 'eBay - Electronics, Cars, Fashion, Collectibles & 
     <nav class="ebay-nav-bar">
         <div class="ebay-nav-content">
             <ul class="ebay-nav-links">
-                <li><a href="/live.php">eBay Live</a></li>
+                <li><a href="/live.php">Fezamarket Live</a></li>
                 <li><a href="/saved.php">Saved</a></li>
                 <li><a href="/category.php?cat=electronics">Electronics</a></li>
                 <li><a href="/category.php?cat=motors">Motors</a></li>
